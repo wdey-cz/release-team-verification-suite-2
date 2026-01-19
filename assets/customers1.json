@@ -1,0 +1,1075 @@
+{
+  "version": 1,
+  "customers": [
+    {
+      "id": 99999,
+      "name": "Customer Not in List",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 2400,
+      "name": "AllCare",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "Allcare_abaca"
+        },
+        {
+          "role": "Provider",
+          "username": "Allcare_fbandookwala"
+        }
+      ]
+    },
+    {
+      "id": 1750,
+      "name": "AllCare To You",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 2750,
+      "name": "Alliant Health",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 1500,
+      "name": "AltaMed",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "AltaMed_AlUtria"
+        },
+        {
+          "role": "Regional Support",
+          "username": "altamed_aavila"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "AltaMed_Abigail"
+        },
+        {
+          "role": "Provider",
+          "username": "altamed_kprice"
+        }
+      ]
+    },
+    {
+      "id": 2650,
+      "name": "Altura La Salle",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        },
+        {
+          "role": "Customer Support",
+          "username": "LSMA_SToubal"
+        },
+        {
+          "role": "Regional Support",
+          "username": "LSMA_Eaquino"
+        }
+      ]
+    },
+    {
+      "id": 3700,
+      "name": "Anthem",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "anthm_jatchley"
+        },
+        {
+          "role": "Regional Support",
+          "username": "anthm_thassan"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "anthm_kjacobo"
+        }
+      ]
+    },
+    {
+      "id": 2600,
+      "name": "APN CT",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 2200,
+      "name": "AppleCare Medical Group",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 6800,
+      "name": "Brand New Day",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 1600,
+      "name": "Brown & Toland Physicians",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "btp_agodinez"
+        },
+        {
+          "role": "Regional Support",
+          "username": "btp_aloo"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "btp_SBUTTLIERE"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "btp_ssison"
+        },
+        {
+          "role": "Provider",
+          "username": "BTP_KKHOO"
+        }
+      ]
+    },
+    {
+      "id": 6700,
+      "name": "Central Health Plan",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 7100,
+      "name": "Change Healthcare",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "change_Anrios"
+        },
+        {
+          "role": "Regional Support",
+          "username": "Bjohnson"
+        },
+        {
+          "role": "Ofiice Admin",
+          "username": "Adesbaillets"
+        }
+      ]
+    },
+    {
+      "id": 4700,
+      "name": "Children First Medical Group",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 7500,
+      "name": "Chinese Community Health Plan (CCHP)",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "craig.reich@cchphealthplan.com"
+        },
+        {
+          "role": "Regional Support",
+          "username": "jiamiw@chasf.org"
+        }
+      ]
+    },
+    {
+      "id": 3200,
+      "name": "CKC",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "ckc.mhillard1"
+        },
+        {
+          "role": "Regional Support",
+          "username": "CKC.jtrinh"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "ckc.familypractice"
+        }
+      ]
+    },
+    {
+      "id": 2050,
+      "name": "Conifer Health Solutions",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 3100,
+      "name": "Dignity Health",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "dchristy"
+        },
+        {
+          "role": "Regional Support",
+          "username": "dhmf_abajwa"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "dignity.familypractice"
+        }
+      ]
+    },
+    {
+      "id": 1700,
+      "name": "EPIC Management, L.P.",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "epic_allopez"
+        },
+        {
+          "role": "Regional Support",
+          "username": "epic_abarrera"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "epic_cgibson"
+        }
+      ]
+    },
+    {
+      "id": 2900,
+      "name": "Excel MSO",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "EXCL_CSmith"
+        },
+        {
+          "role": "Regional Support",
+          "username": "EXCL_AShetty"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "EXCL_Acastillo"
+        },
+        {
+          "role": "Provider",
+          "username": "EXCL_DKHAY"
+        }
+      ]
+    },
+    {
+      "id": 1800,
+      "name": "Family Choice",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "Jhall_FCA"
+        },
+        {
+          "role": "Regional Support",
+          "username": "cnguyen_fca"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "mtran_fca"
+        },
+        {
+          "role": "Provider",
+          "username": "cmai_fca"
+        }
+      ]
+    },
+    {
+      "id": 4300,
+      "name": "FirstChoice Medical Group",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "FCMG_CCarpenter"
+        }
+      ]
+    },
+    {
+      "id": 3000,
+      "name": "Health Net",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "adriana.x.hernandez@healthnet.com"
+        },
+        {
+          "role": "Regional Support",
+          "username": "aemerson@cnhfclinics.org"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "aanderson@briankgawmd.com"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "admin@vistavillagepediatrics.com"
+        },
+        {
+          "role": "Provider",
+          "username": "acmdgp@gmail.com"
+        }
+      ]
+    },
+    {
+      "id": 3500,
+      "name": "Hoag Clinic",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "S_Vankadaru"
+        },
+        {
+          "role": "Regional Support",
+          "username": "S_Fernandez"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "A_Calderon"
+        }
+      ]
+    },
+    {
+      "id": 200,
+      "name": "HPMG",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 2350,
+      "name": "Imperial Health",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "imphp_adrienne.smith"
+        }
+      ]
+    },
+    {
+      "id": 3600,
+      "name": "L.A. Care",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 4600,
+      "name": "MedPOINT Management",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "MPM_GlKamar"
+        },
+        {
+          "role": "Regional Support",
+          "username": "MPM_MaPelagio"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "mpm_AnCruz"
+        },
+        {
+          "role": "Provider",
+          "username": "mpm_LoHo"
+        }
+      ]
+    },
+    {
+      "id": 150,
+      "name": "Memorial",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "GNP_Bwoods"
+        },
+        {
+          "role": "Regional Support",
+          "username": "adriene.przekop"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "dbouyear_pracDel"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "aomalley"
+        },
+        {
+          "role": "Provider",
+          "username": "EMG_sarnold"
+        }
+      ]
+    },
+    {
+      "id": 5700,
+      "name": "MemorialCare Select Health Plan",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "MCSHP_AdkinsDwivedi"
+        },
+        {
+          "role": "Office Admin",
+          "username": "mcshp_aamaya"
+        }
+      ]
+    },
+    {
+      "id": 2700,
+      "name": "MERITAGE",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "kghosh.cm.meritage"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "MRTG_JMcIsaac"
+        }
+      ]
+    },
+    {
+      "id": 1950,
+      "name": "Molina Healthcare",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 2000,
+      "name": "Monarch HealthCare",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 2100,
+      "name": "NAMM",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 5600,
+      "name": "Nivano Physicians",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "josec@nivanophysicians.com"
+        },
+        {
+          "role": "Regional Support",
+          "username": "Nivano_aedwards"
+        }
+      ]
+    },
+    {
+      "id": 1100,
+      "name": "Omnicare",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "Omn_araheja"
+        },
+        {
+          "role": "Regional Support",
+          "username": "omn_kfaust"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "ibarra.anayely"
+        },
+        {
+          "role": "Provider",
+          "username": "Omn_horchhay"
+        }
+      ]
+    },
+    {
+      "id": 3300,
+      "name": "OPTUM",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 4500,
+      "name": "OptumCare - Nevada",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 5100,
+      "name": "Optum Care Arizona",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 7400,
+      "name": "Optum Care Colorado",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 2800,
+      "name": "Optum Care Colorado (NWST)",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 1550,
+      "name": "Optum Care Network - Idaho",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 6600,
+      "name": "Optum Care Network New Mexico",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 5200,
+      "name": "Optum Care Network of Indiana",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 4800,
+      "name": "Optum Care Network of Ohio",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 5300,
+      "name": "Optum Care Network of Oregon",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 4900,
+      "name": "Optum Care Network Washington",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 2950,
+      "name": "Optum Care Network Wisconsin",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 4100,
+      "name": "Optum Care Network – Utah",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 5000,
+      "name": "Optum Care New York",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 2450,
+      "name": "OptumHealth South Carolina",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 1650,
+      "name": "Optum Kansas City",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 3400,
+      "name": "Physicians DataTrust",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 1200,
+      "name": "PIH",
+      "accounts": [
+        {
+          "role": "Limited Cozeva Support",
+          "username": "dmorales"
+        },
+        {
+          "role": "Customer Support",
+          "username": "Pih_jcoyne"
+        },
+        {
+          "role": "Regional Support",
+          "username": "PIH_aacha"
+        },
+        {
+          "role": "Provider",
+          "username": "SPatel4"
+        },
+        {
+          "role": "Office Admin",
+          "username": "PIH_aaldrete"
+        }
+      ]
+    },
+    {
+      "id": 3900,
+      "name": "PPMSI",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "ppmsi_aaschim"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "ppmsi_BRENDAN"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "PPMSI_926NCHAMBERS"
+        },
+        {
+          "role": "Provider",
+          "username": "ppmsi_ASHENMD"
+        }
+      ]
+    },
+    {
+      "id": 2550,
+      "name": "Preferred IPA",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "preipa_cgrasu"
+        }
+      ]
+    },
+    {
+      "id": 3800,
+      "name": "Primary Care of CA",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "PCAC_avillena"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "DGordon2477"
+        },
+        {
+          "role": "Provider",
+          "username": "ADARAWAL_MD"
+        }
+      ]
+    },
+    {
+      "id": 1300,
+      "name": "Prospect",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "PMS_AChandra"
+        },
+        {
+          "role": "Regional Support",
+          "username": "PMS_Aalba"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "HangTran"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "Baodanh"
+        },
+        {
+          "role": "Provider",
+          "username": "PMS_20A5106"
+        }
+      ]
+    },
+    {
+      "id": 1850,
+      "name": "Providence CA",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "PROV_CA_AReyes"
+        },
+        {
+          "role": "Regional Support",
+          "username": "PROV_CA_AAbeita"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "PROV_CA_AAfshari"
+        }
+      ]
+    },
+    {
+      "id": 2500,
+      "name": "Providence LA",
+      "accounts": [
+        {
+          "role": "Limited Cozeva Support",
+          "username": "PROV_areyes"
+        },
+        {
+          "role": "Customer Support",
+          "username": "PROV_Aalvarez"
+        },
+        {
+          "role": "Regional Support",
+          "username": "PROV_AGamini"
+        }
+      ]
+    },
+    {
+      "id": 6000,
+      "name": "Quality",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "RCHN.nevans"
+        },
+        {
+          "role": "Regional Support",
+          "username": "CHOC.llyGuerrero"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "CHOC.EDWARD.CHAI"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "CHOC.aavellaneda"
+        }
+      ]
+    },
+    {
+      "id": 5400,
+      "name": "River City Medical Group ACO",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "rcmg_thasan"
+        },
+        {
+          "role": "Regional Support",
+          "username": "SArtham"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "S_artham"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "DMcAndrew."
+        }
+      ]
+    },
+    {
+      "id": 1000,
+      "name": "SCPMCS",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "apaul.cu.scpmcs"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "aduran"
+        },
+        {
+          "role": "Provider",
+          "username": "DR.DADEMA"
+        }
+      ]
+    },
+    {
+      "id": 1900,
+      "name": "Sequoia Integrated Health",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "puchakraborty.cm.sequoia"
+        },
+        {
+          "role": "Regional Support",
+          "username": "SIH_TGleason"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "SIH_LWilbourn"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "SIH_CHer"
+        },
+        {
+          "role": "Provider",
+          "username": "SIH_APatel"
+        }
+      ]
+    },
+    {
+      "id": 7000,
+      "name": "Sharp Community Medical Group",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "scmg_dennis.cheung"
+        },
+        {
+          "role": "Regional Support",
+          "username": "scmg_amanda.polizzi"
+        },
+        {
+          "role": "Office Admin",
+          "username": "scmg_abryha.barboan"
+        },
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 4000,
+      "name": "Sharp Healthcare",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "sharp_brovo"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "sharp_lagbr"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "sharp_DEVUM"
+        }
+      ]
+    },
+    {
+      "id": 6500,
+      "name": "ST.JOSEPH",
+      "accounts": [
+        {
+          "role": "Limited Cozeva Support",
+          "username": "PROV_areyes"
+        },
+        {
+          "role": "Customer Support",
+          "username": "dwixson_cert"
+        },
+        {
+          "role": "Regional Support",
+          "username": "DUARTEM3"
+        },
+        {
+          "role": "Office Admin Practice Delegate",
+          "username": "StJoe_AAjit"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "Allevato_A"
+        },
+        {
+          "role": "Provider",
+          "username": "Antonio_Ferrey"
+        }
+      ]
+    },
+    {
+      "id": 5800,
+      "name": "Stanford Health Care",
+      "accounts": [
+        {
+          "role": "Cozeva Support",
+          "username": "99999"
+        }
+      ]
+    },
+    {
+      "id": 4400,
+      "name": "Torrance Memorial IPA",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "TMIPA_cteng"
+        },
+        {
+          "role": "Regional Support",
+          "username": "TMIPA_aip"
+        },
+        {
+          "role": "Office Admin Practice and Provider Delegate",
+          "username": "TMIPA_Apartovi"
+        },
+        {
+          "role": "Provider",
+          "username": "TMIPA_ctsuneishi2"
+        }
+      ]
+    },
+    {
+      "id": 5900,
+      "name": "U.S. Renal Care",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "USRC_anna.giang"
+        },
+        {
+          "role": "Regional Support",
+          "username": "TM_mrendle"
+        },
+        {
+          "role": "Office Admin Provider Delegate",
+          "username": "PPG_hbollen"
+        }
+      ]
+    },
+    {
+      "id": 7200,
+      "name": "Western Health Advantage",
+      "accounts": [
+        {
+          "role": "Customer Support",
+          "username": "wha_jbaillie"
+        }
+      ]
+    }
+  ]
+}

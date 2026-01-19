@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "customers": [
+    {
+      "id": 99999,
+      "name": "Customer Not in List",
+      "accounts": [
+        { "role": "Cozeva Support", "username": "99999" }
+      ]
+    },
+    {
+      "id": 2400,
+      "name": "AllCare",
+      "accounts": [
+        { "role": "Customer Support", "username": "user" },
+        { "role": "Provider", "username": "user" }
+      ]
+    },
+    {
+      "id": 1500,
+      "name": "AltaMed",
+      "accounts": [
+        { "role": "Customer Support", "username": "user" },
+        { "role": "Regional Support", "username": "user" },
+        { "role": "Office Admin Practice Delegate", "username": "user" },
+        { "role": "Provider", "username": "user" }
+      ]
+    }
+  ]
+}
