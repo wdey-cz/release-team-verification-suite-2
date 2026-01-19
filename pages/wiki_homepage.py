@@ -10,6 +10,9 @@ class WikiHomePage(BasePage):
     SUGGESTION_DROPDOWN = (By.CLASS_NAME, "suggestions-dropdown")
     SUGGESTIONS = (By.CLASS_NAME, "suggestion-link")
     SUGGESTION_TEXT = (By.CLASS_NAME, "suggestion-highlight")
+    LANGUAGES_ELEMENT = (By.XPATH, "//nav[contains(@class, 'central-featured')]")
+    TOP_LANGUAGES = (By.XPATH, "//div[contains(@class, 'central-featured-lang')]") # returns a list of all top language divs
+
 
     def __init__(self, driver):
         super().__init__(driver)
@@ -32,6 +35,64 @@ class WikiHomePage(BasePage):
         suggestions_elements = self.find_elements(self.SUGGESTIONS, 30)
         suggestions = [elem.text for elem in suggestions_elements]
         return suggestions
+
+    def suggestion_dropdown_exists(self):
+        return self.is_element_present(self.SUGGESTION_DROPDOWN, 5)
+
+    def click_suggestion(self, index):
+        # Verify if Suggestion Dropdown is visible. If its not, validate that there is text in the search bar and click the search bar again
+        if not self.suggestion_dropdown_exists():
+            search_bar_text = self.get_element_attribute(self.SEARCH_BAR, "value", 5)
+            if search_bar_text:
+                self.click_search_bar()
+            else:
+                raise Exception("Suggestion dropdown not visible and search bar is empty.")
+
+        # Now fetch the suggestions again
+        suggestions_elements = self.find_elements(self.SUGGESTIONS, 30)
+        if index < 0 or index >= len(suggestions_elements):
+            raise IndexError("Suggestion index out of range.")
+        self.click_element(suggestions_elements[index], 10)
+
+    def languages_element_exists(self):
+        return self.is_element_present(self.LANGUAGES_ELEMENT, 5)
+
+    # returns a str list of the top languages on the homepage
+    def get_top_languages_list(self):
+        # check that language element exists
+        if not self.languages_element_exists():
+            raise Exception("Languages element not found on the homepage.")
+
+        language_elements = self.find_elements(self.TOP_LANGUAGES, 10)
+        language_list = []
+
+        for elem in language_elements:
+            language_header = self.find_element(self.GET_STRONG_TAGS_LOCATOR, 10, root=elem)
+            language_list.append(language_header.text)
+
+        return language_list
+
+    def click_language_by_name(self, language_name):
+        # check that language element exists
+        if not self.languages_element_exists():
+            raise Exception("Languages element not found on the homepage.")
+
+        language_elements = self.find_elements(self.TOP_LANGUAGES, 10)
+
+        for elem in language_elements:
+            language_header = self.find_element(self.GET_STRONG_TAGS_LOCATOR, 10, root=elem)
+            if language_header.text.lower() == language_name.lower():
+                elem.click()
+                return
+
+        raise Exception(f"Language '{language_name}' not found on the homepage.")
+
+
+
+
+
+
+
 
 
 

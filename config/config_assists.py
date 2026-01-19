@@ -14,6 +14,7 @@ class RunConfiguration:
     unique_id: str | None = None
     prefix: str = "RTVS"
     multiprocessing: bool = False
+    threads: int = 1
     client_id: int | None = None
     other_info: dict | None = None
 
@@ -73,6 +74,9 @@ class ConfigAssists:
     def set_multiprocessing(self, multiprocessing: bool):
         if self.run_config:
             self.run_config.multiprocessing = multiprocessing
+    def set_threads(self, threads: int):
+        if self.run_config:
+            self.run_config.threads = threads
 
     def create_run_id(self):
         if self.run_config:

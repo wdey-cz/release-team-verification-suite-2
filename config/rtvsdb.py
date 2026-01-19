@@ -450,6 +450,7 @@ class RTVSDB:
 
     def mark_stale_running_as_crashed(self, stale_seconds: int = 120):
         # Anything RUNNING but not updated in N seconds becomes CRASHED
+        # when to use : db.mark_stale_running_as_crashed(stale_seconds=120)
         with self.connection:
             self.cursor.execute("""
                 UPDATE test_activity
