@@ -8,6 +8,9 @@ from core.wait_helpers import WaitHelpers
 class BasePage:
     GET_ANCHOR_TAGS_LOCATOR = (By.TAG_NAME, "a")
     GET_STRONG_TAGS_LOCATOR = (By.TAG_NAME, "strong")
+    GET_LI_TAGS_LOCATOR = (By.TAG_NAME, "li")
+    GET_TD_TAGS_LOCATOR = (By.TAG_NAME, "td")
+    GET_TR_TAGS_LOCATOR = (By.TAG_NAME, "tr")
 
     def __init__(self, driver):
         self.driver = driver

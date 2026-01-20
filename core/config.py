@@ -16,6 +16,9 @@ class Config:
     BROWSER = os.getenv("BROWSER", "chrome")
     HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 
+    # ENV settings
+    TEST_ENV = os.getenv("TEST_ENV", "PROD")
+
     # Timeout settings (in seconds)
     DEFAULT_TIMEOUT = int(os.getenv("DEFAULT_TIMEOUT", "10"))
     PAGE_LOAD_TIMEOUT = int(os.getenv("PAGE_LOAD_TIMEOUT", "30"))

@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from config.rtvsdb import RTVSDB
+from core.config import Config
 
 @dataclass
 class RunConfiguration:
@@ -20,8 +21,8 @@ class RunConfiguration:
 
 class ConfigAssists:
 
-    BROWSER = os.getenv("BROWSER", "chrome")
-    ENV = os.getenv("ENV", "STAGE")
+    BROWSER = Config.get_browser()
+    ENV = Config.g
 
     def __init__(self):
         self.db = RTVSDB()

@@ -160,7 +160,7 @@ class RTVSDB:
                 """.format(timestamp, profile_name))
         if change_type == 'SET_ACTIVE_PROFILE' and profile_name:
             # this will look for profile name and set its only its is active to 1.
-            print(f"Setting profile {profile_name} as active.")
+            # print(f"Setting profile {profile_name} as active.")
             with self.connection:
                 self.cursor.execute("""
                     UPDATE chrome_profiles
@@ -169,7 +169,7 @@ class RTVSDB:
                 """, (profile_name,))
         if change_type == 'SET_INACTIVE_PROFILE' and profile_name:
             # this will look for profile name and set its only its is active to 0.
-            print(f"Setting profile {profile_name} as inactive.")
+            # print(f"Setting profile {profile_name} as inactive.")
             with self.connection:
                 self.cursor.execute("""
                     UPDATE chrome_profiles

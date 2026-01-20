@@ -57,13 +57,13 @@ class TestHomePage:
         wiki_home_page = WikiHomePage(driver)
         wiki_home_page.go_to_homepage()
         wiki_home_page.click_search_bar()
-        wiki_home_page.search("India")
+        wiki_home_page.search("Australia")
         wiki_home_page.sleep_code(2)
 
         try:
             wiki_home_page.click_suggestion(0)
             wiki_home_page.sleep_code(2)
-            assert "india" in wiki_home_page.get_page_report()['CURRENT_URL'].lower(), "URL should contain 'India' after clicking suggestion"
+            assert "australia" in wiki_home_page.get_page_report()['CURRENT_URL'].lower(), "URL should contain 'Australia' after clicking suggestion"
         except Exception as e:
             print("Error clicking search suggestion:", e)
             traceback.print_exc()
