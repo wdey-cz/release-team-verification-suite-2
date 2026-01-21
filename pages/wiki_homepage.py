@@ -11,7 +11,8 @@ class WikiHomePage(BasePage):
     SUGGESTIONS = (By.CLASS_NAME, "suggestion-link")
     SUGGESTION_TEXT = (By.CLASS_NAME, "suggestion-highlight")
     LANGUAGES_ELEMENT = (By.XPATH, "//nav[contains(@class, 'central-featured')]")
-    TOP_LANGUAGES = (By.XPATH, "//div[contains(@class, 'central-featured-lang')]") # returns a list of all top language divs
+    TOP_LANGUAGES = (By.XPATH, "//div[contains(@class, 'central-featured-lang')]")  # returns a list of all top language divs
+    WIKI_LOGO = (By.XPATH, "//img[@alt='Wikipedia']")
 
 
     def __init__(self, driver):
@@ -20,7 +21,13 @@ class WikiHomePage(BasePage):
     def click_search_bar(self):
         self.click_element(self.SEARCH_BAR, 30)
 
+    def clear_search_bar(self):
+        search_bar_element = self.find_element(self.SEARCH_BAR, 30)
+        search_bar_element.clear()
+
     def search(self, text):
+        self.click_search_bar()
+        self.clear_search_bar()
         self.enter_text(self.SEARCH_BAR, text, 30)
 
     def go_to_homepage(self):
@@ -35,6 +42,17 @@ class WikiHomePage(BasePage):
         suggestions_elements = self.find_elements(self.SUGGESTIONS, 30)
         suggestions = [elem.text for elem in suggestions_elements]
         return suggestions
+
+    def get_suggestions_from_search_term(self, search_term):
+        # Check if there is already a search term in the bar, if its the same as the new one, skip entering it again
+        current_search_text = self.get_element_attribute(self.SEARCH_BAR, "value", 5)
+        print("Current search bar text:", current_search_text)
+        if current_search_text != search_term:
+            print("Adding search term to search bar:", search_term)
+            self.search(search_term)
+
+        return self.get_suggestions()
+
 
     def suggestion_dropdown_exists(self):
         return self.is_element_present(self.SUGGESTION_DROPDOWN, 5)
@@ -56,6 +74,9 @@ class WikiHomePage(BasePage):
 
     def languages_element_exists(self):
         return self.is_element_present(self.LANGUAGES_ELEMENT, 5)
+
+    def wiki_logo_exists(self):
+        return self.is_element_present(self.WIKI_LOGO, 5)
 
     # returns a str list of the top languages on the homepage
     def get_top_languages_list(self):

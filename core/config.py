@@ -49,6 +49,11 @@ class Config:
         return cls.BROWSER
 
     @classmethod
+    def get_test_env(cls):
+        """Get the test environment."""
+        return cls.TEST_ENV
+
+    @classmethod
     def is_headless(cls):
         """Check if browser should run in headless mode."""
         return cls.HEADLESS

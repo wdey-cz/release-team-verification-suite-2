@@ -11,7 +11,9 @@ class RunConfiguration:
     test_package: str | None = None
     test_name: str | None = None
     browser: str | None = None
+    started_at: str | None = None
     timestamp: str | None = None
+    ended_at: str | None = None
     unique_id: str | None = None
     prefix: str = "RTVS"
     multiprocessing: bool = False
@@ -22,11 +24,10 @@ class RunConfiguration:
 class ConfigAssists:
 
     BROWSER = Config.get_browser()
-    ENV = Config.g
+    ENV = Config.get_test_env()
 
     def __init__(self):
         self.db = RTVSDB()
-        self.create_first_time_setup()
         self.run_config: RunConfiguration | None = None
         self.set_run_configuration(RunConfiguration())
 
@@ -43,6 +44,10 @@ class ConfigAssists:
     def set_run_configuration(self, run_config: RunConfiguration):
         # Set the current run configuration
         self.run_config = run_config
+
+    def get_run_configuration(self):
+        # Get the current run configuration
+        return self.run_config
 
     def set_env(self, env: str):
         if self.run_config:
@@ -87,7 +92,7 @@ class ConfigAssists:
                 self.run_config.env or "ENV",
                 self.run_config.test_package or "PKG",
                 self.run_config.browser or "BROWSER",
-                self.run_config.timestamp or "TIME",
+                self.run_config.started_at or "TIME",
                 self.run_config.unique_id or "UID"
             ]
             self.run_config.run_id = "_".join(parts)
