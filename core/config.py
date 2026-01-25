@@ -12,6 +12,12 @@ class Config:
     # Base URL for the application
     BASE_URL = os.getenv("BASE_URL", "https://www.cozeva.com")
 
+    # RTVS paths
+    RTVS_CUSTOMERS_JSON = os.getenv("RTVS_CUSTOMERS_JSON", "rtvs_customers.json")
+    RTVS_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+    RTVS_ASSETS_DIR = RTVS_PROJECT_ROOT / "assets"
+    RTVS_DEFAULT_DB_PATH = RTVS_ASSETS_DIR / "rtvs_database.db"
+
     # Browser settings
     BROWSER = os.getenv("BROWSER", "chrome")
     HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"

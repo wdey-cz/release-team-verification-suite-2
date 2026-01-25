@@ -123,7 +123,7 @@ class WebDriverFactory:
         return driver, profile_name
     
     @staticmethod
-    def _get_firefox_driver(headless=False, **kwargs):
+    def _get_firefox_driver(headless=False, use_firefox_profile=False, **kwargs):
         """
         Create Firefox WebDriver instance.
         
@@ -138,6 +138,13 @@ class WebDriverFactory:
         
         if headless:
             options.add_argument("--headless")
+
+        profile_name = None
+        if use_firefox_profile:
+            print("Firefox profile usage is not implemented in this example.")
+            # Implement Firefox profile handling if needed
+            profile_name = "TestFirefoxProfile"
+
         
         # Add custom arguments if provided
         if "arguments" in kwargs:
@@ -148,7 +155,7 @@ class WebDriverFactory:
         driver = webdriver.Firefox(service=service, options=options)
         driver.maximize_window()
         
-        return driver
+        return driver, profile_name or None
     
     @staticmethod
     def _get_edge_driver(headless=False, **kwargs):

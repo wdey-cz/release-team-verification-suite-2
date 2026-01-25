@@ -1,25 +1,43 @@
 import os
 from dataclasses import dataclass
+from typing import Any
+
 from config.rtvsdb import RTVSDB
 from core.config import Config
 
+
 @dataclass
 class RunConfiguration:
+    prefix: str = "RTVS"
     run_id: str | None = None
     env: str | None = None
     category: str | None = None
     test_package: str | None = None
-    test_name: str | None = None
-    browser: str | None = None
-    started_at: str | None = None
-    timestamp: str | None = None
-    ended_at: str | None = None
+    test_package_desc: str | None = None
     unique_id: str | None = None
-    prefix: str = "RTVS"
     multiprocessing: bool = False
     threads: int = 1
+    started_at: str | None = None
+
+    ended_at: str | None = None
+
+    timestamp: str | None = None
+
+    browsers: str | None = None
+    browser: str | None = None
+    browser_profile: str | None = None
+    test_name: str | None = None
+    clients: str | None = None
     client_id: int | None = None
+    user_roles: str | None = None
+    user_role: str | None = None
+    user_name: str | None = None
+    pid: str | None = None
+    worker: str | None = None
+    workbook_title: str | None = None
     other_info: dict | None = None
+
+
 
 class ConfigAssists:
 
@@ -35,10 +53,10 @@ class ConfigAssists:
         # Create the chrome_profiles table if it doesn't exist
         self.db.create_chrome_profile_info_table()
         # Initialize the table with default profiles
-        self.db.initialize_chrome_profiles(profile_count=5)
+        self.db.initialize_chrome_profiles(profile_count=10)
         self.db.create_customer_tables()
         self.db.load_customer_json_into_db()
-        self.db.create_test_activity_table()
+        self.db.create_run_and_log_tables()
 
     # Run onfiguration interactors
     def set_run_configuration(self, run_config: RunConfiguration):
@@ -91,7 +109,6 @@ class ConfigAssists:
                 self.run_config.category or "CAT",
                 self.run_config.env or "ENV",
                 self.run_config.test_package or "PKG",
-                self.run_config.browser or "BROWSER",
                 self.run_config.started_at or "TIME",
                 self.run_config.unique_id or "UID"
             ]
@@ -144,7 +161,129 @@ class ConfigAssists:
         # Update username for a specific role under a customer ID
         self.db.update_username_for_role(customer_id, role, new_username)
 
-    # Test activity log interactors and run_id stuff
+    # Test_log interactors and run_id stuff
+
+    def set_test_context(
+            self,
+            *,
+            test_name: str | None = None,
+            test_package: str | None = None,
+            client_id: int | None = None,
+            user_role: str | None = None,
+            user_name: str | None = None,
+            browser: str | None = None,
+            browser_profile: str | None = None,
+    ) -> None:
+        rc = self._require_rc()
+
+        if test_name is not None:
+            rc.test_name = test_name
+        if test_package is not None:
+            rc.test_package = test_package
+        if client_id is not None:
+            rc.client_id = client_id
+        if user_role is not None:
+            rc.user_role = user_role
+        if user_name is not None:
+            rc.user_name = user_name
+        if browser is not None:
+            rc.browser = browser
+        if browser_profile is not None:
+            rc.browser_profile = browser_profile
+
+
+    def _require_rc(self) -> RunConfiguration:
+        if not self.run_config:
+            raise RuntimeError("RunConfiguration is not initialized on ConfigAssists.")
+        if not self.run_config.run_id:
+            raise RuntimeError("run_id is missing. Create/load run_id once per session.")
+        return self.run_config
+
+    def _safe_current_url(self, driver) -> str | None:
+        if driver is None:
+            return None
+        try:
+            return driver.current_url
+        except Exception:
+            return None
+
+    def _get_worker(self) -> str:
+        return os.getenv("PYTEST_XDIST_WORKER", "local")
+
+    def _get_pid(self) -> int:
+        try:
+            return int(os.getpid())
+        except Exception:
+            return -1
+
+    def _log(self, *, type_: str, message: str, status: str = "Info", driver=None, current_url: str | None = None, test_name: str | None = None, extra: dict[str, Any] | None = None, mark_fail: bool = False) -> None:
+        rc = self._require_rc()
+
+        # Allow caller override, else use driver, else None
+        url = current_url if current_url is not None else self._safe_current_url(driver)
+
+        # Pick test name: explicit > rc.test_name
+        tn = test_name or rc.test_name
+
+        # Worker/pid defaults if not already set
+        worker = rc.worker or self._get_worker()
+        pid = rc.pid if isinstance(rc.pid, int) else self._get_pid()
+
+        # Browser/profile defaults
+        browser = rc.browser
+        profile = rc.browser_profile
+        if driver is not None and hasattr(driver, "_rtvs_profile"):
+            profile = profile or getattr(driver, "_rtvs_profile", None)
+
+        # Optional: merge extras into other_info just for debugging
+        if extra:
+            rc.other_info = rc.other_info or {}
+            rc.other_info.update(extra)
+
+        self.db.insert_test_log(
+            run_id=rc.run_id,
+            type_=type_,
+            status=status,
+            message=message,
+            browser=browser,
+            test_package=rc.test_package,
+            test_name=tn,
+            client_id=rc.client_id,
+            user_role=rc.user_role,
+            user_name=rc.user_name,
+            pid=pid,
+            worker=worker,
+            current_url=url,
+        )
+
+        if mark_fail:
+            self.db.mark_test_failure(rc.run_id, message=message)
+
+    # test facing helpers
+    def add_log_start(self, message: str = "Test started", *, driver=None, status: str = "Info") -> None:
+        self._log(type_="start", message=message, status=status, driver=driver)
+
+    def add_log_test_case(self, message: str, *, driver=None, status: str = "Info") -> None:
+        self._log(type_="test_case", message=message, status=status, driver=driver)
+
+    def add_log_update(self, message: str, *, driver=None, status: str = "Success",
+                     current_url: str | None = None) -> None:
+        self._log(type_="update", message=message, status=status, driver=driver, current_url=current_url)
+
+    def add_log_end(self, message: str = "Test finished", *, driver=None, status: str = "Success") -> None:
+        self._log(type_="end", message=message, status=status, driver=driver)
+
+    def add_log_skip(self, message: str, *, driver=None, status: str = "Skipped") -> None:
+        self._log(type_="force_skip", message=message, status=status, driver=driver)
+
+    def add_log_error(self, message: str, *, driver=None, status: str = "Error") -> None:
+        self._log(type_="error", message=message, status=status, driver=driver, mark_fail=True)
+
+    def add_log_heartbeat(self, message: str = "heartbeat", *, driver=None) -> None:
+        self._log(type_="heartbeat", message=message, status="Info", driver=driver)
+
+
+
 
 
 

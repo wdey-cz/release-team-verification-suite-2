@@ -58,7 +58,7 @@ class WikiHomePage(BasePage):
         return self.is_element_present(self.SUGGESTION_DROPDOWN, 5)
 
     def click_suggestion(self, index):
-        # Verify if Suggestion Dropdown is visible. If its not, validate that there is text in the search bar and click the search bar again
+        # Verify if Suggestion Dropdown is visible. If it's not, validate that there is text in the search bar and click the search bar again
         if not self.suggestion_dropdown_exists():
             search_bar_text = self.get_element_attribute(self.SEARCH_BAR, "value", 5)
             if search_bar_text:
