@@ -162,7 +162,7 @@ class RTVSDB:
             name: Name of the test package
             category: Category of the test package (e.g., 'REG', 'DATA')
             desc: Description of the test package
-            available_to: Who the test package is available to (e.g., 'ALL', 'CS', 'RS', 'LCS', 'CU', 'OAPD', 'ALL_VIEW',)
+            available_to: Who the test package is available to (e.g., 'ALL', 'CS', 'RS', 'LCS', 'CU', 'OAPD', 'ALL_VIEW')
         """
         with self.connection:
             cursor = self.connection.cursor()
@@ -407,6 +407,27 @@ class RTVSDB:
         rows = cursor.fetchall()
         customer_ids = [str(row[0]) for row in rows]
         return ",".join(customer_ids)
+
+    def get_customer_names_list(self):
+        """Get all customer names as a list."""
+        query = "SELECT customer_name FROM customers;"
+        cursor = self.connection.cursor()
+
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        customer_names = [row[0] for row in rows]
+        return customer_names
+
+    def get_total_customers_count(self):
+        """Get the total number of customers in the database."""
+        query = "SELECT COUNT(*) FROM customers;"
+        cursor = self.connection.cursor()
+
+        cursor.execute(query)
+        row = cursor.fetchone()
+        if row:
+            return row[0]
+        return 0
 
     def update_username_for_role(self, customer_id, role, new_username):
         """Update the username for a specific role of a customer."""

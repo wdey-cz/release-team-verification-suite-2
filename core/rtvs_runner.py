@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from itertools import product
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Tuple, Any, Optional
+from pathlib import Path
+
+
+from core.config import Config
 
 
 # TEST_PATH = "tests/test_home_page.py"
@@ -119,7 +123,7 @@ def run_lane_serial(
             "--client-id", j.client_id,
             "--user-role", j.user_role,
             "--user-name", j.user_name,
-            "I:\\release-team-verification-suite-2\\tests",
+            Path(Config.RTVS_PROJECT_ROOT / 'tests'),
         ]
 
         print(f"\n[RTVS] Lane {lane_id} running job:")

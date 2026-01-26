@@ -17,6 +17,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from config.rtvsdb import RTVSDB  # type: ignore
 from config.config_assists import ConfigAssists  # type: ignore
 from core.rtvs_runner import build_lanes, print_plan, run_lanes_parallel
+from core.config import Config
 
 
 
@@ -399,7 +400,11 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.log.setMinimumHeight(120)
         self._init_log_watermark()
 
+
         self._build_setup_tab()
+
+        self._safe_call("Init ConfigAssists", self._init_assists)
+
         self._build_chrome_tab()
         self._build_customers_tab()
         self._build_tests_tab()
@@ -413,14 +418,17 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         self.statusBar().showMessage("Ready")
 
-        # Try to initialize on startup, but do not crash the UI if something fails
-        self._safe_call("Init ConfigAssists", self._init_assists)
+
+
+
+
 
     # dumb watermark idea
 
     def _init_log_watermark(self) -> None:
         # 1) Load the logo pixmap once
-        logo_path = Path(r"I:\release-team-verification-suite-2\assets\CombinedCo_RTVS2_logo_cropped_textless.png")
+
+        logo_path = Path(Config.RTVS_ASSETS_DIR / 'CombinedCo_RTVS2_logo_cropped_textless.png')
         pm = QtGui.QPixmap(str(logo_path))
         if pm.isNull():
             self._append_log(f"[WARN] Watermark logo not found: {logo_path}")
@@ -766,21 +774,29 @@ class ControllerWindow(QtWidgets.QMainWindow):
     # -------------------------
 
     def _build_customers_tab(self):
+        db = self._db()
         tab = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(tab)
 
         top = QtWidgets.QHBoxLayout()
-        self.customer_id_input = QtWidgets.QLineEdit()
-        self.customer_id_input.setPlaceholderText("Customer ID (int)")
-        self.customer_id_input.setMaximumWidth(200)
-        top.addWidget(self.customer_id_input)
+
+        self.customer_name_combo = QtWidgets.QComboBox()
+        self.customer_name_combo.setEditable(False)
+        self.customer_name_combo.addItems(sorted(db.get_customer_names_list()))
+        top.addWidget(self.customer_name_combo)
+
+
+        # self.customer_id_input = QtWidgets.QLineEdit()
+        # self.customer_id_input.setPlaceholderText("Customer ID (int)")
+        # self.customer_id_input.setMaximumWidth(200)
+        # top.addWidget(self.customer_id_input)
 
         self.btn_load_customer = QtWidgets.QPushButton("Load")
         self.btn_load_customer.clicked.connect(lambda: self._safe_call("Load customer", self._load_customer))
         top.addWidget(self.btn_load_customer)
 
-        self.customer_name_label = QtWidgets.QLabel("Customer name: (not loaded)")
-        top.addWidget(self.customer_name_label)
+        self.total_client_count = QtWidgets.QLabel(str(db.get_total_customers_count()))
+        top.addWidget(self.total_client_count)
 
         top.addStretch(1)
         layout.addLayout(top)
@@ -807,19 +823,14 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         self.tabs.addTab(tab, "Customers")
 
-    def _parse_customer_id(self) -> int:
-        raw = self.customer_id_input.text().strip()
-        if not raw:
-            raise ValueError("Customer ID is required.")
-        return int(raw)
 
     def _load_customer(self):
         self._init_assists()
-        customer_id = self._parse_customer_id()
-
         db = self._db()
-        name = db.get_customer_name_from_id(customer_id)
-        self.customer_name_label.setText(f"Customer name: {name if name else '(not found)'}")
+        name = self.customer_name_combo.currentText()
+        customer_id = db.get_customer_id_from_name(name)
+
+
 
         role_dict = self.assists.get_role_dict_for_customer_id(customer_id)
         self.roles_table.setRowCount(0)
@@ -845,7 +856,9 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
     def _update_selected_role(self):
         self._init_assists()
-        customer_id = self._parse_customer_id()
+        db = self._db()
+        name = self.customer_name_combo.currentText()
+        customer_id = db.get_customer_id_from_name(name)
         row = self._selected_role_row()
         if row is None:
             QtWidgets.QMessageBox.information(self, "Select a row", "Select a role row first.")
@@ -859,7 +872,9 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
     def _update_all_roles(self):
         self._init_assists()
-        customer_id = self._parse_customer_id()
+        db = self._db()
+        name = self.customer_name_combo.currentText()
+        customer_id = db.get_customer_id_from_name(name)
 
         n = self.roles_table.rowCount()
         if n == 0:
@@ -876,6 +891,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
     # -------------------------
     # Tests tab
     # -------------------------
+
     def _assert_gui_thread(self):
         app = QtWidgets.QApplication.instance()
         if app and QtCore.QThread.currentThread() != app.thread():
@@ -1189,11 +1205,12 @@ class ControllerWindow(QtWidgets.QMainWindow):
 def main():
     app = QtWidgets.QApplication(sys.argv)
 
-    app_icon = QtGui.QIcon(r"I:\release-team-verification-suite-2\assets\rtvs.ico")
+    app_icon = QtGui.QIcon(str(Config.RTVS_ASSETS_DIR / 'rtvs.ico'))
     app.setWindowIcon(app_icon)
 
+    splash_logo_path = Config.RTVS_ASSETS_DIR / "CombinedCo_RTVS2_logo.png"
 
-    splash = QSplashScreen(QPixmap("I:\\release-team-verification-suite-2\\assets\\CombinedCo_RTVS2_logo.png"))
+    splash = QSplashScreen(QPixmap(splash_logo_path))
     splash.setWindowFlags(splash.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
     splash.show()
     app.processEvents()
