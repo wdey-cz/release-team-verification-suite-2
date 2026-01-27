@@ -1,5 +1,7 @@
 # Release Team Verification Suite 2 (RTVS)
 
+![Logo](assets/CombinedCo_RTVS2_logo.png)
+
 A comprehensive automated testing framework built with Python, Selenium, and Pytest for web application testing and verification. This suite provides a robust Page Object Model (POM) architecture with advanced logging, database integration, and GUI-based test management.
 
 ## 🚀 Features
