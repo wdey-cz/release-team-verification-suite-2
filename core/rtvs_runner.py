@@ -110,6 +110,9 @@ def run_lane_serial(
 ) -> List[Tuple[Job, int]]:
     results: List[Tuple[Job, int]] = []
 
+    # stagger parallel lanes so 10 Chromes don't slam the machine at once
+    time.sleep(0.75 * (lane_id - 1))
+
     for j in jobs:
         env = base_env.copy()    # USE base_env, not os.environ.copy()
         env["BROWSER"] = j.browser
@@ -123,7 +126,7 @@ def run_lane_serial(
             "--client-id", j.client_id,
             "--user-role", j.user_role,
             "--user-name", j.user_name,
-            Path(Config.RTVS_PROJECT_ROOT / 'tests'),
+            str(Path(Config.RTVS_PROJECT_ROOT / 'tests')),
         ]
 
         print(f"\n[RTVS] Lane {lane_id} running job:")

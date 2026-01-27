@@ -141,16 +141,25 @@ class ConfigAssists:
             print(f"Setting profile {profile_name} as inactive.")
             self.db.edit_chrome_profile_table(change_type='SET_INACTIVE_PROFILE', profile_name=profile_name)
 
-    def fetch_first_inactive_profile(self, browser_name='chrome'):
-        # Fetch and return inactive profiles
-        if browser_name.lower() == 'chrome':
-            rows = self.db.get_inactive_chrome_profiles()
-            if not rows:
-                return None
-            inactive_profile = rows[0][1]
-            self.set_profile_active(inactive_profile, browser_name)
-            return inactive_profile
-        return None
+    # def fetch_first_inactive_profile(self, browser_name='chrome'):
+    #     # Fetch and return inactive profiles
+    #     if browser_name.lower() == 'chrome':
+    #         rows = self.db.get_inactive_chrome_profiles()
+    #         if not rows:
+    #             return None
+    #         inactive_profile = rows[0][1]
+    #         self.set_profile_active(inactive_profile, browser_name)
+    #         return inactive_profile
+    #     return None
+
+    def fetch_first_inactive_profile(self, browser_name: str = "chrome", run_id: str | None = None):
+        if browser_name.lower() != "chrome":
+            return None
+
+        tag = run_id or "no_run_id"
+        claimed_by = f"{tag}|pid={os.getpid()}"
+
+        return self.db.claim_first_inactive_chrome_profile(claimed_by=claimed_by)
 
     # Customer table interactors
     def get_role_dict_for_customer_id(self, customer_id: int) -> dict:

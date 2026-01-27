@@ -94,6 +94,14 @@ class WebDriverFactory:
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
 
+        # make the launch light
+        options.add_argument("--no-first-run")
+        options.add_argument("--no-default-browser-check")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-background-networking")
+        options.add_argument("--disable-features=Translate,BackForwardCache")
+
+
         # resolve Chrome profile usage
         if use_chrome_profile:
             profile_name = ConfigAssists().fetch_first_inactive_profile(browser_name='chrome')

@@ -229,7 +229,7 @@ class StartTestDialog(QtWidgets.QDialog):
         self.max_parallel_spin = QtWidgets.QSpinBox()
         self.max_parallel_spin.setMinimum(1)
         self.max_parallel_spin.setMaximum(64)
-        self.max_parallel_spin.setValue(10)
+        self.max_parallel_spin.setValue(5)
 
         opts_layout.addRow("", self.mp_clients_chk)
         opts_layout.addRow("", self.mp_roles_chk)

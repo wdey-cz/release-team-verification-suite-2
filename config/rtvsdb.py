@@ -267,6 +267,83 @@ class RTVSDB:
         """)
         return cursor.fetchall()
 
+    def claim_first_inactive_chrome_profile(self, claimed_by: str) -> str | None:
+        """
+        Atomically:
+          - lock for write (BEGIN IMMEDIATE)
+          - pick 1 inactive profile
+          - set it active + stamp currently_running
+          - return profile_name
+        Safe under many threads/processes.
+        """
+        cur = self.connection.cursor()
+
+        try:
+            # Grab the write lock early so two workers can't claim at once
+            cur.execute("BEGIN IMMEDIATE;")
+
+            # Prefer single-statement claim if SQLite supports RETURNING (SQLite >= 3.35)
+            try:
+                cur.execute(
+                    """
+                    UPDATE chrome_profiles
+                    SET is_active = 1,
+                        currently_running = ?
+                    WHERE id = (
+                        SELECT id
+                        FROM chrome_profiles
+                        WHERE is_active = 0
+                        ORDER BY id ASC
+                        LIMIT 1
+                    )
+                    RETURNING profile_name;
+                    """,
+                    (claimed_by,),
+                )
+                row = cur.fetchone()
+                self.connection.commit()
+                return row[0] if row else None
+
+            except sqlite3.OperationalError:
+                # Fallback for older SQLite without RETURNING:
+                cur.execute(
+                    """
+                    SELECT id, profile_name
+                    FROM chrome_profiles
+                    WHERE is_active = 0
+                    ORDER BY id ASC
+                    LIMIT 1;
+                    """
+                )
+                row = cur.fetchone()
+                if not row:
+                    self.connection.commit()
+                    return None
+
+                profile_id, profile_name = row
+
+                cur.execute(
+                    """
+                    UPDATE chrome_profiles
+                    SET is_active = 1,
+                        currently_running = ?
+                    WHERE id = ? AND is_active = 0;
+                    """,
+                    (claimed_by, profile_id),
+                )
+
+                # If rowcount is 0, someone else got it (should be rare with BEGIN IMMEDIATE)
+                if cur.rowcount != 1:
+                    self.connection.rollback()
+                    return None
+
+                self.connection.commit()
+                return profile_name
+
+        except Exception:
+            self.connection.rollback()
+            raise
+
     # DB Functions for the Customer table
     def create_customer_tables(self):
         with self.connection:
