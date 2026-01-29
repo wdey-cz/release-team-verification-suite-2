@@ -39,20 +39,19 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
-      - name: Install dependencies (pip + optional requirements)
+      - name: Install dependencies
         shell: bash
-        run: >
-          python -c "import os, sys, subprocess, pathlib as p;
-          subprocess.check_call([sys.executable,'-m','pip','install','--upgrade','pip','wheel','setuptools']);
-          req=p.Path('requirements.txt'); dev=p.Path('requirements-dev.txt');
-          (req.exists() and subprocess.check_call([sys.executable,'-m','pip','install','-r',str(req)]));
-          (dev.exists() and subprocess.check_call([sys.executable,'-m','pip','install','-r',str(dev)]));
-          subprocess.check_call([sys.executable,'-m','pip','install','pyinstaller'])"
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then python -m pip install -r requirements-dev.txt; fi
+          python -m pip install pyinstaller
+          pyinstaller --version
 
       - name: Build with PyInstaller
         shell: bash
         run: |
-          python -m pyinstaller --noconfirm --clean --onefile --name "${APP_NAME}" --windowed "${ENTRYPOINT}"
+          pyinstaller --noconfirm --clean --onefile --name "${APP_NAME}" --windowed "${ENTRYPOINT}"
         # If the GUI uses console, remove --windowed. If you need data files, hidden imports, or icons, add:
         #   --add-data "path/to/datafile;." (Windows) or "path/to/datafile:." (Unix)
         #   --hidden-import package.module
