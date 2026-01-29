@@ -24,7 +24,6 @@ from core.config import Config
 def utc_to_local_display(utc_timestamp_str: str) -> str:
     """
     Convert a UTC timestamp string to local time for display.
-    
     Args:
         utc_timestamp_str: UTC timestamp in format "YYYY-MM-DD HH:MM:SS"
     
@@ -701,7 +700,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
                     profile_name=str(r[1]),
                     currently_running=(None if r[2] is None else str(r[2])),
                     is_active=int(r[3]),
-                    last_mfa_time=str(r[4]),
+                    last_mfa_time=("" if r[4] is None else str(r[4])),
                 )
             )
         return out
@@ -1040,7 +1039,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
         out: list[TestLogRow] = []
         for r in rows:
             out.append(TestLogRow(
-                timestamp=str(r[0]),
+                timestamp=("" if r[0] is None else str(r[0])),
                 type=str(r[1]),
                 status=str(r[2]),
                 test_name=(None if r[3] is None else str(r[3])),
