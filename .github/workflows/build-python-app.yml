@@ -45,8 +45,9 @@ jobs:
           subprocess.check_call([sys.executable,'-m','pip','install','pyinstaller'])"
 
       - name: Build with PyInstaller
+        shell: bash
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --name "${APP_NAME}" --windowed "${ENTRYPOINT}"
+          python -m pyinstaller --noconfirm --clean --onefile --name "${APP_NAME}" --windowed "${ENTRYPOINT}"
         # If the GUI uses console, remove --windowed. If you need data files, hidden imports, or icons, add:
         #   --add-data "path/to/datafile;." (Windows) or "path/to/datafile:." (Unix)
         #   --hidden-import package.module
@@ -57,14 +58,12 @@ jobs:
         run: |
           mkdir -p packaged
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            (ls -la dist || true)
-            cp -v dist/${APP_NAME}.exe packaged/ || cp -rv dist/* packaged/ || true
+            ls -la dist
+            cp -v dist/${APP_NAME}.exe packaged/
           else
-            (ls -la dist || true)
-            cp -v dist/${APP_NAME} packaged/ || cp -rv dist/* packaged/ || true
+            ls -la dist
+            cp -v dist/${APP_NAME} packaged/
           fi
-          # Also include the whole dist directory for debugging
-          cp -rv dist packaged/dist || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -84,7 +83,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
