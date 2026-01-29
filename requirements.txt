@@ -3,3 +3,4 @@ webdriver-manager
 pytest
 pytest-html
 PySide6
+pyinstaller
