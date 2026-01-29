@@ -70,7 +70,7 @@ jobs:
         with:
           name: app-${{ matrix.os }}
           path: packaged
-          if-no-files-found: warn
+          if-no-files-found: error
           compression-level: 6
 
   release:
