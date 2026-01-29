@@ -15,6 +15,8 @@ class WikiHomePage(BasePage):
     WIKI_LOGO = (By.XPATH, "//img[@alt='Wikipedia']")
 
 
+
+
     def __init__(self, driver):
         super().__init__(driver)
 

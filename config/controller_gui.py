@@ -463,8 +463,8 @@ class ControllerWindow(QtWidgets.QMainWindow):
             return
 
         # Scale relative to the log box size
-        target_w = int(vw * 0.50)  # tweak: 0.40 to 0.70
-        target_h = int(vh * 0.50)
+        target_w = int(vw * 1)  # tweak: 0.40 to 0.70
+        target_h = int(vh * 1)
 
         scaled = self._log_watermark_original.scaled(
             target_w,
@@ -1214,7 +1214,7 @@ def main():
     splash.setWindowFlags(splash.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
     splash.show()
     app.processEvents()
-    time.sleep(2)  # simulate loading time
+    time.sleep(4)  # simulate loading time
 
     win = ControllerWindow()
     win.setWindowIcon(app_icon)
