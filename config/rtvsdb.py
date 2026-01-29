@@ -719,32 +719,32 @@ if __name__ == "__main__":
     db = RTVSDB()
     print(sqlite3.sqlite_version)
 
-    # test_packages_dict_list = [
-    #     {"name": "SidebarTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-    #     {"name": "AnalyticsTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-    #     {"name": "BridgeRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-    #     {"name": "RegistriesRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-    #     {"name": "ChartListRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-    #     {"name": "NavigationsRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-    #     {"name": "CozevaComboPack1", "category": "REG", "desc": "Contains All of the above", "available_to": "ALL_BASE"},
-    #
-    #     {"name": "HomePageLanguagesRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-    #     {"name": "HomePageComboPack1", "category": "REG", "desc": "Contains Languages and Search Regression", "available_to": "ALL_BASE"},
-    #     {"name": "HomePageSearchRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-    #
-    #     {"name": "ClientScoresDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"},
-    #     {"name": "PracticeProviderDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"}
-    #
-    #
-    # ]
-    #
-    # for tp in test_packages_dict_list:
-    #     db.insert_test_package(tp["name"], tp["category"], tp["desc"], tp["available_to"])
+    test_packages_dict_list = [
+        {"name": "SidebarTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+        {"name": "AnalyticsTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+        {"name": "BridgeRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+        {"name": "RegistriesRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+        {"name": "ChartListRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+        {"name": "NavigationsRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+        {"name": "CozevaComboPack1", "category": "REG", "desc": "Contains All of the above", "available_to": "ALL_BASE"},
 
-    # test_packages = db.fetch_regression_test_packages()
-    #
-    # for tp in test_packages:
-    #     print(f"{tp[0]}:{tp[1]}")  # Each tp is a tuple (test_package_name, test_package_desc)
+        {"name": "HomePageLanguagesRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+        {"name": "HomePageComboPack1", "category": "REG", "desc": "Contains Languages and Search Regression", "available_to": "ALL_BASE"},
+        {"name": "HomePageSearchRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+
+        {"name": "ClientScoresDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"},
+        {"name": "PracticeProviderDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"}
+
+
+    ]
+
+    for tp in test_packages_dict_list:
+        db.insert_test_package(tp["name"], tp["category"], tp["desc"], tp["available_to"])
+
+    test_packages = db.fetch_regression_test_packages()
+
+    for tp in test_packages:
+        print(f"{tp[0]}:{tp[1]}")  # Each tp is a tuple (test_package_name, test_package_desc)
 
 
     print(db.fetch_regression_test_packages())

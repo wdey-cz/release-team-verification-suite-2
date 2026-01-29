@@ -131,6 +131,7 @@ class TestRunWorker(QtCore.QThread):
             self.run_finished.emit(self.run_id, final_status)
 
         except Exception as e:
+            print(e)
             try:
                 db = RTVSDB(self.db_path)
                 db.finish_run(self.run_id, "ERR")
@@ -1214,7 +1215,7 @@ def main():
     splash.setWindowFlags(splash.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
     splash.show()
     app.processEvents()
-    time.sleep(4)  # simulate loading time
+    time.sleep(2)  # simulate loading time
 
     win = ControllerWindow()
     win.setWindowIcon(app_icon)

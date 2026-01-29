@@ -134,6 +134,7 @@ def run_lane_serial(
         print(" ", " ".join(cmd))
 
         p = subprocess.run(cmd, env=env)
+        print("returned")
         results.append((j, p.returncode))
 
     return results

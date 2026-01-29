@@ -78,6 +78,7 @@ def session_driver(request):
     WebDriverFactory.release_driver_from_profile(browser_name=browser, profile_name=profile)
 
 
+
 @pytest.fixture(scope="session")
 def config_assists():
     """
@@ -101,9 +102,10 @@ def init_session_state(pytestconfig, config_assists):
     # Create necessary directories
     Config.setup_directories()
     print("Test Environment Setup Complete")
-    # start run config creation
+    # start run config creation, this is the dataclass within config_assists
     rc = config_assists.get_run_configuration()
-    # here read back from the db, but get runid - Pass it via pytest argument later
+
+    # here read back from the db, but get runid - Pass it via pytest argument
     run_id = pytestconfig.getoption("--rtvs-run-id")
     if run_id:
         row = config_assists.db.get_test_run_row(run_id)
@@ -124,6 +126,7 @@ def init_session_state(pytestconfig, config_assists):
         # fallback for ad-hoc runs without controller
         rc.env = Config.get_test_env()
         rc.browser = Config.get_browser()
+        rc.browsers = rc.browser
         rc.started_at = datetime.now().strftime("%Y%m%d_%H%M%S")
         config_assists.set_unique_id()
         rc.category = rc.category or "REG"
