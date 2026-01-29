@@ -27,7 +27,7 @@ jobs:
 
     env:
       APP_NAME: RTVS2
-      ENTRYPOINT: config/controller_gui.py
+      ENTRYPOINT: rtvs2_app.py
 
     steps:
       - name: Checkout
