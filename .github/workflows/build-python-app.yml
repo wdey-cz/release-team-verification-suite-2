@@ -51,7 +51,7 @@ jobs:
       - name: Build with PyInstaller
         shell: bash
         run: |
-          pyinstaller --noconfirm --clean --onefile --name "${APP_NAME}" --windowed "${ENTRYPOINT}"
+          pyinstaller --noconfirm --clean --onefile --name "${APP_NAME}" --windowed "${ENTRYPOINT}" --add-data "assets" --icon "assets/rtvs.ico"
         # If the GUI uses console, remove --windowed. If you need data files, hidden imports, or icons, add:
         #   --add-data "path/to/datafile;." (Windows) or "path/to/datafile:." (Unix)
         #   --hidden-import package.module
