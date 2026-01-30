@@ -372,8 +372,20 @@ class RTVSDB:
             ON customer_accounts(customer_id);
             """)
 
-    def load_customer_json_into_db(self, json_path="customers1.json"):
-        with open(os.path.join(self.ASSETS_DIR, json_path), "r", encoding="utf-8") as f:
+    def load_customer_json_into_db(self, json_path: str | Path | None = None):
+        """
+        json_path:
+          - None -> use Config default (recommended)
+          - absolute path -> use as-is
+          - relative filename -> resolve under ASSETS_DIR
+        """
+        if json_path is None:
+            json_file = Config.get_customers_json_path()  # uses RTVS_CUSTOMERS_JSON
+        else:
+            p = Path(json_path)
+            json_file = p if p.is_absolute() else (self.ASSETS_DIR / p)
+
+        with open(json_file, "r", encoding="utf-8") as f:
             doc = json.load(f)
 
         customers = doc.get("customers", [])

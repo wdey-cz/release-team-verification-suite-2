@@ -590,8 +590,8 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         # use filename only because your RTVSDB.load_customer_json_into_db expects json_path
         json_name = Path(path).name
-        self._db().load_customer_json_into_db(json_path=json_name)
-        self._append_log(f"[OK] Reloaded customers from {json_name}")
+        self._db().load_customer_json_into_db(json_path=path)
+        self._append_log(f"[OK] Reloaded customers from {path}")
 
     def _open_assets_folder(self):
         self._init_assists()
