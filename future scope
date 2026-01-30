@@ -1,0 +1,10 @@
+A) No env var, just use global Python from PATH
+
+Your _pick_external_python() already does this via py or python. So if Python is installed normally, you’re good.
+
+B) Prefer a venv if you ship/create one
+
+Set RTVS_PYTHON to your venv’s python.exe during setup and store it in your own config (or environment for the current session). Then _pick_external_python() will always use that.
+
+If you want persistence, store it in your SQLite settings table or a small json in assets.
+

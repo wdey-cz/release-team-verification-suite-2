@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import calendar
 import os
+import subprocess
 import sys
 import time
 import traceback
@@ -17,7 +18,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from config.rtvsdb import RTVSDB  # type: ignore
 from config.config_assists import ConfigAssists  # type: ignore
-from core.rtvs_runner import build_lanes, print_plan, run_lanes_parallel
+from core.rtvs_runner import build_lanes, print_plan, run_lanes_parallel, _pick_external_python
 from core.config import Config
 
 
@@ -129,6 +130,7 @@ class TestRunWorker(QtCore.QThread):
             base_env = os.environ.copy()
             base_env["TEST_ENV"] = self.test_env
             base_env["HEADLESS"] = "true" if self.headless else "false"
+            base_env["RTVS_DB_PATH"] = self.db_path
 
             lanes = build_lanes(
                 clients=self.clients,
@@ -140,6 +142,26 @@ class TestRunWorker(QtCore.QThread):
             )
 
             print_plan(lanes)
+
+            external = _pick_external_python()
+
+            if Path(external).name.lower() == "py.exe":
+                check_cmd = [external, "-3", "-m", "pytest", "--version"]
+            else:
+                check_cmd = [external, "-m", "pytest", "--version"]
+
+            creationflags = 0
+            if os.name == "nt":
+                creationflags = subprocess.CREATE_NO_WINDOW
+
+            r = subprocess.run(check_cmd, capture_output=True, text=True, env=base_env, creationflags=creationflags)
+            if r.returncode != 0:
+                raise RuntimeError(
+                    "External python cannot run pytest.\n"
+                    f"Command: {' '.join(check_cmd)}\n"
+                    f"STDERR: {r.stderr.strip()}\n"
+                    f"STDOUT: {r.stdout.strip()}"
+                )
 
             results = run_lanes_parallel(
                 lanes=lanes,
@@ -618,8 +640,8 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         # use filename only because your RTVSDB.load_customer_json_into_db expects json_path
         json_name = Path(path).name
-        self._db().load_customer_json_into_db(json_path=json_name)
-        self._append_log(f"[OK] Reloaded customers from {json_name}")
+        self._db().load_customer_json_into_db(json_path=path)
+        self._append_log(f"[OK] Reloaded customers from {path}")
 
     def _open_assets_folder(self):
         self._init_assists()

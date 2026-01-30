@@ -1,12 +1,13 @@
 import os
 import sys
-import time
+import shutil
+from pathlib import Path
 import subprocess
+import time
 from dataclasses import dataclass
 from itertools import product
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Dict, Tuple, Any, Optional
-from pathlib import Path
+from typing import List, Dict, Tuple
 
 
 from core.config import Config
@@ -21,6 +22,32 @@ class Job:
     user_role: str
     browser: str
     user_name: str
+
+
+def _pick_external_python() -> str:
+    """
+    In frozen exe, sys.executable is the GUI exe, so we must use a real python.
+    Preference order:
+      1) RTVS_PYTHON env var (explicit path to python.exe)
+      2) py launcher
+      3) python on PATH
+    """
+    py = os.getenv("RTVS_PYTHON")
+    if py and Path(py).exists():
+        return py
+
+    # Windows python launcher is best if present
+    py_launcher = shutil.which("py")
+    if py_launcher:
+        return py_launcher  # we will call: py -3 -m pytest ...
+
+    py_on_path = shutil.which("python") or shutil.which("pythonw")
+    if py_on_path:
+        return py_on_path
+
+    raise RuntimeError(
+        "No external Python found. Install Python or set RTVS_PYTHON to python.exe path."
+    )
 
 
 def build_lanes(
@@ -117,8 +144,14 @@ def run_lane_serial(
         env = base_env.copy()    # USE base_env, not os.environ.copy()
         env["BROWSER"] = j.browser
 
-        cmd = [
-            sys.executable, "-m", "pytest",
+        external = _pick_external_python()
+
+        if Path(external).name.lower() == "py.exe":
+            pytest_prefix = [external, "-3.14", "-m", "pytest"]  # py launcher
+        else:
+            pytest_prefix = [external, "-m", "pytest"]
+
+        cmd = pytest_prefix + [
             "-m", marker,
             "-s",
             "-v",
@@ -126,15 +159,51 @@ def run_lane_serial(
             "--client-id", j.client_id,
             "--user-role", j.user_role,
             "--user-name", j.user_name,
-            str(Path(Config.RTVS_PROJECT_ROOT / 'tests')),
+            str(Path(Config.RTVS_PROJECT_ROOT / "tests")),
         ]
 
         print(f"\n[RTVS] Lane {lane_id} running job:")
         print(f"  client={j.client_id} role={j.user_role} browser={j.browser}")
         print(" ", " ".join(cmd))
 
-        p = subprocess.run(cmd, env=env)
+        creationflags = 0
+        if os.name == "nt":
+            creationflags = subprocess.CREATE_NO_WINDOW
+
+        p = subprocess.run(
+            cmd,
+            env=env,
+            cwd=str(Config.RTVS_PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            creationflags=creationflags,
+        )
+
+        log_dir = Path(base_env.get("RTVS_DB_PATH", "")).parent if base_env.get("RTVS_DB_PATH") else Path.home()
+        log_dir = log_dir / "rtvs_run_logs" / run_id
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        lane_log = log_dir / f"lane_{lane_id}.log"
+
+        with lane_log.open("a", encoding="utf-8", errors="replace") as f:
+            f.write("\n" + "=" * 80 + "\n")
+            f.write(f"CMD: {' '.join(cmd)}\n")
+            f.write(f"RC: {p.returncode}\n")
+            if p.stdout:
+                f.write("\nSTDOUT:\n")
+                f.write(p.stdout)
+            if p.stderr:
+                f.write("\nSTDERR:\n")
+                f.write(p.stderr)
+
+
+
+
         print("returned")
+
+
+
+
         results.append((j, p.returncode))
 
     return results

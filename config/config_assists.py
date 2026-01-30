@@ -1,6 +1,11 @@
 import os
 from dataclasses import dataclass
 from typing import Any
+import shutil
+import subprocess
+from pathlib import Path
+
+import sys
 
 from config.rtvsdb import RTVSDB
 from core.config import Config
@@ -57,6 +62,66 @@ class ConfigAssists:
         self.db.create_customer_tables()
         self.db.load_customer_json_into_db()
         self.db.create_run_and_log_tables()
+        self.install_requirements()
+
+
+    def install_requirements(self) -> list[str]:
+        prefix = self._pick_external_python_for_setup()
+        req = self._bundled_requirements_path()
+
+        # make sure pip exists
+        try:
+            subprocess.run(prefix + ["-m", "pip", "--version"], check=True, capture_output=True, text=True)
+        except Exception:
+            subprocess.run(prefix + ["-m", "ensurepip", "--upgrade"], check=True)
+
+        # install deps (try normal, then --user fallback)
+        try:
+            subprocess.run(prefix + ["-m", "pip", "install", "-r", str(req)], check=True)
+        except subprocess.CalledProcessError:
+            subprocess.run(prefix + ["-m", "pip", "install", "--user", "-r", str(req)], check=True)
+
+        # quick sanity check
+        subprocess.run(prefix + ["-c", "import pytest; import selenium; import PySide6"], check=True)
+
+        return prefix
+
+    @staticmethod
+    def _pick_external_python_for_setup() -> list[str]:
+        py = os.getenv("RTVS_PYTHON")
+        if py and Path(py).exists():
+            return [py]
+
+        py_launcher = shutil.which("py")
+        if py_launcher:
+            return [py_launcher, "-3"]
+
+        py_on_path = shutil.which("python")
+        if py_on_path:
+            return [py_on_path]
+
+        raise RuntimeError("Python not found. Install Python or set RTVS_PYTHON.")
+
+    @staticmethod
+    def _bundled_requirements_path() -> Path:
+        # PyInstaller onefile extracts to sys._MEIPASS
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            base = Path(sys._MEIPASS)  # type: ignore[attr-defined]
+            p = base / "requirements.txt"
+            if p.exists():
+                return p
+
+        # dev fallbacks
+        for p in [
+            Path.cwd() / "requirements.txt",
+            Path(__file__).resolve().parent.parent / "requirements.txt",
+        ]:
+            if p.exists():
+                return p
+
+        raise RuntimeError("requirements.txt not found.")
+
+
 
     # Run onfiguration interactors
     def set_run_configuration(self, run_config: RunConfiguration):
