@@ -88,7 +88,7 @@ def config_assists():
         ConfigAssists instance
     """
     ca = ConfigAssists()
-    ca.create_first_time_setup()
+    # ca.create_first_time_setup()
     yield ca
     ca.db.close()
 
