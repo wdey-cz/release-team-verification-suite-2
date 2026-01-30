@@ -147,7 +147,7 @@ def run_lane_serial(
         external = _pick_external_python()
 
         if Path(external).name.lower() == "py.exe":
-            pytest_prefix = [external, "-3", "-m", "pytest"]  # py launcher
+            pytest_prefix = [external, "-3.14", "-m", "pytest"]  # py launcher
         else:
             pytest_prefix = [external, "-m", "pytest"]
 
