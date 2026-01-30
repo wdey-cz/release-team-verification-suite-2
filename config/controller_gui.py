@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 import re
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -23,6 +24,33 @@ from config.config_assists import ConfigAssists  # type: ignore
 from core.rtvs_runner import build_lanes, print_plan, run_lanes_parallel, _pick_external_python
 from core.config import Config
 
+
+def utc_to_local_display(utc_timestamp_str: str) -> str:
+    """
+    Convert a UTC timestamp string to local time for display.
+    Args:
+        utc_timestamp_str: UTC timestamp in format "YYYY-MM-DD HH:MM:SS"
+    
+    Returns:
+        Local time string in format "YYYY-MM-DD HH:MM:SS"
+    """
+    if not utc_timestamp_str or utc_timestamp_str.strip() == "":
+        return utc_timestamp_str
+    
+    try:
+        # Parse the UTC timestamp
+        utc_dt = datetime.strptime(utc_timestamp_str.strip(), "%Y-%m-%d %H:%M:%S")
+        
+        # Convert to local time
+        # Use UTC timestamp calculation: convert to epoch time assuming UTC, then to local
+        utc_timestamp = calendar.timegm(utc_dt.timetuple())
+        local_dt = datetime.fromtimestamp(utc_timestamp)
+        
+        # Format back to string
+        return local_dt.strftime("%Y-%m-%d %H:%M:%S")
+    except (ValueError, AttributeError):
+        # If parsing fails, return original string
+        return utc_timestamp_str
 
 
 @dataclass
@@ -697,7 +725,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
                     profile_name=str(r[1]),
                     currently_running=(None if r[2] is None else str(r[2])),
                     is_active=int(r[3]),
-                    last_mfa_time=str(r[4]),
+                    last_mfa_time=("" if r[4] is None else str(r[4])),
                 )
             )
         return out
@@ -713,7 +741,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
                 QtGui.QStandardItem(p.profile_name),
                 QtGui.QStandardItem("" if p.currently_running is None else p.currently_running),
                 QtGui.QStandardItem(str(p.is_active)),
-                QtGui.QStandardItem(p.last_mfa_time),
+                QtGui.QStandardItem(utc_to_local_display(p.last_mfa_time)),
             ]
             # simple visual cue for active
             if p.is_active == 1:
@@ -1039,7 +1067,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
         out: list[TestLogRow] = []
         for r in rows:
             out.append(TestLogRow(
-                timestamp=str(r[0]),
+                timestamp=("" if r[0] is None else str(r[0])),
                 type=str(r[1]),
                 status=str(r[2]),
                 test_name=(None if r[3] is None else str(r[3])),
@@ -1072,7 +1100,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
                 QtGui.QStandardItem(r.category),
                 QtGui.QStandardItem(r.env),
                 QtGui.QStandardItem(r.test_package),
-                QtGui.QStandardItem("" if r.last_update_at is None else r.last_update_at),
+                QtGui.QStandardItem("" if r.last_update_at is None else utc_to_local_display(r.last_update_at)),
                 QtGui.QStandardItem("" if r.last_update_message is None else r.last_update_message),
             ]
 
@@ -1112,7 +1140,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         for l in reversed(logs):  # show oldest at top
             items = [
-                QtGui.QStandardItem(l.timestamp),
+                QtGui.QStandardItem(utc_to_local_display(l.timestamp)),
                 QtGui.QStandardItem(l.type),
                 QtGui.QStandardItem(l.status),
                 QtGui.QStandardItem("" if l.test_name is None else l.test_name),
