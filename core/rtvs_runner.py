@@ -166,8 +166,44 @@ def run_lane_serial(
         print(f"  client={j.client_id} role={j.user_role} browser={j.browser}")
         print(" ", " ".join(cmd))
 
-        p = subprocess.run(cmd, env=env, cwd=str(Config.RTVS_PROJECT_ROOT))
+        creationflags = 0
+        if os.name == "nt":
+            creationflags = subprocess.CREATE_NO_WINDOW
+
+        p = subprocess.run(
+            cmd,
+            env=env,
+            cwd=str(Config.RTVS_PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            creationflags=creationflags,
+        )
+
+        log_dir = Path(base_env.get("RTVS_DB_PATH", "")).parent if base_env.get("RTVS_DB_PATH") else Path.home()
+        log_dir = log_dir / "rtvs_run_logs" / run_id
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        lane_log = log_dir / f"lane_{lane_id}.log"
+
+        with lane_log.open("a", encoding="utf-8", errors="replace") as f:
+            f.write("\n" + "=" * 80 + "\n")
+            f.write(f"CMD: {' '.join(cmd)}\n")
+            f.write(f"RC: {p.returncode}\n")
+            if p.stdout:
+                f.write("\nSTDOUT:\n")
+                f.write(p.stdout)
+            if p.stderr:
+                f.write("\nSTDERR:\n")
+                f.write(p.stderr)
+
+
+
+
         print("returned")
+
+
+
+
         results.append((j, p.returncode))
 
     return results
