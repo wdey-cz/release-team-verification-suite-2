@@ -54,6 +54,10 @@ jobs:
             --add-data "requirements.txt;." \
             --add-data "tests;tests" \
             --add-data "conftest.py;." \
+            --add-data "config;config" \
+            --add-data "core;core" \
+            --add-data "pages;pages" \
+            --add-data "pytest.ini;." \
             --icon "assets/rtvs.ico"
 
       - name: Collect build artifacts
