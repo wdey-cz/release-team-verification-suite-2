@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+from openpyxl import Workbook
+from openpyxl.styles import Font
 import os
 import subprocess
 import sys
@@ -846,7 +849,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         self.tabs.addTab(tab, "Customers")
 
-
     def _load_customer(self):
         self._init_assists()
         db = self._db()
@@ -933,6 +935,10 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.btn_start_new_test = QtWidgets.QPushButton("Start new test...")
         self.btn_start_new_test.clicked.connect(lambda: self._safe_call("Start new test dialog", self._open_start_test_dialog))
         top_row.addWidget(self.btn_start_new_test)
+
+        self.btn_export_reports_csv = QtWidgets.QPushButton("Export reports for selected run (CSV)...")
+        self.btn_export_reports_csv.clicked.connect(lambda: self._safe_call("Export reports CSV", self._export_reports_xlsx_for_selected_run))
+        top_row.addWidget(self.btn_export_reports_csv)
 
         top_row.addStretch(1)
         layout.addLayout(top_row)
@@ -1114,6 +1120,133 @@ class ControllerWindow(QtWidgets.QMainWindow):
                 QtGui.QStandardItem("" if l.worker is None else l.worker),
             ]
             self.logs_model.appendRow(items)
+
+    def _export_reports_xlsx_for_selected_run(self):
+
+
+        run_id = self._selected_run_id()
+        if not run_id:
+            QtWidgets.QMessageBox.information(self, "No run selected", "Please select a test run first.")
+            return
+
+        db = self._db()
+        cursor = db.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT browsers, clients, user_roles
+            FROM test_runs
+            WHERE run_id = ?;
+            """,
+            (run_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            QtWidgets.QMessageBox.warning(self, "Run not found", f"No data found for run_id={run_id}.")
+            return
+
+        def _split_csv(s: str) -> list[str]:
+            return [x.strip() for x in (s or "").split(",") if x.strip()]
+
+        browsers = _split_csv(row[0])
+        clients = _split_csv(row[1])
+        roles = _split_csv(row[2])
+
+        if not browsers or not clients or not roles:
+            QtWidgets.QMessageBox.warning(self, "Missing run metadata", "Run row is missing browsers/clients/roles.")
+            return
+
+        reports_dir = Path(os.getenv("LOCALAPPDATA", r"C:\Users\Public\AppData\Local")) / "RTVS2" / "reports" / run_id
+        reports_dir.mkdir(parents=True, exist_ok=True)
+
+        header = ["Timestamp", "Type", "Test Name", "Message", "Status", "Current URL"]
+        header_font = Font(bold=True)
+
+        def _sanitize_sheet_name(name: str) -> str:
+            # Excel rules: max 31 chars, no : \ / ? * [ ]
+            name = (name or "").strip()
+            if not name:
+                name = "NO_TEST_NAME"
+            name = re.sub(r"[:\\/?*\[\]]", "_", name)
+            name = re.sub(r"\s+", " ", name).strip()
+            return name[:31] if len(name) > 31 else name
+
+        def _unique_sheet_title(wb: Workbook, base: str) -> str:
+            base = _sanitize_sheet_name(base)
+            if base not in wb.sheetnames:
+                return base
+            # add suffixes, keeping within 31 chars
+            i = 2
+            while True:
+                suffix = f"_{i}"
+                trimmed = base[: (31 - len(suffix))] if len(base) + len(suffix) > 31 else base
+                candidate = f"{trimmed}{suffix}"
+                if candidate not in wb.sheetnames:
+                    return candidate
+                i += 1
+
+        for client in clients:
+            for role in roles:
+                for browser in browsers:
+                    xlsx_file = reports_dir / f"report_{client}_{role}_{browser}.xlsx"
+
+                    cursor.execute(
+                        """
+                        SELECT timestamp, type, test_name, message, status, current_url
+                        FROM test_logs tl
+                        WHERE tl.run_id = ?
+                          AND tl.client_id = ?
+                          AND tl.user_role = ?
+                          AND tl.browser = ?
+                          AND tl.type IN ('test_case', 'heartbeat')
+                        ORDER BY id ASC;
+                        """,
+                        (run_id, client, role, browser),
+                    )
+                    logs = cursor.fetchall()
+
+                    wb = Workbook()
+                    # Remove the default empty sheet
+                    default_sheet = wb.active
+                    wb.remove(default_sheet)
+
+                    sheets = {}  # map raw tab key -> worksheet
+
+                    if not logs:
+                        # still write an empty workbook with a single sheet so user knows it ran
+                        ws = wb.create_sheet("NO_DATA")
+                        for c, h in enumerate(header, start=1):
+                            cell = ws.cell(row=1, column=c, value=h)
+                            cell.font = header_font
+                    else:
+                        for ts, typ, test_name, msg, status, url in logs:
+                            # Put heartbeats (and anything with missing test_name) into a dedicated tab
+                            if typ == "heartbeat":
+                                tab_key = "HEARTBEAT"
+                            else:
+                                tab_key = str(test_name) if test_name is not None else "NO_TEST_NAME"
+
+                            if tab_key not in sheets:
+                                title = _unique_sheet_title(wb, tab_key)
+                                ws = wb.create_sheet(title)
+                                sheets[tab_key] = ws
+
+                                # header row
+                                for c, h in enumerate(header, start=1):
+                                    cell = ws.cell(row=1, column=c, value=h)
+                                    cell.font = header_font
+
+                            ws = sheets[tab_key]
+                            ws.append([ts, typ, test_name, msg, status, url])
+
+                    wb.save(xlsx_file)
+
+        QtWidgets.QMessageBox.information(self, "Export Complete", f"Reports exported to {reports_dir}.")
+        self._append_log(f"[OK] XLSX reports exported for run_id={run_id} to {reports_dir}")
+
+
+
+
 
     def _open_start_test_dialog(self):
         self._init_assists()
