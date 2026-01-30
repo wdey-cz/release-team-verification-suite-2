@@ -21,7 +21,7 @@ jobs:
       contents: read
 
     env:
-      APP_NAME: RTVS2
+      APP_NAME: RTVS_Master
       ENTRYPOINT: rtvs2_app.py
 
     steps:
