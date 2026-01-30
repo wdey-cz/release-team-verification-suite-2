@@ -52,6 +52,8 @@ jobs:
             --windowed "${ENTRYPOINT}" \
             --add-data "assets;assets" \
             --add-data "requirements.txt;." \
+            --add-data "tests;tests" \
+            --add-data "conftest.py;." \
             --icon "assets/rtvs.ico"
 
       - name: Collect build artifacts
