@@ -55,6 +55,7 @@ class ConfigAssists:
         self.set_run_configuration(RunConfiguration())
 
     def create_first_time_setup(self):
+        self.install_requirements()
         # Create the chrome_profiles table if it doesn't exist
         self.db.create_chrome_profile_info_table()
         # Initialize the table with default profiles
@@ -62,7 +63,8 @@ class ConfigAssists:
         self.db.create_customer_tables()
         self.db.load_customer_json_into_db()
         self.db.create_run_and_log_tables()
-        self.install_requirements()
+        self.db.load_test_packages_from_dict()
+
 
 
     def install_requirements(self) -> list[str]:
