@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 import pytest
-from selenium.common import InvalidSessionIdException
+from selenium.common.exceptions import InvalidSessionIdException
 
 from core.driver_factory import WebDriverFactory
 from core.config import Config
