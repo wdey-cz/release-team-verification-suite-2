@@ -201,15 +201,18 @@ class StartTestDialog(QtWidgets.QDialog):
     def __init__(self, parent: QtWidgets.QWidget, db: RTVSDB):
         super().__init__(parent)
         self.setWindowTitle("Start New Test")
-        self.resize(1200, 800)
+        self.resize(900, 600)
 
         self._db = db
 
         root = QtWidgets.QVBoxLayout(self)
 
         # --- Basic run config ---
-        form = QtWidgets.QFormLayout()
+        grid = QtWidgets.QGridLayout()
+        grid.setHorizontalSpacing(16)
+        grid.setVerticalSpacing(10)
 
+        # Widgets
         self.prefix_input = QtWidgets.QLineEdit("RTVS")
 
         self.category_combo = QtWidgets.QComboBox()
@@ -218,34 +221,60 @@ class StartTestDialog(QtWidgets.QDialog):
         self.env_combo = QtWidgets.QComboBox()
         self.env_combo.addItems(["PROD", "CERT", "STAGE", "TEST", "NOENV"])
 
-        self.headless_chk = QtWidgets.QCheckBox("Headless")
-        self.headless_chk.setChecked(False)
-
         self.marker_combo = QtWidgets.QComboBox()
         self.marker_combo.setEditable(False)
 
-        # self.marker_combo.addItems(self.fetch_test_package_names())
+        self.headless_chk = QtWidgets.QCheckBox("Headless")
+        self.headless_chk.setChecked(False)
 
         self.package_desc_input = QtWidgets.QLineEdit()
         self.package_desc_input.setReadOnly(True)
-        self.package_desc_input.setPlaceholderText("Select A test Package to see its description")
-        # self.package_desc_input.setPlaceholderText("Optional description shown in test_runs.test_package_desc")
+        self.package_desc_input.setPlaceholderText("Select a test package to see its description")
 
-        # Change signals
+        # Signals
         self.category_combo.currentTextChanged.connect(self.on_category_changed)
         self.marker_combo.currentTextChanged.connect(self.on_marker_changed)
 
         # Initial population
         self.on_category_changed(self.category_combo.currentText())
 
-        form.addRow("Prefix:", self.prefix_input)
-        form.addRow("Category:", self.category_combo)
-        form.addRow("Env (TEST_ENV):", self.env_combo)
-        form.addRow("Marker (pytest -m):", self.marker_combo)
-        form.addRow("Package description:", self.package_desc_input)
-        form.addRow("", self.headless_chk)
+        # Helper to make "Label + Widget" as a mini horizontal row
+        def labeled_row(label_text: str, widget: QtWidgets.QWidget) -> QtWidgets.QWidget:
+            w = QtWidgets.QWidget()
+            lay = QtWidgets.QHBoxLayout(w)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.setSpacing(8)
+            lab = QtWidgets.QLabel(label_text)
+            lab.setMinimumWidth(110)  # keeps labels aligned
+            lay.addWidget(lab)
+            lay.addWidget(widget, 1)
+            return w
 
-        root.addLayout(form)
+        # Row 1: Prefix, Category
+        grid.addWidget(labeled_row("Prefix:", self.prefix_input), 0, 0, 1, 1)
+        grid.addWidget(labeled_row("Category:", self.category_combo), 0, 1, 1, 1)
+
+        # Row 2: Env, Marker, Headless
+        grid.addWidget(labeled_row("Env (TEST_ENV):", self.env_combo), 1, 0, 1, 1)
+        grid.addWidget(labeled_row("Marker (pytest -m):", self.marker_combo), 1, 1, 1, 1)
+
+        # Headless as a small standalone checkbox aligned nicely
+        headless_wrap = QtWidgets.QWidget()
+        headless_lay = QtWidgets.QHBoxLayout(headless_wrap)
+        headless_lay.setContentsMargins(0, 0, 0, 0)
+        headless_lay.addStretch(1)
+        headless_lay.addWidget(self.headless_chk)
+        grid.addWidget(headless_wrap, 1, 2, 1, 1)
+
+        # Row 3: Description full width
+        grid.addWidget(labeled_row("Description:", self.package_desc_input), 2, 0, 1, 3)
+
+        # Make column 0/1 stretch, column 2 minimal
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(2, 0)
+
+        root.addLayout(grid)
 
         # --- Selection panes ---
         panes = QtWidgets.QHBoxLayout()
@@ -260,21 +289,32 @@ class StartTestDialog(QtWidgets.QDialog):
         root.addLayout(panes)
 
         # Manual fallback inputs (comma separated) if tables empty or user prefers typing
-        manual = QtWidgets.QFormLayout()
+        # Manual fallback inputs (comma separated) in ONE row
         self.manual_clients = QtWidgets.QLineEdit()
         self.manual_clients.setPlaceholderText("e.g. 1000,1500")
+
         self.manual_roles = QtWidgets.QLineEdit()
         self.manual_roles.setPlaceholderText("e.g. cs,regional_support")
+
         self.manual_browsers = QtWidgets.QLineEdit()
         self.manual_browsers.setPlaceholderText("e.g. chrome,firefox")
-        manual.addRow("Manual clients:", self.manual_clients)
-        manual.addRow("Manual roles:", self.manual_roles)
-        manual.addRow("Manual browsers:", self.manual_browsers)
-        root.addLayout(manual)
+
+        manual_row = QtWidgets.QHBoxLayout()
+        manual_row.setContentsMargins(0, 0, 0, 0)
+        manual_row.setSpacing(16)
+
+        manual_row.addWidget(labeled_row("Manual clients:", self.manual_clients), 2)
+        manual_row.addWidget(labeled_row("Manual roles:", self.manual_roles), 2)
+        manual_row.addWidget(labeled_row("Manual browsers:", self.manual_browsers), 1)
+
+        root.addLayout(manual_row)
 
         # --- Parallelization options ---
         opts = QtWidgets.QGroupBox("Lane execution options")
-        opts_layout = QtWidgets.QFormLayout(opts)
+
+        opts_layout = QtWidgets.QVBoxLayout(opts)
+        opts_layout.setContentsMargins(12, 10, 12, 10)
+        opts_layout.setSpacing(10)
 
         self.mp_clients_chk = QtWidgets.QCheckBox("Parallelize by clients")
         self.mp_roles_chk = QtWidgets.QCheckBox("Parallelize by roles")
@@ -285,10 +325,20 @@ class StartTestDialog(QtWidgets.QDialog):
         self.max_parallel_spin.setMaximum(64)
         self.max_parallel_spin.setValue(5)
 
-        opts_layout.addRow("", self.mp_clients_chk)
-        opts_layout.addRow("", self.mp_roles_chk)
-        opts_layout.addRow("", self.mp_browsers_chk)
-        opts_layout.addRow("Max parallel lanes:", self.max_parallel_spin)
+        # 1) Checkboxes in ONE row
+        chk_row = QtWidgets.QHBoxLayout()
+        chk_row.setContentsMargins(0, 0, 0, 0)
+        chk_row.setSpacing(18)
+
+        chk_row.addWidget(self.mp_clients_chk)
+        chk_row.addWidget(self.mp_roles_chk)
+        chk_row.addWidget(self.mp_browsers_chk)
+        chk_row.addStretch(1)
+
+        opts_layout.addLayout(chk_row)
+
+        # 2) Max-parallel row
+        opts_layout.addWidget(labeled_row("Max parallel lanes:", self.max_parallel_spin))
 
         root.addWidget(opts)
 
@@ -442,7 +492,8 @@ class ControllerWindow(QtWidgets.QMainWindow):
         super().__init__()
         self._workers: dict[str, TestRunWorker] = {}
         self.setWindowTitle("RTVS Controller")
-        self.resize(1100, 720)
+        self.resize(1000, 600)
+        self.showMaximized()
 
         self.assists: ConfigAssists | None = None
 
@@ -1271,10 +1322,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         QtWidgets.QMessageBox.information(self, "Export Complete", f"Reports exported to {reports_dir}.")
         self._append_log(f"[OK] XLSX reports exported for run_id={run_id} to {reports_dir}")
-
-
-
-
 
     def _open_start_test_dialog(self):
         self._init_assists()
