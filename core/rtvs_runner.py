@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from itertools import product
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Tuple
+from config.rtvsdb import RTVSDB
 
 
 from core.config import Config
@@ -110,7 +111,16 @@ def build_lanes(
             if "browser" not in assignment:
                 assignment["browser"] = browsers[0]
 
-            user_name = f"local_{assignment['user_role']}".replace(" ", "_").lower()
+            # fetch the username for this client_id and user_role from db. If the user role is not found, do not add the job to the lane
+            db = RTVSDB()
+            user_name = db.get_role_dict_for_customer_id(assignment["client_id"])[assignment["user_role"]]
+            if not user_name:
+                print(f"Warning: No user found for client_id={assignment['client_id']} and user_role={assignment['user_role']}. Skipping this job.")
+                continue
+
+
+
+
 
             lane_jobs.append(
                 Job(
