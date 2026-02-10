@@ -49,7 +49,7 @@ class RTVSDB:
     PROJECT_ROOT = Config.RTVS_PROJECT_ROOT
     ASSETS_DIR = Config.RTVS_ASSETS_DIR
     DEFAULT_DB_PATH = Config.RTVS_DEFAULT_DB_PATH
-    #
+
 
 
     def __init__(self, db_path: str | Path | None = None):
@@ -71,6 +71,7 @@ class RTVSDB:
         self.create_customer_tables()
         self.create_run_and_log_tables()
         self.create_test_package_table()
+        self.create_tester_info_table()
 
         # Commit any initial changes
         self.connection.commit()
@@ -106,6 +107,73 @@ class RTVSDB:
     def close(self):
         """Close the database connection."""
         self.connection.close()
+
+    # DB functions for the tester_info table
+    def create_tester_info_table(self):
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS tester_info (
+              id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+              username             TEXT NOT NULL UNIQUE,
+              password             TEXT NOT NULL,
+              email                TEXT NOT NULL,
+              reason_for_login     TEXT NOT NULL,
+              signature            TEXT NOT NULL,
+              updated_at           TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+
+    def insert_tester_info(self, username: str, password: str, email: str, reason: str, signature: str):
+        """Insert a new tester info into the database."""
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute("""
+                INSERT INTO tester_info (username, password, email, reason_for_login, signature)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(username) DO UPDATE SET
+                  password=excluded.password,
+                  email=excluded.email,
+                  reason_for_login=excluded.reason_for_login,
+                  signature=excluded.signature,
+                  updated_at=CURRENT_TIMESTAMP;
+            """, (username, password, email, reason, signature))
+
+    def fetch_tester_reason(self):
+        """Fetch tester reason for login by username."""
+        cursor = self.connection.cursor()
+        cursor.execute("""
+            SELECT reason_for_login
+            FROM tester_info;
+            """)
+        return cursor.fetchone()
+
+    def fetch_tester_signature(self):
+        """Fetch tester signature by username."""
+        cursor = self.connection.cursor()
+        cursor.execute("""
+            SELECT signature
+            FROM tester_info;
+            """)
+        return cursor.fetchone()
+
+    def fetch_tester_email(self):
+        """Fetch tester email by username."""
+        cursor = self.connection.cursor()
+        cursor.execute("""
+            SELECT email
+            FROM tester_info;
+            """)
+        return cursor.fetchone()
+
+    def fetch_tester_credentials(self):
+        """Fetch tester credentials (username and password) by username."""
+        cursor = self.connection.cursor()
+        cursor.execute("""
+            SELECT username, password
+            FROM tester_info;
+            """)
+        return cursor.fetchone()
 
     # DB functions for the master test package table
     def create_test_package_table(self):
@@ -147,7 +215,6 @@ class RTVSDB:
         for tp in test_packages_dict_list:
             self.insert_test_package(tp["name"], tp["category"], tp["desc"], tp["available_to"])
 
-
     def fetch_regression_test_packages(self):
         """Fetch all test packages categorized as 'REG'."""
         cursor = self.connection.cursor()
@@ -157,8 +224,6 @@ class RTVSDB:
             WHERE test_package_category = 'REG';
         """)
         return [tp[0] for tp in cursor.fetchall()]
-
-
 
     def fetch_data_integrity_test_packages(self):
         """Fetch all test packages categorized as 'DATA_INTEGRITY'."""
@@ -181,7 +246,6 @@ class RTVSDB:
         row = cursor.fetchone()
         return row[0] if row else None
 
-
     def insert_test_package(self, name: str, category: str, desc: str, available_to: str):
         """Insert a new test package into the database.
         args:
@@ -201,7 +265,6 @@ class RTVSDB:
                   available_to=excluded.available_to,
                   updated_at=CURRENT_TIMESTAMP;
             """, (name, category, desc, available_to))
-
 
     # DB Functions for Chrome Profile Info Table
     def create_chrome_profile_info_table(self):
@@ -481,7 +544,13 @@ class RTVSDB:
         for customer_id, customer_name, role, username in rows:
             temp_dict = {role: username}
             role_dict.update(temp_dict)
+        # check that {'Cozeva Support': '999999'} is in role_dict, if not, add it, then return it.
+
+        if 'Cozeva Support' not in role_dict:
+            role_dict['Cozeva Support'] = '999999'
         return role_dict
+
+
 
     def get_customer_name_from_id(self, customer_id):
         """Get customer name for a given customer ID."""

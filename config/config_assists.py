@@ -41,6 +41,7 @@ class RunConfiguration:
     worker: str | None = None
     workbook_title: str | None = None
     other_info: dict | None = None
+    base_landing_url: str | None = None
 
 
 
@@ -64,6 +65,7 @@ class ConfigAssists:
         self.db.load_customer_json_into_db()
         self.db.create_run_and_log_tables()
         self.db.load_test_packages_from_dict()
+        self.db.create_tester_info_table()
 
 
 
@@ -355,8 +357,8 @@ class ConfigAssists:
     def add_log_error(self, message: str, *, driver=None, status: str = "Error") -> None:
         self._log(type_="error", message=message, status=status, driver=driver, mark_fail=True)
 
-    def add_log_heartbeat(self, message: str = "heartbeat", *, driver=None) -> None:
-        self._log(type_="heartbeat", message=message, status="Info", driver=driver)
+    def add_log_heartbeat(self, message: str = "heartbeat", *, status="Info", driver=None) -> None:
+        self._log(type_="heartbeat", message=message, status=status, driver=driver)
 
 
 

@@ -39,8 +39,16 @@ from selenium.webdriver.common.by import By
 
 class CozevaLoginPage(BasePage):
 
+    # URLs
     LOGIN_BASE_URL = "/user/login"
     LOGOUT_BASE_URL = "/user/logout"
+
+    # Locators
+    USER_NAME_ELEMENT = (By.ID, "edit-name")
+    PASSWORD_ELEMENT = (By.ID, "edit-pass")
+    STAY_SIGNED_IN_CHECKBOX = (By.ID, "edit-stay-signed-in")
+    LOGIN_BUTTON = (By.ID, "edit-submit")
+    FORGOT_PASSWORD_LINK = (By.CLASS_NAME, "forget-link")
 
     def __init__(self, driver):
         super().__init__(driver)
@@ -51,4 +59,19 @@ class CozevaLoginPage(BasePage):
         except Exception as e:
             print("Error navigating to Cozeva login page:", e)
             traceback.print_exc()
+
+    def enter_username(self, username):
+        self.enter_text(self.USER_NAME_ELEMENT, username, 30)
+
+    def enter_password(self, password):
+        self.enter_text(self.PASSWORD_ELEMENT, password, 30)
+
+    def click_login_button(self):
+        self.click_element(self.LOGIN_BUTTON, 30)
+
+    def enter_credentials_and_login(self, username, password):
+        self.enter_username(username)
+        self.enter_password(password)
+        self.click_login_button()
+
 
