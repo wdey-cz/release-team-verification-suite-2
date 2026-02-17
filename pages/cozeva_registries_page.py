@@ -11,6 +11,8 @@ class CozevaRegistriesPage(BasePage):
     REGISTRIES_TABLE = (By.ID, "registries-table")
     REGISTRY_ROWS = (By.CSS_SELECTOR, "#registries-table tbody tr")
 
+    # Sidebar
+
     def __init__(self, driver):
         super().__init__(driver)
 

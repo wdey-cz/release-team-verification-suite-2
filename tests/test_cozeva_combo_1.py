@@ -2,6 +2,7 @@ import pytest
 import traceback
 
 from pages.cozeva_registries_page import CozevaRegistriesPage
+from core.base_page import HeaderNavBar
 
 
 @pytest.mark.CozevaComboPack1
@@ -28,8 +29,12 @@ class TestSidebar:
             rc = config_assists.get_run_configuration()
             failed_cases = 0
 
+
+
             cozeva_registries_page = CozevaRegistriesPage(driver)
-            cozeva_registries_page.registry_test_method()
+            header_nav = HeaderNavBar(driver)
+
+
 
             config_assists.add_log_update(
                 message=f"Navigated to {cozeva_registries_page.get_page_report()['CURRENT_TITLE']} for " + rc.test_name + " test cases",

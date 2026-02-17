@@ -16,6 +16,9 @@ class BasePage:
     GET_TD_TAGS_LOCATOR = (By.TAG_NAME, "td")
     GET_TR_TAGS_LOCATOR = (By.TAG_NAME, "tr")
 
+    PRELOADER = (By.CLASS_NAME, "ajax_preloader")
+    DRUPAL_MSG = (By.CLASS_NAME, "drupal_message_text")
+
 
     def __init__(self, driver):
         self.driver = driver
@@ -143,27 +146,33 @@ class BasePage:
         report = {'CURRENT_URL': self.driver.current_url, 'CURRENT_TITLE': self.driver.title}  # [Current URL, Page Title]
         return report
 
-    def ajax_preloader_wait(self):
-        # wait for the ajax preloader to appear, load then dissapear, then wait for any drupal messages to disappear
+    def ajax_preloader_wait(self, desc="", appear_timeout=3, disappear_timeout=300):
+        t0 = time.perf_counter()
+        seen = False
+
+        print(f"[ajax] start {desc}", flush=True)
+
         try:
-            self.wait_helpers.wait_for_element_visible((By.CLASS_NAME, "ajax_preloader"), timeout=10)
-            print("ajax_preloader visible")
+            WebDriverWait(self.driver, appear_timeout).until(
+                EC.visibility_of_element_located(self.PRELOADER)
+            )
+            seen = True
+            print(f"[ajax] preloader appeared in {time.perf_counter() - t0:.2f}s {desc}", flush=True)
         except TimeoutException:
-            print("ajax_preloader did not appear, continuing without waiting for it to disappear")
-            return
+            # Not necessarily an error, it can be fast or delayed
+            print(f"[ajax] preloader not seen within {appear_timeout}s {desc}", flush=True)
 
+        if seen:
+            WebDriverWait(self.driver, disappear_timeout).until(
+                EC.invisibility_of_element_located(self.PRELOADER)
+            )
+            print(f"[ajax] preloader gone in {time.perf_counter() - t0:.2f}s {desc}", flush=True)
 
-        self.wait_helpers.wait_for_element_invisible((By.CLASS_NAME, "ajax_preloader"), timeout=300)
-        print("ajax_preloader invisible")
-        self.wait_helpers.wait_for_element_invisible((By.CLASS_NAME, "drupal_message_text"), timeout=300)
-        print("drupal_message_text invisible")
-
-        if self.is_element_present((By.XPATH, "//*[@id='announcement_list']"), timeout=5):
-            try:
-                self.driver.find_element(By.XPATH, "//a[@OnClick='closeAnnouncements();']").click()
-                print("Announcement closed")
-            except Exception as e:
-                print("Announcement not present")
+        # This is safe even if it never existed
+        WebDriverWait(self.driver, disappear_timeout).until(
+            EC.invisibility_of_element_located(self.DRUPAL_MSG)
+        )
+        print(f"[ajax] drupal message gone in {time.perf_counter() - t0:.2f}s {desc}", flush=True)
 
     def scroll_to_view(self, target, timeout=10):
         if isinstance(target, WebElement):
@@ -184,6 +193,7 @@ class BasePage:
 
 
 class HeaderNavBar(BasePage):
+
     # Locators
     HEADER_BAR = (By.CLASS_NAME, "navbar-fixed")
     GLOBAL_SEARCH_BAR_INPUT = (By.ID, "globalsearch_input")
@@ -197,6 +207,13 @@ class HeaderNavBar(BasePage):
 
     SWITCH_BACK_TO_CS_BUTTON = (By.XPATH, "//a[contains(@href, '/masquerade') and contains(text(), 'Switch Back')]")
     SWITCH_BACK_TO_CS_BUTTON_NEXT_SCREEN = (By.XPATH, "//a[contains(@href, '/unmasquerade') and contains(text(), 'Switch back')]")
+
+    # Sidebar locators
+    SIDEBAR_MENU_KEBAB = (By.XPATH, "//a[contains(@class, 'sidenav-trigger')]")
+    SIDEBAR_SLIDEOUT_ELEMENT = (By.ID, "sidenav_slide_out")
+
+    SIDEBAR_ENTRIES = (By.XPATH, "//li[contains(@class, 'sidebar-menu-item')]/a")
+
 
 
 
@@ -223,6 +240,32 @@ class HeaderNavBar(BasePage):
         self.wait_helpers.wait_for_element_visible(self.SWITCH_BACK_TO_CS_BUTTON_NEXT_SCREEN, timeout=30)
         self.click_element(self.SWITCH_BACK_TO_CS_BUTTON_NEXT_SCREEN, timeout=10)
         self.ajax_preloader_wait()
+
+    def open_sidebar(self):
+        # check if the sidebar is already open by checking if the slideout element is visible, if not click the kebab menu to open it
+        if not self.is_element_visible(self.SIDEBAR_SLIDEOUT_ELEMENT, timeout=5):
+            self.click_element(self.SIDEBAR_MENU_KEBAB, timeout=10)
+            self.wait_helpers.wait_for_element_visible(self.SIDEBAR_SLIDEOUT_ELEMENT, timeout=10)
+
+    def fetch_sidebar_entries(self):
+        # fetch the sidebar entries and return them as a list of strings
+        self.open_sidebar()
+        entry_elements = self.find_elements(self.SIDEBAR_ENTRIES, timeout=10)
+        entries = [elem.text.strip() for elem in entry_elements]
+        return entries
+
+    def click_sidebar_entry(self, entry_name):
+        # click the sidebar entry that matches the entry name
+        self.open_sidebar()
+        entry_elements = self.find_elements(self.SIDEBAR_ENTRIES, timeout=10)
+        for entry_element in entry_elements:
+            #print("Comparing sidebar entry:", entry_element.text.strip().lower(), "to", entry_name.strip().lower())
+            if entry_element.text.strip().lower() == entry_name.strip().lower():
+                entry_element.click()
+                self.ajax_preloader_wait()
+                return
+
+
 
 
 

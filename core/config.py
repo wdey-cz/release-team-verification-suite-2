@@ -15,7 +15,7 @@ def _is_frozen_exe() -> bool:
 def _default_user_data_dir(app_name: str = "RTVS2") -> Path:
     """
     Cross-platform-ish, no extra deps:
-    - Windows: %LOCALAPPDATA%\RTVS2
+    - Windows: %LOCALAPPDATA%\\RTVS2
     - macOS: ~/Library/Application Support/RTVS2
     - Linux: ~/.local/share/RTVS2
     """
