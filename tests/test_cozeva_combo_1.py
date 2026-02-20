@@ -1,3 +1,5 @@
+import time
+
 import pytest
 import traceback
 
@@ -29,71 +31,55 @@ class TestSidebar:
             rc = config_assists.get_run_configuration()
             failed_cases = 0
 
-
-
-            cozeva_registries_page = CozevaRegistriesPage(driver)
+            # Load the header nav page for sidebar navigation functions
             header_nav = HeaderNavBar(driver)
 
 
-
             config_assists.add_log_update(
-                message=f"Navigated to {cozeva_registries_page.get_page_report()['CURRENT_TITLE']} for " + rc.test_name + " test cases",
-                driver=driver
-            )
+                message=f"Navigated to {header_nav.get_page_report()['CURRENT_TITLE']} for " + rc.test_name + " test cases",
+                driver=driver)
 
-            config_assists.add_log_heartbeat(
-                message=f"Test case 1 : Clicking on sidebar option - Registries",
-                status="STARTED",
-                driver=driver
-            )
+            # Sidebar options. collect all sidebar options, then loop through them, get back to base registries and repeat.
+            start_url = header_nav.get_page_report()["CURRENT_URL"]
 
-            config_assists.add_log_test_case(
-                message=f"Test case 1a : Checking that sidebar option exists for Registries",
-                status="PASSED",
-                driver=driver
-            )
 
-            config_assists.add_log_test_case(
-                message=f"Test case 1b : Clicking on Sidebar Registries and verifying page load",
-                status="PASSED",
-                driver=driver
-            )
+            sidebar_entries = header_nav.fetch_sidebar_entries()
 
-            config_assists.add_log_heartbeat(
-                message=f"Test case 2 : Clicking on option - Supplemental Data List",
-                status="STARTED",
-                driver=driver
-            )
+            # Test Case 1: Verify that the search bar is present on the home page.
+            config_assists.add_log_heartbeat("Starting sidebar validation for Support Level Registries", driver=driver)
 
-            config_assists.add_log_test_case(
-                message=f"Test case 2a : Checking that sidebar option exists for Registries",
-                status="PASSED",
-                driver=driver
-            )
+            # Now loop through each sidebar entry, click it, verify page load, then navigate back to start url before clicking the next one
+            for entry in sidebar_entries:
+                config_assists.add_log_heartbeat("Sidebar entry to be tested: " + entry,
+                                                 driver=driver)
 
-            config_assists.add_log_test_case(
-                message=f"Test case 2b : Clicking on sidebar Supplemental Data list and verifying page load",
-                status="PASSED",
-                driver=driver
-            )
+                if entry == "Payment Tool" or entry == "Export Dashboard":
+                    config_assists.add_log_heartbeat("Skipping sidebar entry: " + entry + " as it is not in scope for this test",
+                                                     driver=driver)
+                    continue
+                print(f"Clicking on sidebar entry: {entry}")
 
-            config_assists.add_log_heartbeat(
-                message=f"Test case 3 : Clicking on option - HCC data list",
-                status="STARTED",
-                driver=driver
-            )
+                header_nav.click_sidebar_entry(entry)
 
-            config_assists.add_log_test_case(
-                message=f"Test case 3a : Checking that sidebar option exists for HCC Data List",
-                status="PASSED",
-                driver=driver
-            )
+                start_time = time.perf_counter()
+                header_nav.ajax_preloader_wait("After Entry Click Sidebar")
+                time_taken = f"{time.perf_counter() - start_time:.2f}"
+                print(
+                    f"Finished waiting for page load after clicking sidebar entry: {entry}. Time taken: {time_taken} seconds")
 
-            config_assists.add_log_test_case(
-                message=f"Test case 3b : Clicking on sidebar HCC Data list and verifying page load",
-                status="PASSED",
-                driver=driver
-            )
+                current_url = header_nav.get_page_report()["CURRENT_URL"]
+                if current_url != start_url:
+                    print(f"Successfully navigated to new page after clicking sidebar entry: {entry}")
+                    config_assists.add_log_test_case(message="",
+                                                     status='PASSED', driver=driver)
+
+                else:
+                    failed_cases += 1
+                    print(f"Failed to navigate away from {start_url} after clicking sidebar entry: {entry}")
+
+                print("Navigating back to start URL...")
+                driver.get(start_url)
+                header_nav.ajax_preloader_wait(desc="Back to start")
 
             if failed_cases == 0:
                 config_assists.add_log_update("All test cases passed for " + rc.test_name, driver=driver)

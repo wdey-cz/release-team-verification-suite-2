@@ -20,6 +20,8 @@ class BasePage:
     DRUPAL_MSG = (By.CLASS_NAME, "drupal_message_text")
 
 
+
+
     def __init__(self, driver):
         self.driver = driver
         self.wait_helpers = WaitHelpers(driver)
@@ -213,6 +215,14 @@ class HeaderNavBar(BasePage):
     SIDEBAR_SLIDEOUT_ELEMENT = (By.ID, "sidenav_slide_out")
 
     SIDEBAR_ENTRIES = (By.XPATH, "//li[contains(@class, 'sidebar-menu-item')]/a")
+
+    SUPPORT_SIDEBAR_OPTIONS = ["Registries", "Reports", "Supplemental Data", "HCC Chart List",
+                               "AVW Chart List", "AWV Summary", "Exclusion List", "Pending List",
+                               "Batches", "Providers", "All Providers", "Imported Charts", "Hospital Activity",
+                               "Contact Log", "Sticket Log", "Export Dashboard", "Shared Forms", "Payment Tool"]
+
+    PRACTICE_SIDEBAR_OPTIONS = []
+    PROVIDER_SIDEBAR_OPTIONS = []
 
 
 

@@ -167,7 +167,7 @@ class RTVSDB:
         return cursor.fetchone()
 
     def fetch_tester_credentials(self):
-        """Fetch tester credentials (username and password) by username."""
+        """Fetch tester credentials (username and password)."""
         cursor = self.connection.cursor()
         cursor.execute("""
             SELECT username, password
@@ -672,6 +672,8 @@ class RTVSDB:
               status TEXT,
               message TEXT,
               timestamp TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+              time_taken_ms INTEGER,
+              comment TEXT,
               current_url TEXT,
               FOREIGN KEY (run_id) REFERENCES test_runs(run_id) ON DELETE CASCADE
             );
@@ -753,6 +755,8 @@ class RTVSDB:
             pid: int | None = None,
             worker: str | None = None,
             current_url: str | None = None,
+            time_taken_ms: int | None = None,
+            comment: str | None = None
     ):
         with self.connection:
             cursor = self.connection.cursor()
@@ -762,14 +766,14 @@ class RTVSDB:
                 INSERT INTO test_logs (
                   run_id, type, browser, test_package, test_name,
                   client_id, user_role, user_name, pid, worker,
-                  status, message, current_url
+                  status, message, current_url, time_taken_ms, comment
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """,
                 (
                     run_id, type_, browser, test_package, test_name,
                     client_id, user_role, user_name, pid, worker,
-                    status, message, current_url
+                    status, message, current_url, time_taken_ms, comment
                 ),
             )
             cursor.execute(
@@ -824,6 +828,12 @@ class RTVSDB:
 # Example usage
 if __name__ == "__main__":
     db = RTVSDB()
+    query ="""
+   ALTER TABLE test_logs ADD COLUMN comment TEXT;
+    
+    """
+    db.run_query(query)
+
     print(sqlite3.sqlite_version)
     db.close()
 

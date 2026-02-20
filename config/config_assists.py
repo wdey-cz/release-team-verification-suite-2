@@ -127,7 +127,7 @@ class ConfigAssists:
 
 
 
-    # Run onfiguration interactors
+    # Run configuration interactors
     def set_run_configuration(self, run_config: RunConfiguration):
         # Set the current run configuration
         self.run_config = run_config
@@ -294,7 +294,7 @@ class ConfigAssists:
         except Exception:
             return -1
 
-    def _log(self, *, type_: str, message: str, status: str = "Info", driver=None, current_url: str | None = None, test_name: str | None = None, extra: dict[str, Any] | None = None, mark_fail: bool = False) -> None:
+    def _log(self, *, type_: str, message: str, status: str = "Info", driver=None, current_url: str | None = None, test_name: str | None = None, extra: dict[str, Any] | None = None, mark_fail: bool = False, time_taken_ms: int | str = 'x', comment: str | None = None) -> None:
         rc = self._require_rc()
 
         # Allow caller override, else use driver, else None
@@ -332,6 +332,8 @@ class ConfigAssists:
             pid=pid,
             worker=worker,
             current_url=url,
+            time_taken_ms=time_taken_ms,
+            comment=comment
         )
 
         if mark_fail:
@@ -341,8 +343,8 @@ class ConfigAssists:
     def add_log_start(self, message: str = "Test started", *, driver=None, status: str = "Info") -> None:
         self._log(type_="start", message=message, status=status, driver=driver)
 
-    def add_log_test_case(self, message: str, *, driver=None, status: str = "Info") -> None:
-        self._log(type_="test_case", message=message, status=status, driver=driver)
+    def add_log_test_case(self, message: str, *, driver=None, status: str = "Info", time_taken_ms="x", comment=None ) -> None:
+        self._log(type_="test_case", message=message, status=status, driver=driver, time_taken_ms=time_taken_ms, comment=comment)
 
     def add_log_update(self, message: str, *, driver=None, status: str = "Success",
                      current_url: str | None = None) -> None:

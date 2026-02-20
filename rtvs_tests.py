@@ -1,10 +1,12 @@
 import time
 import traceback
 
+
 from core.driver_factory import WebDriverFactory
 from pages.cozeva_login_page import CozevaLoginPage
 from core.config import Config
 from multiprocessing import Pool
+from config.rtvsdb import RTVSDB
 
 from pages.cozeva_mfa_page import CozevaMFAPage
 from pages.cozeva_reason_for_login_page import CozevaReasonForLoginPage
@@ -15,6 +17,7 @@ from pages.cozeva_users_page import CozevaUsersPage
 def login_splash_test():
     print("Initializing WebDriver...")
     driver, profile = WebDriverFactory.get_driver(use_chrome_profile=True)
+    db = RTVSDB()
     user_role, user_name = "CS", "wdey.cs"
     #user_role, user_name = "CU", "AltaMed_AlUtria"
     try:
@@ -22,7 +25,8 @@ def login_splash_test():
         print("Navigating to login page...")
         login_page.go_to_login_page("https://www.cozeva.com")
         print("Performing login...")
-        login_page.enter_credentials_and_login("xxx", "xxx")
+        creds = db.fetch_tester_credentials()
+        login_page.enter_credentials_and_login(creds[0], creds[1])
         print("Login Complete. Waiting for 5 seconds...")
         login_page.sleep_code(5)
 
