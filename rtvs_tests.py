@@ -12,6 +12,7 @@ from pages.cozeva_mfa_page import CozevaMFAPage
 from pages.cozeva_reason_for_login_page import CozevaReasonForLoginPage
 from core.base_page import HeaderNavBar
 from pages.cozeva_users_page import CozevaUsersPage
+from pages.cozeva_payment_tool_page import CozevaPaymentToolPage
 
 
 def login_splash_test():
@@ -67,28 +68,18 @@ def login_splash_test():
         # Sidebar options. collect all sidebar options, then loop through them, get back to base registries and repeat.
         start_url = header_nav.get_page_report()["CURRENT_URL"]
 
-        sidebar_entries = header_nav.fetch_sidebar_entries()
+        payment_page = CozevaPaymentToolPage(driver)
+        print("Navigating to Payment Tool page...")
+        payment_page.go_to_payment_tool_page("https://www.cozeva.com")
 
-        # Now loop through each sidebar entry, click it, verify page load, then navigate back to start url before clicking the next one
-        for entry in sidebar_entries:
-            if entry == "Payment Tool" or entry == "Export Dashboard":
-                continue
-            print(f"Clicking on sidebar entry: {entry}")
-            header_nav.click_sidebar_entry(entry)
-            start_time = time.perf_counter()
-            header_nav.ajax_preloader_wait("After Entry Click Sidebar")
-            print(f"Finished waiting for page load after clicking sidebar entry: {entry}. Time taken: {time.perf_counter() - start_time:.2f} seconds")
+        print("Payment Tool page opened:", payment_page.is_payment_tool_page_open())
+        print("Fetching payment tool cards per cycle...")
+        cycle_card_dict = payment_page.fetch_payment_tool_cards_per_cycle()
+        print("Payment Tool Cards per Cycle:")
+        for cycle, card_count in cycle_card_dict.items():
+            print(f"Cycle: {cycle}, Card Count: {card_count}")
 
 
-            current_url = header_nav.get_page_report()["CURRENT_URL"]
-            if current_url != start_url:
-                print(f"Successfully navigated to new page after clicking sidebar entry: {entry}")
-            else:
-                print(f"Failed to navigate away from {start_url} after clicking sidebar entry: {entry}")
-
-            print("Navigating back to start URL...")
-            driver.get(start_url)
-            header_nav.ajax_preloader_wait(desc="Back to start")
 
 
 
