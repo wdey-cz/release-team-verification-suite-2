@@ -218,6 +218,10 @@ def logged_in_driver(session_driver, config_assists):
 
     yield session_driver
 
+    if user_role != "Cozeva Support":
+        header_nav = HeaderNavBar(session_driver)
+        header_nav.switch_back()
+
 @pytest.fixture(autouse=True)
 def auto_log_test_lifecycle(request, config_assists, session_driver):
 
