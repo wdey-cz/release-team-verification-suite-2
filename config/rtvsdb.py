@@ -768,7 +768,7 @@ class RTVSDB:
                   client_id, user_role, user_name, pid, worker,
                   status, message, current_url, time_taken_ms, comment
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """,
                 (
                     run_id, type_, browser, test_package, test_name,
@@ -828,11 +828,11 @@ class RTVSDB:
 # Example usage
 if __name__ == "__main__":
     db = RTVSDB()
-    query ="""
-   ALTER TABLE test_logs ADD COLUMN comment TEXT;
-    
-    """
-    db.run_query(query)
+   #  query ="""
+   # ALTER TABLE test_logs ADD COLUMN comment TEXT;
+   #
+   #  """
+   #  db.run_query(query)
 
     print(sqlite3.sqlite_version)
     db.close()

@@ -86,7 +86,7 @@ class Config:
     # Test credentials
     TEST_USERNAME = os.getenv("TEST_USERNAME", "")
     TEST_PASSWORD = os.getenv("TEST_PASSWORD", "")
-    REASON_FOR_LOGIN = os.getenv("REASON_FOR_LOGIN", "Testing from RTVS2")
+    REASON_FOR_LOGIN = os.getenv("REASON_FOR_LOGIN", "RM 17811")
 
     # Output directories (make them live under RTVS_DATA_DIR by default)
     SCREENSHOT_ON_FAILURE = os.getenv("SCREENSHOT_ON_FAILURE", "true").lower() == "true"

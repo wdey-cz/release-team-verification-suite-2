@@ -19,6 +19,8 @@ class BasePage:
     PRELOADER = (By.CLASS_NAME, "ajax_preloader")
     DRUPAL_MSG = (By.CLASS_NAME, "drupal_message_text")
 
+    DATATABLE_INFO = (By.CLASS_NAME, "dataTables_info")
+
 
 
 
@@ -148,7 +150,7 @@ class BasePage:
         report = {'CURRENT_URL': self.driver.current_url, 'CURRENT_TITLE': self.driver.title}  # [Current URL, Page Title]
         return report
 
-    def ajax_preloader_wait(self, desc="", appear_timeout=3, disappear_timeout=300):
+    def ajax_preloader_wait(self, desc="", appear_timeout=1, disappear_timeout=300):
         t0 = time.perf_counter()
         seen = False
 
@@ -190,7 +192,15 @@ class BasePage:
         )
         self.sleep_code(0.2)
 
-    # def switch_back_to_CS(self):
+    def fetch_datatable_info(self):
+        # Fetch the datatable info text if it exists, otherwise return None
+        try:
+            datatable_info_element = WebDriverWait(self.driver, 3).until(
+                EC.visibility_of_element_located(self.DATATABLE_INFO)
+            )
+            return datatable_info_element.text.strip()
+        except TimeoutException:
+            return None
 
 
 

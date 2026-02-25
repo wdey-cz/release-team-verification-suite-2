@@ -1238,7 +1238,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
         reports_dir = Path(os.getenv("LOCALAPPDATA", r"C:\Users\Public\AppData\Local")) / "RTVS2" / "reports" / run_id
         reports_dir.mkdir(parents=True, exist_ok=True)
 
-        header = ["Timestamp", "Type", "Test Name", "Message", "Status", "Current URL"]
+        header = ["Timestamp", "Type", "Test Name", "Message", "Status", "Time Taken", "Comments", "Current URL"]
         header_font = Font(bold=True)
 
         def _sanitize_sheet_name(name: str) -> str:
@@ -1271,7 +1271,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
                     cursor.execute(
                         """
-                        SELECT timestamp, type, test_name, message, status, current_url
+                        SELECT timestamp, type, test_name, message, status, time_taken_ms, comment, current_url
                         FROM test_logs tl
                         WHERE tl.run_id = ?
                           AND tl.client_id = ?
@@ -1298,7 +1298,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
                             cell = ws.cell(row=1, column=c, value=h)
                             cell.font = header_font
                     else:
-                        for ts, typ, test_name, msg, status, url in logs:
+                        for ts, typ, test_name, msg, status, timetaken, comment, url in logs:
                             # Put heartbeats (and anything with missing test_name) into a dedicated tab
                             if typ == "heartbeat":
                                 tab_key = "HEARTBEAT"
@@ -1316,7 +1316,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
                                     cell.font = header_font
 
                             ws = sheets[tab_key]
-                            ws.append([ts, typ, test_name, msg, status, url])
+                            ws.append([ts, typ, test_name, msg, status, timetaken, comment, url])
 
                     wb.save(xlsx_file)
 
