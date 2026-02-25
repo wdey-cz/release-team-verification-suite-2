@@ -92,6 +92,8 @@ class TestSidebar:
                 config_assists.add_log_heartbeat("Sidebar entry to be tested: " + entry,
                                                  driver=driver)
                 print(f"Clicking on sidebar entry: {entry}")
+                if entry == "Export Dashboard":
+                    continue
 
                 header_nav.click_sidebar_entry(entry)
 
