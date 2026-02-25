@@ -21,9 +21,14 @@ class TestSidebar:
         3. Loop through each sidebar element and navigate to the corresponding page.
         4. Verify that the correct page is displayed for each sidebar option.
 
-        test case 1 : Click on the registries sidebar and verify page load
-        test case 2 : Click on Supplemental Data list sidebar and verify page load
-        test case 3 : Click on HCC Data list sidebar and verify page load
+        TC_Validate existence of default sidebar options : Validate that all default sidebar entries are present on the support level registries page
+        test case 2-x : Click on each sidebar entry and validate that the page contains an element defined below. Then navigate back to the original page before clicking the next sidebar entry.
+
+        Default element to validate for each sidebar entry after click: DatatableInfo (Showing x out of x entries) - This is present on most pages on the sidebar.
+        Exceptions:
+        - Export Dashboard: Opens in a new tab and does not have the datatable info element.
+        - Registries, Payment Tool: Does not have the datatable info element.
+        -
         """
         try:
             driver = logged_in_driver
@@ -39,33 +44,58 @@ class TestSidebar:
                 message=f"Navigated to {header_nav.get_page_report()['CURRENT_TITLE']} for " + rc.test_name + " test cases",
                 driver=driver)
 
-            # Sidebar options. collect all sidebar options, then loop through them, get back to base registries and repeat.
+            # Save the start url to navigate back to after each sidebar click
             start_url = header_nav.get_page_report()["CURRENT_URL"]
 
+            config_assists.add_log_heartbeat("Starting sidebar validation for Support Level Registries", driver=driver, status="STARTED")
+            config_assists.add_log_heartbeat("Starting Test Case: Validate existence of default sidebar options", driver=driver, status="STARTED")
 
-            sidebar_entries = header_nav.fetch_sidebar_entries()
+            # fetch the default sidebar options from header nav page.
+            default_support_sidebar_options = header_nav.SUPPORT_SIDEBAR_OPTIONS
 
-            # Test Case 1: Verify that the search bar is present on the home page.
-            config_assists.add_log_heartbeat("Starting sidebar validation for Support Level Registries", driver=driver)
+            # Collect all sidebar options from the UI.
+            sidebar_options = header_nav.fetch_sidebar_entries()
 
-            # Now loop through each sidebar entry, click it, verify page load, then navigate back to start url before clicking the next one
-            for entry in sidebar_entries:
+            # Compare the two lists and create two lists. One for new entries and one for missing entries compared to the default list.
+            missing_entries = [entry for entry in default_support_sidebar_options if entry not in sidebar_options]
+            new_entries = [entry for entry in sidebar_options if entry not in default_support_sidebar_options]
+
+            if len(missing_entries) == 0:
+                config_assists.add_log_test_case(message="TC_Validate existence of default sidebar options",
+                                                 status='PASSED', driver=driver,
+                                                 comment="Entries on the sidebar : " + ", ".join(sidebar_options))
+            else:  # Not exactly a failed case if there are missing entries, but we want to log it for visibility and investigation.
+                config_assists.add_log_test_case(message="TC_Validate existence of default sidebar options",
+                                                 status='FAILED', driver=driver,
+                                                 comment="Missing sidebar options compared to default: " + ", ".join(missing_entries))
+
+            if len(new_entries) > 0:
+                config_assists.add_log_test_case(message="TC_Validate existence of default sidebar options",
+                                                 status='INFO', driver=driver,
+                                                 comment="New sidebar options compared to default: " + ", ".join(new_entries))
+
+            config_assists.add_log_heartbeat("Starting Test Case: Loop through each sidebar entry, click it, and verify page load",
+                                             status="STARTED",
+                                             driver=driver)
+
+            # Now loop through each sidebar entry, click it, check for datatableinfo or some exception, handle it,
+            # then navigate back to start url before clicking the next one
+            for entry in sidebar_options:
                 config_assists.add_log_heartbeat("Sidebar entry to be tested: " + entry,
                                                  driver=driver)
 
-                if entry == "Payment Tool" or entry == "Export Dashboard":
-                    config_assists.add_log_heartbeat("Skipping sidebar entry: " + entry + " as it is not in scope for this test",
-                                                     driver=driver)
-                    continue
-                print(f"Clicking on sidebar entry: {entry}")
+                # Skipping this because this opens in a new tab. Need to factor that in.
+                if entry == "Export Dashboard":
+                    smth = 0
 
+                print(f"Clicking on sidebar entry: {entry}")
                 header_nav.click_sidebar_entry(entry)
 
                 start_time = time.perf_counter()
-                header_nav.ajax_preloader_wait("After Entry Click Sidebar")
-                time_taken = f"{time.perf_counter() - start_time:.2f}"
+                header_nav.ajax_preloader_wait(f"After {entry} Click Sidebar")
+                time_taken_ajax = f"{time.perf_counter() - start_time:.2f}"
                 print(
-                    f"Finished waiting for page load after clicking sidebar entry: {entry}. Time taken: {time_taken} seconds")
+                    f"Finished waiting for page load after clicking sidebar entry: {entry}. Time taken: {time_taken_ajax} seconds")
 
                 current_url = header_nav.get_page_report()["CURRENT_URL"]
                 if current_url != start_url:
