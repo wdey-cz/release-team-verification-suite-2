@@ -137,10 +137,13 @@ def init_session_state(pytestconfig, config_assists):
         config_assists.set_unique_id()
         rc.category = rc.category or "REG"
         rc.test_package = rc.test_package or "UNCATEGORIZED"
+        rc.browsers = "chrome"  # for now we can just set this to the default config browser, but in the future we can make this more dynamic to support multiple browsers in one run
+        rc.user_roles = "Cozeva Support"
+        rc.clients = int(pytestconfig.getoption("--client-id")) if pytestconfig.getoption("--client-id") else None
         config_assists.create_run_id()
         config_assists.db.insert_test_run(rc)
 
-        # Per-process args
+    # Per-process args
     cid = pytestconfig.getoption("--client-id")
     rc.client_id = int(cid) if cid else None
     rc.user_role = pytestconfig.getoption("--user-role") or None

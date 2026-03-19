@@ -69,47 +69,47 @@ class WebDriverFactory:
             print(f"Released Chrome profile: {profile_name}")
         else:
             print(f"No action taken for browser: {browser_name} with profile: {profile_name}")
-    
+
     @staticmethod
     def _get_chrome_driver(headless=False, use_chrome_profile=False, **kwargs):
         """
         Create Chrome WebDriver instance.
-        
+
         Args:
             headless: Run browser in headless mode
             **kwargs: Additional Chrome options
-            
+
         Returns:
             Chrome WebDriver instance
         """
         options = ChromeOptions()
         profile_name = None
-        
+
         if headless:
             options.add_argument("--headless")
-        
+
         # Common Chrome arguments
-        options.add_argument("--no-sandbox")
+        # options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
 
         # Disable Notification, alerts and "restore previous session" popups that can interfere with tests
         options.add_argument("--disable-notifications")
-        options.add_argument("--disable-popup-blocking")
-        options.add_argument("--disable-session-crashed-bubble")
+        # options.add_argument("--disable-popup-blocking")
+        # options.add_argument("--disable-session-crashed-bubble")
         options.add_argument("--start-maximized")
-        options.add_argument("--disable-infobars")
-        options.add_argument("--disable-alerts")
+        # options.add_argument("--disable-infobars")
+        # options.add_argument("--disable-alerts")
 
 
 
         # make the launch light
-        options.add_argument("--no-first-run")
-        options.add_argument("--no-default-browser-check")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--disable-background-networking")
-        options.add_argument("--disable-features=Translate,BackForwardCache")
+        # options.add_argument("--no-first-run")
+        # options.add_argument("--no-default-browser-check")
+        # options.add_argument("--disable-extensions")
+        # options.add_argument("--disable-background-networking")
+        # options.add_argument("--disable-features=Translate,BackForwardCache")
 
 
         # resolve Chrome profile usage
@@ -123,21 +123,21 @@ class WebDriverFactory:
 
 
 
-        
+
         # Add custom arguments if provided
         if "arguments" in kwargs:
             for arg in kwargs["arguments"]:
                 options.add_argument(arg)
-        
+
         # Add experimental options if provided
         if "experimental_options" in kwargs:
             for key, value in kwargs["experimental_options"].items():
                 options.add_experimental_option(key, value)
-        
+
         service = ChromeService(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
         driver.maximize_window()
-        
+
         return driver, profile_name
     
     @staticmethod

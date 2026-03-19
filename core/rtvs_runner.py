@@ -113,10 +113,12 @@ def build_lanes(
 
             # fetch the username for this client_id and user_role from db. If the user role is not found, do not add the job to the lane
             db = RTVSDB()
-            user_name = db.get_role_dict_for_customer_id(assignment["client_id"])[assignment["user_role"]]
-            if not user_name:
+            try:
+                user_name = db.get_role_dict_for_customer_id(assignment["client_id"])[assignment["user_role"]]
+            except KeyError:
                 print(f"Warning: No user found for client_id={assignment['client_id']} and user_role={assignment['user_role']}. Skipping this job.")
                 continue
+
 
 
 

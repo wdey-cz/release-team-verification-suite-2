@@ -660,6 +660,7 @@ class RTVSDB:
             CREATE TABLE IF NOT EXISTS test_logs (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               run_id TEXT NOT NULL,
+              test_case_id TEXT,
               type TEXT NOT NULL,
               browser TEXT,
               test_package TEXT,
@@ -746,6 +747,7 @@ class RTVSDB:
             status: str,
             message: str,
             *,
+            test_case_id: str | None = None,
             browser: str | None = None,
             test_package: str | None = None,
             test_name: str | None = None,
@@ -764,14 +766,14 @@ class RTVSDB:
             cursor.execute(
                 """
                 INSERT INTO test_logs (
-                  run_id, type, browser, test_package, test_name,
+                  run_id, test_case_id, type, browser, test_package, test_name,
                   client_id, user_role, user_name, pid, worker,
                   status, message, current_url, time_taken_ms, comment
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """,
                 (
-                    run_id, type_, browser, test_package, test_name,
+                    run_id, test_case_id, type_, browser, test_package, test_name,
                     client_id, user_role, user_name, pid, worker,
                     status, message, current_url, time_taken_ms, comment
                 ),
@@ -828,11 +830,13 @@ class RTVSDB:
 # Example usage
 if __name__ == "__main__":
     db = RTVSDB()
+
    #  query ="""
-   # ALTER TABLE test_logs ADD COLUMN comment TEXT;
+   # ALTER TABLE test_logs ADD COLUMN test_case_id TEXT;
    #
    #  """
    #  db.run_query(query)
+    print(db.get_role_dict_for_customer_id("4450"))
 
     print(sqlite3.sqlite_version)
     db.close()
