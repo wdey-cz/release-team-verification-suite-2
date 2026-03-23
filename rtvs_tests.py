@@ -1,6 +1,6 @@
 import time
 import traceback
-
+from random import choice
 
 from core.driver_factory import WebDriverFactory
 from pages.cozeva_login_page import CozevaLoginPage
@@ -13,6 +13,7 @@ from pages.cozeva_reason_for_login_page import CozevaReasonForLoginPage
 from core.base_page import HeaderNavBar
 from pages.cozeva_users_page import CozevaUsersPage
 from pages.cozeva_payment_tool_page import CozevaPaymentToolPage
+from pages.cozeva_providers_page import CozevaProvidersPage
 
 
 def login_splash_test():
@@ -68,16 +69,29 @@ def login_splash_test():
         # Sidebar options. collect all sidebar options, then loop through them, get back to base registries and repeat.
         start_url = header_nav.get_page_report()["CURRENT_URL"]
 
-        payment_page = CozevaPaymentToolPage(driver)
-        print("Navigating to Payment Tool page...")
-        payment_page.go_to_payment_tool_page("https://www.cozeva.com")
+        header_nav.navigate_to_url("https://www.cozeva.com/registries/providers?session=YXBwX2lkPXJlZ2lzdHJpZXMmY3VzdElkPTE1MDAmcGF5ZXJJZD0xNTAwJm9yZ0lkPTE1MDAmdmdwSWQ9MTUwMCZ2cElkPTE1MDA=")
 
-        print("Payment Tool page opened:", payment_page.is_payment_tool_page_open())
-        print("Fetching payment tool cards per cycle...")
-        cycle_card_dict = payment_page.fetch_payment_tool_cards_per_cycle()
-        print("Payment Tool Cards per Cycle:")
-        for cycle, card_count in cycle_card_dict.items():
-            print(f"Cycle: {cycle}, Card Count: {card_count}")
+        providers_list_page = CozevaProvidersPage(driver)
+        if providers_list_page.is_providers_page_open():
+            print("Providers page is open. Fetching practice names...")
+            practice_names = providers_list_page.fetch_practice_names()
+            print("Practice names fetched:", practice_names)
+            print("Now fetching provider names...")
+            provider_names = providers_list_page.fetch_provider_names()
+            print("Provider names fetched:", provider_names)
+            url = header_nav.get_page_report()["CURRENT_URL"]
+            r_practice = choice(practice_names)
+            r_provider = choice(provider_names)
+            print(f"Now clicking on random Practice {r_practice}")
+            providers_list_page.click_practice_by_name(r_practice)
+            header_nav.navigate_to_url(url)
+            print(f"Now clicking on random Provider {r_provider}")
+            providers_list_page.click_provider_by_name(r_provider)
+        else:
+            print("Providers page did not open successfully. Current URL:", driver.current_url)
+
+
+
 
 
 

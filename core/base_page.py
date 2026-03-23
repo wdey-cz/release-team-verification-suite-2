@@ -10,7 +10,8 @@ from core.wait_helpers import WaitHelpers
 
 
 class BasePage:
-    GET_ANCHOR_TAGS_LOCATOR = (By.TAG_NAME, "a")
+    #GET_ANCHOR_TAGS_LOCATOR = (By.TAG_NAME, "a")
+    GET_ANCHOR_TAGS_LOCATOR = (By.XPATH, ".//a")
     GET_STRONG_TAGS_LOCATOR = (By.TAG_NAME, "strong")
     GET_LI_TAGS_LOCATOR = (By.TAG_NAME, "li")
     GET_TD_TAGS_LOCATOR = (By.TAG_NAME, "td")
@@ -202,6 +203,24 @@ class BasePage:
         except TimeoutException:
             return None
 
+    def switch_tab(self, tab_index=-1):
+        # Switch to a browser tab by index
+        try:
+            WebDriverWait(self.driver, 10).until(
+                lambda d: len(d.window_handles) > tab_index
+            )
+            self.driver.switch_to.window(self.driver.window_handles[tab_index])
+        except TimeoutException:
+            print(f"Tab with index {tab_index} not found within timeout.")
+
+    def switch_tab_and_close_current(self, tab_index=-1):
+        # Close the current tab and switch to another tab by index
+        current_handle = self.driver.current_window_handle
+        self.driver.close()
+        self.switch_tab(tab_index)
+        # Wait a moment for the switch to complete
+        time.sleep(0.5)
+
 
 
 class HeaderNavBar(BasePage):
@@ -227,12 +246,19 @@ class HeaderNavBar(BasePage):
     SIDEBAR_ENTRIES = (By.XPATH, "//li[contains(@class, 'sidebar-menu-item')]/a")
 
     SUPPORT_SIDEBAR_OPTIONS = ["Registries", "Reports", "Supplemental Data", "HCC Chart List",
-                               "AVW Chart List", "AWV Summary", "Exclusion List", "Pending List",
+                               "AWV Chart List", "AWV Summary", "Exclusion List", "Pending List",
                                "Batches", "Providers", "All Providers", "Imported Charts", "Hospital Activity",
                                "Contact Log", "Sticket Log", "Export Dashboard", "Shared Forms", "Payment Tool"]
 
-    PRACTICE_SIDEBAR_OPTIONS = []
-    PROVIDER_SIDEBAR_OPTIONS = []
+    PRACTICE_SIDEBAR_OPTIONS = ["Home", "Patients", "Registries", "Reports", "Supplemental Data",
+                                "HCC Chart List","AWV Chart List", "AWV Summary", "Exclusion List", "Pending List",
+                                "Batches", "Providers", "Appointments", "Imported Charts", "Hospital Activity",
+                                "Contact Log", "Sticket Log", "Export Dashboard", "Shared Forms", "Payment Tool"]
+
+    PROVIDER_SIDEBAR_OPTIONS = ["Home", "Patients", "Registries", "Reports", "Supplemental Data",
+                                "HCC Chart List","AWV Chart List", "AWV Summary", "Exclusion List", "Pending List",
+                                "Batches", "Add Patient", "Appointments", "Imported Charts", "Hospital Activity",
+                                "Contact Log", "Sticket Log", "Export Dashboard", "Shared Forms", "Payment Tool"]
 
 
 

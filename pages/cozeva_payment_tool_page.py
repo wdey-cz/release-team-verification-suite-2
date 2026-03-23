@@ -1,5 +1,7 @@
 import traceback
 
+from selenium.common import TimeoutException
+
 from core.base_page import BasePage
 from selenium.webdriver.common.by import By
 
@@ -39,7 +41,12 @@ class CozevaPaymentToolPage(BasePage):
 
     def is_payment_tool_enabled(self):
         # Check if the "not enabled" message is displayed. If it is, then payment tool is not enabled. If it is not, then it is enabled.
-        return len(self.find_elements(self.PAYMENT_NOT_ENABLED_MESSAGE, 2)) == 0
+        try:
+            not_enabled_message = self.find_elements(self.PAYMENT_NOT_ENABLED_MESSAGE, 2)
+            return False
+        except TimeoutException as e:
+            print("Payment tool disabled message not found, assuming payment tool is enabled.")
+            return True
 
 
 
