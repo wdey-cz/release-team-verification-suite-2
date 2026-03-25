@@ -1,4 +1,4 @@
-# Release Team Verification Suite 2 (RTVS2)
+# Release Team Verification Suite 2 (RTVS 2)
 
 ![Logo](assets/CombinedCo_RTVS2_logo_cropped.png)
 
