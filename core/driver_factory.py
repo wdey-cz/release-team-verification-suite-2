@@ -20,7 +20,7 @@ class WebDriverFactory:
     """Factory class for creating WebDriver instances."""
     
     @staticmethod
-    def get_driver(browser_name="chrome", headless=False, use_chrome_profile=False, **kwargs):
+    def get_driver(browser_name="chrome", headless=False, use_chrome_profile=False, download_directory=None, lane_id=None, **kwargs):
         """
         Create and return a WebDriver instance.
         
@@ -28,6 +28,7 @@ class WebDriverFactory:
             browser_name: Name of the browser (chrome, firefox, edge)
             headless: Run browser in headless mode
             use_chrome_profile: Use existing Chrome profile (only for Chrome)
+            download_directory : Custom download directory for the browser
             **kwargs: Additional arguments for browser options
             
         Returns:
@@ -42,7 +43,7 @@ class WebDriverFactory:
         browser_name = browser_name.lower()
         
         if browser_name == "chrome":
-            return WebDriverFactory._get_chrome_driver(headless, use_chrome_profile, **kwargs)
+            return WebDriverFactory._get_chrome_driver(headless, use_chrome_profile, download_directory, lane_id, **kwargs)
         elif browser_name == "firefox":
             return WebDriverFactory._get_firefox_driver(headless, **kwargs)
         elif browser_name == "edge":
@@ -71,7 +72,7 @@ class WebDriverFactory:
             print(f"No action taken for browser: {browser_name} with profile: {profile_name}")
 
     @staticmethod
-    def _get_chrome_driver(headless=False, use_chrome_profile=False, **kwargs):
+    def _get_chrome_driver(headless=False, use_chrome_profile=False, download_directory=None, lane_id=None, **kwargs):
         """
         Create Chrome WebDriver instance.
 
@@ -133,6 +134,20 @@ class WebDriverFactory:
         if "experimental_options" in kwargs:
             for key, value in kwargs["experimental_options"].items():
                 options.add_experimental_option(key, value)
+
+
+        # Default download directory
+        if download_directory:
+            download_directory = download_directory / (lane_id or "")
+            download_directory.mkdir(parents=True, exist_ok=True)
+            prefs = {
+                "download.default_directory": str(download_directory),
+                "download.prompt_for_download": False,
+                "download.directory_upgrade": True,
+                "safebrowsing.enabled": True
+            }
+            options.add_experimental_option("prefs", prefs)
+
 
         service = ChromeService(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)

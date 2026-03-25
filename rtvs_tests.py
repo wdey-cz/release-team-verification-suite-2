@@ -14,11 +14,12 @@ from core.base_page import HeaderNavBar
 from pages.cozeva_users_page import CozevaUsersPage
 from pages.cozeva_payment_tool_page import CozevaPaymentToolPage
 from pages.cozeva_providers_page import CozevaProvidersPage
+from pages.cozeva_registries_page import CozevaRegistriesPage
 
 
 def login_splash_test():
     print("Initializing WebDriver...")
-    driver, profile = WebDriverFactory.get_driver(use_chrome_profile=True)
+    driver, profile = WebDriverFactory.get_driver(use_chrome_profile=True, download_directory=Config.RTVS_DOWNLOADS_DIR, lane_id='1')
     db = RTVSDB()
     user_role, user_name = "CS", "wdey.cs"
     #user_role, user_name = "CU", "AltaMed_AlUtria"
@@ -66,37 +67,24 @@ def login_splash_test():
                 traceback.print_exc()
                 print("Exception occurred while searching for user:", str(e))
 
+            if users_page.is_eula_page_opened():
+                print("EULA page detected after masquerade. Attempting to skip EULA...")
+                users_page.skip_eula()
+
         # Sidebar options. collect all sidebar options, then loop through them, get back to base registries and repeat.
         start_url = header_nav.get_page_report()["CURRENT_URL"]
 
-        header_nav.navigate_to_url("https://www.cozeva.com/registries/providers?session=YXBwX2lkPXJlZ2lzdHJpZXMmY3VzdElkPTE1MDAmcGF5ZXJJZD0xNTAwJm9yZ0lkPTE1MDAmdmdwSWQ9MTUwMCZ2cElkPTE1MDA=")
+        registries_page = CozevaRegistriesPage(driver)
+        registries_page.is_registries_page_opened()
+        if registries_page.is_registries_page_opened():
+            my_lob_dict, default_dict = registries_page.fetch_my_and_lob()
 
-        providers_list_page = CozevaProvidersPage(driver)
-        if providers_list_page.is_providers_page_open():
-            print("Providers page is open. Fetching practice names...")
-            practice_names = providers_list_page.fetch_practice_names()
-            print("Practice names fetched:", practice_names)
-            print("Now fetching provider names...")
-            provider_names = providers_list_page.fetch_provider_names()
-            print("Provider names fetched:", provider_names)
-            url = header_nav.get_page_report()["CURRENT_URL"]
-            r_practice = choice(practice_names)
-            r_provider = choice(provider_names)
-            print(f"Now clicking on random Practice {r_practice}")
-            providers_list_page.click_practice_by_name(r_practice)
-            header_nav.navigate_to_url(url)
-            print(f"Now clicking on random Provider {r_provider}")
-            providers_list_page.click_provider_by_name(r_provider)
         else:
-            print("Providers page did not open successfully. Current URL:", driver.current_url)
+            print("Registries page did not open successfully. Current URL:", driver.current_url)
 
-
-
-
-
-
-
-
+        for lob in my_lob_dict['LOB']:
+            registries_page.switch_lob(lob)
+            registries_page.sleep_code(5)
 
     except Exception as e:
         print(f"Error : {e}")

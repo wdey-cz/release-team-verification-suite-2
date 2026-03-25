@@ -1277,7 +1277,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
                           AND tl.client_id = ?
                           AND tl.user_role = ?
                           AND tl.browser = ?
-                          AND tl.type IN ('test_case', 'heartbeat')
+                          AND tl.type IN ('test_case', 'heartbeat', 'update')
                         ORDER BY id ASC;
                         """,
                         (run_id, client, role, browser),
@@ -1300,7 +1300,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
                     else:
                         for ts, typ, tci, test_name, msg, status, timetaken, comment, url in logs:
                             # Put heartbeats (and anything with missing test_name) into a dedicated tab
-                            if typ == "heartbeat":
+                            if typ == "heartbeat" or typ == "update":
                                 tab_key = "HEARTBEAT"
                             else:
                                 tab_key = str(test_name) if test_name is not None else "NO_TEST_NAME"

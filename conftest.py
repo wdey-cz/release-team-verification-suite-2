@@ -52,20 +52,23 @@ def functiondriver(request):
 
 
 @pytest.fixture(scope="session")
-def session_driver(request):
+def session_driver(request, config_assists):
     """
     Fixture to initialize and quit WebDriver for each test.
 
     Args:
         request: Pytest request object
+        config_assists: ConfigAssists instance
 
     Yields:
         WebDriver instance
+
     """
     # Setup: Create WebDriver
     browser = Config.get_browser()
     headless = Config.is_headless()
-    driver, profile = WebDriverFactory.get_driver(browser_name=browser, headless=headless, use_chrome_profile=True)
+    rc = config_assists.get_run_configuration()
+    driver, profile = WebDriverFactory.get_driver(browser_name=browser, headless=headless, use_chrome_profile=True, download_directory=Config.RTVS_DOWNLOADS_DIR, lane_id = rc.lane_id)
 
     # Set timeouts
     driver.set_page_load_timeout(Config.PAGE_LOAD_TIMEOUT)
@@ -148,6 +151,7 @@ def init_session_state(pytestconfig, config_assists):
     rc.client_id = int(cid) if cid else None
     rc.user_role = pytestconfig.getoption("--user-role") or None
     rc.user_name = pytestconfig.getoption("--user-name") or None
+    rc.lane_id  = pytestconfig.getoption("--lane-id") or None
     rc.worker = os.getenv("PYTEST_XDIST_WORKER", "local")
     rc.pid = os.getpid()
 
@@ -213,6 +217,12 @@ def logged_in_driver(session_driver, config_assists):
                                           reason=db.fetch_tester_reason())
         except Exception as e:
             print("Exception occurred while searching for user:", str(e))
+
+        # Check for the eula page and click on skip
+        if users_page.is_eula_page_opened():
+            print("EULA page detected after masquerade. Attempting to skip EULA...")
+            users_page.skip_eula()
+
 
         print("Masquerade complete. Current URL:", session_driver.current_url)
 
@@ -333,6 +343,7 @@ def pytest_addoption(parser):
     parser.addoption("--client-id", action="store", default="")
     parser.addoption("--user-role", action="store", default="")
     parser.addoption("--user-name", action="store", default="")
+    parser.addoption("--lane-id", action="store", default="")
 
 
 @pytest.fixture
