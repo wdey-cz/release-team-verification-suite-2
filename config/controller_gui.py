@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import calendar
 import re
+from collections import defaultdict
+
 from openpyxl import Workbook
 from openpyxl.styles import Font
 import os
@@ -13,12 +15,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
-
+from jinja2 import Environment, FileSystemLoader
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QSplashScreen
 from PySide6 import QtCore, QtGui, QtWidgets
-
+import webbrowser
 from config.rtvsdb import RTVSDB  # type: ignore
 from config.config_assists import ConfigAssists  # type: ignore
 from core.rtvs_runner import build_lanes, print_plan, run_lanes_parallel, _pick_external_python
@@ -524,10 +526,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.statusBar().showMessage("Ready")
 
 
-
-
-
-
     # dumb watermark idea
 
     def _init_log_watermark(self) -> None:
@@ -597,7 +595,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
             elif event.type() == QtCore.QEvent.Type.Show:
                 self._update_log_watermark()
         return super().eventFilter(obj, event)
-
 
 
     # -------------------------
@@ -1019,6 +1016,11 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.btn_export_reports_csv.clicked.connect(lambda: self._safe_call("Export reports CSV", self._export_reports_xlsx_for_selected_run))
         top_row.addWidget(self.btn_export_reports_csv)
 
+        #push button for Export reports for selected run HTML
+        self.btn_export_reports_html = QtWidgets.QPushButton("Export reports for selected run (HTML)...")
+        self.btn_export_reports_html.clicked.connect(lambda: self._safe_call("Export reports HTML", self._export_reports_html_for_selected_run))
+        top_row.addWidget(self.btn_export_reports_html)
+
         top_row.addStretch(1)
         layout.addLayout(top_row)
 
@@ -1322,6 +1324,114 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         QtWidgets.QMessageBox.information(self, "Export Complete", f"Reports exported to {reports_dir}.")
         self._append_log(f"[OK] XLSX reports exported for run_id={run_id} to {reports_dir}")
+
+    def _export_reports_html_for_selected_run(self):
+        run_id = self._selected_run_id()
+        if not run_id:
+            QtWidgets.QMessageBox.information(self, "No run selected", "Please select a test run first.")
+            return
+
+        # Fetch the test cases
+        db = self._db()
+        cursor = db.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT browsers, clients, user_roles
+            FROM test_runs
+            WHERE run_id = ?;
+            """,
+            (run_id,),
+        )
+        row = cursor.fetchone()
+        print(row)
+        if not row:
+            QtWidgets.QMessageBox.warning(self, "Run not found", f"No data found for run_id={run_id}.")
+            return
+
+        def _split_csv(s: str) -> list[str]:
+            return [x.strip() for x in (s or "").split(",") if x.strip()]
+
+        browsers = _split_csv(row[0])
+        clients = _split_csv(row[1])
+        roles = _split_csv(row[2])
+        # Create directory
+        reports_dir = Path(os.getenv("LOCALAPPDATA", r"C:\Users\Public\AppData\Local")) / "RTVS2" / "reports" / run_id
+        reports_dir.mkdir(parents=True, exist_ok=True)
+
+
+        # fetch results
+        data = {}
+        for client in clients:
+            for role in roles:
+                for browser in browsers:
+
+                    cursor.execute("""
+                                SELECT timestamp, type, test_case_id, test_name,
+                                       message, status, time_taken_ms, comment, current_url
+                                FROM test_logs
+                                WHERE run_id = ?
+                                  AND client_id = ?
+                                  AND user_role = ?
+                                  AND browser = ?
+                                ORDER BY id ASC
+                            """, (run_id, client, role, browser))
+
+                    logs = cursor.fetchall()
+
+                    key = f"{client}_{role}_{browser}"
+                    data[key] = defaultdict(list)
+
+                    current_test = None
+
+                    for row in logs:
+                        ts, typ, tci, test_name, msg, status, timetaken, comment, url = row
+
+                        test_name = test_name or "NO_TEST_NAME"
+
+                        # 🔥 New test case starts
+                        if typ == "test_case":
+                            current_test = {
+                                "test_case_id": tci,
+                                "test_name": test_name,
+                                "test_case_name": msg,  # ✅ ADD THIS
+                                "logs": [],
+                                "status": status,
+                                "time": timetaken,
+                                "comment": comment,
+                                "url": url
+                            }
+
+                            data[key][test_name].append(current_test)
+
+                        # 🔥 Attach logs (heartbeat / steps) to current test
+                        elif current_test:
+                            current_test["logs"].append({
+                                "timestamp": ts,
+                                "type": typ,
+                                "message": msg,
+                                "status": status,
+                                "time": timetaken,
+                                "comment": comment,
+                                "url": url
+                            })
+
+        template_dir = Path(__file__).parent / "template"
+
+        if not hasattr(self, "env"):
+            self.env = Environment(
+                loader=FileSystemLoader(template_dir)
+            )
+
+        template = self.env.get_template("report_template.html")
+        icon_path = str((Path.cwd() / "assets" / "CombinedCo_RTVS2_logo.png").resolve()).replace("\\", "/")
+        html = template.render(data=data, run_id=run_id,icon_path=icon_path)
+
+        output_path = reports_dir / f"Report_{run_id}.html"
+        Path(output_path).write_text(html, encoding="utf-8")
+        webbrowser.open(str(output_path))
+        QtWidgets.QMessageBox.information(self, "Report Generated ", f"Reports generated to {reports_dir}.")
+        self._append_log(f"[OK] HTML  reports exported for run_id={run_id} to {reports_dir}")
 
     def _open_start_test_dialog(self):
         self._init_assists()

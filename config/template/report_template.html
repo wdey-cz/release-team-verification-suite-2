@@ -1,0 +1,202 @@
+<html>
+<head>
+    <title>Test Report</title>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f5f5;
+        }
+
+        /* ✅ HEADER */
+        h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 10px 20px;
+            word-break: break-all;
+        }
+
+        .env {
+            margin: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .suite {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e8f0fe;
+            border-radius: 6px;
+        }
+
+        .test {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 6px solid gray;
+            background: #fafafa;
+        }
+
+        /* ✅ PASS / FAIL COLORS */
+        .test.PASS, .test.PASSED { border-left-color: green; }
+        .test.FAIL, .test.FAILED { border-left-color: red; }
+
+        .status-pass { color: green; font-weight: bold; }
+        .status-fail { color: red; font-weight: bold; }
+
+        .log {
+            font-size: 12px;
+            background: #eee;
+            padding: 6px;
+            margin-top: 5px;
+            border-radius: 4px;
+        }
+
+        .heartbeat {
+            background: #e3f2fd;
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        a {
+            color: blue;
+        }
+
+        /* ✅ SUMMARY BAR (FIXED) */
+        .summary-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;  /* LEFT aligned */
+            gap: 40px;
+            background: white;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+        }
+
+        /* ✅ LOGO BIGGER */
+        .logo img {
+            width: 120px;
+        }
+
+        /* ✅ CHART SIZE */
+        canvas {
+            width: 180px !important;
+            height: 180px !important;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- ✅ SUMMARY BAR -->
+<div class="summary-bar">
+
+    <!-- LOGO -->
+    <div class="logo">
+        <img src="{{ icon_path }}">
+    </div>
+
+    <!-- PIE CHART -->
+    <canvas id="resultChart"></canvas>
+
+</div>
+
+<h1>Test Report - Run {{ run_id }}</h1>
+
+{% for env, suites in data.items() %}
+<div class="env">
+    <h2>{{ env }}</h2>
+
+    {% for suite_name, tests in suites.items() %}
+    <details class="suite">
+        <summary><b>{{ suite_name }}</b> ({{ tests|length }} test cases)</summary>
+
+        {% for test in tests %}
+        <details class="test {{ test.status|upper }}">
+
+            <summary>
+                <b>{{ test.test_case_id }}</b> |
+                {{ test.test_case_name }} |
+                Time: {{ test.time }} ms |
+                <span class="{% if test.status and 'PASS' in test.status|upper %}status-pass{% else %}status-fail{% endif %}">
+                    {{ test.status }}
+                </span>
+            </summary>
+
+            <!-- Metadata -->
+            <div>
+                <b>Comment:</b> {{ test.comment }} <br>
+                <b>URL:</b>
+                {% if test.url %}
+                    <a href="{{ test.url }}" target="_blank">{{ test.url }}</a>
+                {% else %}
+                    N/A
+                {% endif %}
+            </div>
+
+            <!-- Logs -->
+            <details>
+                <summary>Logs ({{ test.logs|length }})</summary>
+
+                {% for log in test.logs %}
+                <div class="log {% if log.type == 'heartbeat' %}heartbeat{% endif %}">
+                    {{ log.timestamp }} |
+                    <b class="{% if log.status and 'PASS' in log.status|upper %}status-pass{% else %}status-fail{% endif %}">
+                        {{ log.status }}
+                    </b> |
+                    {{ log.message }}
+                </div>
+                {% endfor %}
+
+            </details>
+
+        </details>
+        {% endfor %}
+
+    </details>
+    {% endfor %}
+
+</div>
+{% endfor %}
+
+<!-- ✅ PIE CHART -->
+<script>
+    let passed = 0;
+    let failed = 0;
+
+    {% for env, suites in data.items() %}
+        {% for suite_name, tests in suites.items() %}
+            {% for test in tests %}
+                {% if test.status and 'PASS' in test.status|upper %}
+                    passed++;
+                {% else %}
+                    failed++;
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    {% endfor %}
+
+    new Chart(document.getElementById('resultChart'), {
+        type: 'pie',
+        data: {
+            labels: ['Passed', 'Failed'],
+            datasets: [{
+                data: [passed, failed],
+                backgroundColor: ['green', 'red']
+            }]
+        },
+        options: {
+            responsive: false
+        }
+    });
+</script>
+
+</body>
+</html>
