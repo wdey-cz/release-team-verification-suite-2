@@ -40,32 +40,35 @@ jobs:
           python -m pip install --upgrade pip wheel setuptools
           if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; fi
           if [ -f requirements-dev.txt ]; then python -m pip install -r requirements-dev.txt; fi
-          python -m pip install pyinstaller
-          pyinstaller --version
+          python -m pip install nuitka
+          nuitka --version
 
-      - name: Build with PyInstaller
+      - name: Build with Nuitka
         shell: bash
         run: |
-          # Windows separator for --add-data is ';'
-          pyinstaller --noconfirm --clean --onefile \
-            --name "${APP_NAME}" \
-            --windowed "${ENTRYPOINT}" \
-            --add-data "assets;assets" \
-            --add-data "requirements.txt;." \
-            --add-data "tests;tests" \
-            --add-data "conftest.py;." \
-            --add-data "config;config" \
-            --add-data "core;core" \
-            --add-data "pages;pages" \
-            --add-data "pytest.ini;." \
-            --icon "assets/rtvs.ico"
+          python -m nuitka \
+            --standalone \
+            --onefile \
+            --windows-console-mode=disable \
+            --enable-plugin=pyside6 \
+            --windows-icon-from-ico=assets/rtvs.ico \
+            --output-filename=${APP_NAME}.exe \
+            --include-data-dir=assets=assets \
+            --include-data-dir=config=config \
+            --include-data-dir=core=core \
+            --include-data-dir=pages=pages \
+            --include-data-dir=tests=tests \
+            --include-data-file=requirements.txt=requirements.txt \
+            --include-data-file=conftest.py=conftest.py \
+            --include-data-file=pytest.ini=pytest.ini \
+            ${ENTRYPOINT}
 
       - name: Collect build artifacts
         shell: bash
         run: |
           mkdir -p packaged
-          ls -la dist
-          cp -v "dist/${APP_NAME}.exe" packaged/
+          ls -la
+          cp -v "${APP_NAME}.exe" packaged/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
