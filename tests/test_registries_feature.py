@@ -29,7 +29,7 @@ class TestRegistries:
          F_02_08: Validate chicklets / stars with exceptions
          F_02_09: Validate Quality/HCC Measure display on registries contains all elements.
          F_02_10: Validate registries filter
-         F_02_11: Validate Accordion sumation for all Lobs
+         F_02_11: Validate Accordion summation for all Lobs
          F_02_12: Validate number of 0/0 measures on all Lobs against a previously stored list LoB wise.
          F_02_13: Validate registry export
         """
@@ -109,25 +109,77 @@ class TestRegistries:
                                              driver=driver,
                                              status="STARTED")
 
+            my_lob_dict, default_dict = {'MY' : [], 'LOB' : []}, {'MY' : [], 'LOB' : []}
             if registries_page.is_registries_page_opened():
                 my_lob_dict, default_dict = registries_page.fetch_my_and_lob()
 
             # now, we will loop through the Lobs.
             for lob in my_lob_dict['LOB']:
                 registries_page.switch_lob(lob)
-                registries_page.sleep_code(5)  # Wait for page to load after switching lob
+                registries_page.sleep_code(2)  # Wait for page to load after switching lob
 
                 # Here you would add the code to validate the presence of Gaps, Overall Rating and Patient count on the summary bar for the current lob.
                 # This would likely involve checking for specific elements on the page and verifying their visibility and content.
+                gap_count, overall_rating, patient_count = registries_page.fetch_summary_bar_info()
 
+                # Gap count validation
+                if gap_count != "None":
+                    config_assists.add_log_test_case(
+                        message=f"Validate Gap Count visibility on summary bar for {lob} LOB",
+                        test_case_id="F_02_02",
+                        status='PASSED', driver=driver,
+                        comment=f"Gap Count is visible on summary bar for {lob} LOB with value: {gap_count}.")
+                else:
+                    config_assists.add_log_test_case(
+                        message=f"Validate Gap Count visibility on summary bar for {lob} LOB",
+                        test_case_id="F_02_02",
+                        status='FAILED', driver=driver,
+                        comment=f"Gap Count is not visible on summary bar for {lob} LOB, it seems to be broken.")
+                    failed_cases += 1
 
+                # Overall Rating validation
+                if overall_rating != "None":
+                    config_assists.add_log_test_case(
+                        message=f"Validate Overall Rating visibility on summary bar for {lob} LOB",
+                        test_case_id="F_02_03",
+                        status='PASSED', driver=driver,
+                        comment=f"Overall Rating is visible on summary bar for {lob} LOB with value: {overall_rating}.")
+                else:
+                    config_assists.add_log_test_case(
+                        message=f"Validate Overall Rating visibility on summary bar for {lob} LOB",
+                        test_case_id="F_02_03",
+                        status='FAILED', driver=driver,
+                        comment=f"Overall Rating is not visible on summary bar for {lob} LOB, it seems to be broken.")
+                    failed_cases += 1
 
+                # Patient Count validation
+                if patient_count != "None":
+                    config_assists.add_log_test_case(
+                        message=f"Validate Patient Count visibility on summary bar for {lob} LOB",
+                        test_case_id="F_02_04",
+                        status='PASSED', driver=driver,
+                        comment=f"Patient Count is visible on summary bar for {lob} LOB with value: {patient_count}.")
+                else:
+                    config_assists.add_log_test_case(
+                        message=f"Validate Patient Count visibility on summary bar for {lob} LOB",
+                        test_case_id="F_02_04",
+                        status='FAILED', driver=driver,
+                        comment=f"Patient Count is not visible on summary bar for {lob} LOB, it seems to be broken.")
+                    failed_cases += 1
 
-
-
-
+            # Finish test case and navigate back to base URL
+            config_assists.add_log_heartbeat("Finished test case F_02_02,03,04: Validate Gaps, Overall Rating and Patient count visibility on summary bar for all LoBs",
+                                             driver=driver,
+                                             status="FINISHED")
+            registries_page.navigate_to_url(rc.base_landing_url)
 
             # F_02_05 : Validate the Overall Rating Trend chart for relevant lobs
+            '''
+            Overall Rating trend chart is currently only present for specific lobs defined by a list.
+            We will fetch all lobs, then loop through the common ones. 
+            '''
+
+
             # F_02_06 : Validate Summary HCC score for relevant lobs
 
 

@@ -30,6 +30,18 @@ class CozevaRegistriesPage(BasePage):
 
     LOB_APPLY = (By.ID, 'reg-filter-apply')
 
+    # Summary Bar Locators
+    SUMMARY_BAR = (By.XPATH, "//div[contains(@class, 'registry_header_panel')]")
+    SUMMARY_GAP_COUNT = (By.ID, 'reg-header-gapcount')
+    SUMMARY_OVERALL_RATING = (By.ID, 'reg-header-overall-rating')
+    SUMMARY_PATIENT_COUNT = (By.XPATH, "//div[contains(@class, 'registry_header_panel')]//div[contains(@class, 'header-card-name') and contains(text(), 'Patients')]/following-sibling::div")
+
+    SUMMARY_OVERALL_RATING_CHART = "xx"
+
+
+
+
+
 
 
 
@@ -114,10 +126,10 @@ class CozevaRegistriesPage(BasePage):
             my_lob_default = {'MY' : default_my, 'LOB' : default_lob}
 
 
-            print("Fetched Measurement Years:", MYs)
-            print("Default Measurement Year:", default_my)
-            print("Fetched LOBs:", LoBs)
-            print("Default LOB:", default_lob)
+            # print("Fetched Measurement Years:", MYs)
+            # print("Default Measurement Year:", default_my)
+            # print("Fetched LOBs:", LoBs)
+            # print("Default LOB:", default_lob)
 
             return my_lob_dict, my_lob_default
 
@@ -174,6 +186,22 @@ class CozevaRegistriesPage(BasePage):
         except Exception as e:
             print("Error while switching Measurement Year:", str(e))
             traceback.print_exc()
+
+    def fetch_summary_bar_info(self):
+        # This function returns a tuple with the gap count, overall rating and patient count from the summary bar
+        try:
+            gap_count_element = self.find_element(self.SUMMARY_GAP_COUNT, timeout=10)
+            overall_rating_element = self.find_element(self.SUMMARY_OVERALL_RATING, timeout=10)
+            patient_count_element = self.find_element(self.SUMMARY_PATIENT_COUNT, timeout=10)
+            gap_count = gap_count_element.text.strip() if gap_count_element else "None"
+            overall_rating = overall_rating_element.text.strip() if overall_rating_element else "None"
+            patient_count = patient_count_element.text.strip() if patient_count_element else "None"
+            print(f"Fetched Summary Bar Info - Gap Count: {gap_count}, Overall Rating: {overall_rating}, Patient Count: {patient_count}")
+            return gap_count, overall_rating, patient_count
+        except Exception as e:
+            print("Error while fetching summary bar info:", str(e))
+            traceback.print_exc()
+            return "None", "None", "None"
 
 
 
