@@ -523,11 +523,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         self.statusBar().showMessage("Ready")
 
-
-
-
-
-
     # dumb watermark idea
 
     def _init_log_watermark(self) -> None:
@@ -597,8 +592,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
             elif event.type() == QtCore.QEvent.Type.Show:
                 self._update_log_watermark()
         return super().eventFilter(obj, event)
-
-
 
     # -------------------------
     # Core helpers

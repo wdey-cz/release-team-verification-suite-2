@@ -14,7 +14,7 @@ from core.base_page import HeaderNavBar
 from pages.cozeva_users_page import CozevaUsersPage
 from pages.cozeva_payment_tool_page import CozevaPaymentToolPage
 from pages.cozeva_providers_page import CozevaProvidersPage
-
+from pages.cozeva_analytics_page import AnalyticsLandingPage,AnalyticsWorksheetPage
 
 def login_splash_test():
     print("Initializing WebDriver...")
@@ -59,7 +59,7 @@ def login_splash_test():
             try:
                 users_page.filter_search_field(user_name)
                 print("Done filtering for user. Now attempting to masquerade as user:", user_name)
-                users_page.masquerade_as_user(user_name, signature="Writtwik Dey",
+                users_page.masquerade_as_user(user_name, signature="Sarvada Srivastava",
                                           reason="Testing Masquerade functionality from RTVS2")
 
             except Exception as e:
@@ -69,26 +69,32 @@ def login_splash_test():
         # Sidebar options. collect all sidebar options, then loop through them, get back to base registries and repeat.
         start_url = header_nav.get_page_report()["CURRENT_URL"]
 
-        header_nav.navigate_to_url("https://www.cozeva.com/registries/providers?session=YXBwX2lkPXJlZ2lzdHJpZXMmY3VzdElkPTE1MDAmcGF5ZXJJZD0xNTAwJm9yZ0lkPTE1MDAmdmdwSWQ9MTUwMCZ2cElkPTE1MDA=")
+        #to give URL there
+        starting_page="https://www.cozeva.com/analytics/tab/a0e20053d20c690d51708b1a2354bf7135ba3c9b?session=YXBwX2lkPWFuYWx5dGljcyZjdXN0SWQ9MTUwMCZwYXllcklkPTE1MDAmb3JnSWQ9MTUwMCZ2Z3BJZD0xNTAwJnZwSWQ9MTUwMA%3D%3D&display_type=single_chart"
+        header_nav.navigate_to_url(starting_page)
+        analytics_page=AnalyticsWorksheetPage(driver)
+        analytics_page.get_selected_service_year()
+        time.sleep(5)
+        analytics_page.apply_filter()
 
-        providers_list_page = CozevaProvidersPage(driver)
-        if providers_list_page.is_providers_page_open():
-            print("Providers page is open. Fetching practice names...")
-            practice_names = providers_list_page.fetch_practice_names()
-            print("Practice names fetched:", practice_names)
-            print("Now fetching provider names...")
-            provider_names = providers_list_page.fetch_provider_names()
-            print("Provider names fetched:", provider_names)
-            url = header_nav.get_page_report()["CURRENT_URL"]
-            r_practice = choice(practice_names)
-            r_provider = choice(provider_names)
-            print(f"Now clicking on random Practice {r_practice}")
-            providers_list_page.click_practice_by_name(r_practice)
-            header_nav.navigate_to_url(url)
-            print(f"Now clicking on random Provider {r_provider}")
-            providers_list_page.click_provider_by_name(r_provider)
-        else:
-            print("Providers page did not open successfully. Current URL:", driver.current_url)
+        #providers_list_page = CozevaProvidersPage(driver)
+        # if providers_list_page.is_providers_page_open():
+        #     print("Providers page is open. Fetching practice names...")
+        #     practice_names = providers_list_page.fetch_practice_names()
+        #     print("Practice names fetched:", practice_names)
+        #     print("Now fetching provider names...")
+        #     provider_names = providers_list_page.fetch_provider_names()
+        #     print("Provider names fetched:", provider_names)
+        #     url = header_nav.get_page_report()["CURRENT_URL"]
+        #     r_practice = choice(practice_names)
+        #     r_provider = choice(provider_names)
+        #     print(f"Now clicking on random Practice {r_practice}")
+        #     providers_list_page.click_practice_by_name(r_practice)
+        #     header_nav.navigate_to_url(url)
+        #     print(f"Now clicking on random Provider {r_provider}")
+        #     providers_list_page.click_provider_by_name(r_provider)
+        # else:
+        #     print("Providers page did not open successfully. Current URL:", driver.current_url)
 
 
 
