@@ -71,6 +71,13 @@ class Config:
     # DB path (IMPORTANT: writable and persistent)
     RTVS_DEFAULT_DB_PATH = Path(os.getenv("RTVS_DB_PATH", str(RTVS_DATA_DIR / "rtvs_database.db")))
 
+    # downloads path
+    RTVS_DOWNLOADS_DIR = Path(os.getenv("RTVS_DOWNLOADS_DIR", str(RTVS_DATA_DIR / "downloads")))
+    RTVS_DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Lanes for download
+
+
     # Browser settings
     BROWSER = os.getenv("BROWSER", "chrome")
     HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"

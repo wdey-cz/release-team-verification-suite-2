@@ -42,6 +42,7 @@ class RunConfiguration:
     workbook_title: str | None = None
     other_info: dict | None = None
     base_landing_url: str | None = None
+    lane_id : str | None = None
 
 
 

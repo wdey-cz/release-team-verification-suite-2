@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 class CozevaUsersPage(BasePage):
 
     USERS_URL = "/users_list"
+    EULA_BASE_URL = "/agreement"
 
     # Locators
     FILTER_SLIDEOUT = (By.XPATH, "//a[contains(@class, 'datatable_filter_dropdown')]")
@@ -28,6 +29,10 @@ class CozevaUsersPage(BasePage):
     MASQUERADE_PAGE_REASON = (By.ID, "edit-masquerade-reason-field")
     MASQUERADE_PAGE_SUBMIT_BUTTON = (By.ID, "edit-submit")
     MASQUERADE_PAGE_SIGNATURE = (By.ID, "edit-drsign")
+
+    # EULA PAGE LOCATORS
+    EULA_SKIP_BUTTON = (By.XPATH, "//button[contains(@class, 'tos_skip')]")
+    EULA_ACCEPT_BUTTON = (By.XPATH, "//button[contains(@class, 'tos_accept')]")
 
 
 
@@ -128,6 +133,19 @@ class CozevaUsersPage(BasePage):
 
     def submit_masquerade(self):
         self.click_element(self.MASQUERADE_PAGE_SUBMIT_BUTTON, timeout=10, desc="Click submit button on masquerade page")
+        self.ajax_preloader_wait()
+
+    def is_eula_page_opened(self):
+        try:
+            current_url = self.get_page_report()["CURRENT_URL"]
+            return self.EULA_BASE_URL in current_url
+        except Exception as e:
+            print("Error checking if EULA page is opened:", e)
+            traceback.print_exc()
+            return False
+
+    def skip_eula(self):
+        self.click_element(self.EULA_SKIP_BUTTON, timeout=10, desc="Click Skip button on EULA page")
         self.ajax_preloader_wait()
 
 

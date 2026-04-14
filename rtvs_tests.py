@@ -14,11 +14,12 @@ from core.base_page import HeaderNavBar
 from pages.cozeva_users_page import CozevaUsersPage
 from pages.cozeva_payment_tool_page import CozevaPaymentToolPage
 from pages.cozeva_providers_page import CozevaProvidersPage
+from pages.cozeva_registries_page import CozevaRegistriesPage
 
 
 def login_splash_test():
     print("Initializing WebDriver...")
-    driver, profile = WebDriverFactory.get_driver(use_chrome_profile=True)
+    driver, profile = WebDriverFactory.get_driver(use_chrome_profile=True, download_directory=Config.RTVS_DOWNLOADS_DIR, lane_id='1')
     db = RTVSDB()
     user_role, user_name = "CS", "wdey.cs"
     #user_role, user_name = "CU", "AltaMed_AlUtria"
@@ -66,29 +67,46 @@ def login_splash_test():
                 traceback.print_exc()
                 print("Exception occurred while searching for user:", str(e))
 
+            if users_page.is_eula_page_opened():
+                print("EULA page detected after masquerade. Attempting to skip EULA...")
+                users_page.skip_eula()
+
         # Sidebar options. collect all sidebar options, then loop through them, get back to base registries and repeat.
         start_url = header_nav.get_page_report()["CURRENT_URL"]
 
-        header_nav.navigate_to_url("https://www.cozeva.com/registries/providers?session=YXBwX2lkPXJlZ2lzdHJpZXMmY3VzdElkPTE1MDAmcGF5ZXJJZD0xNTAwJm9yZ0lkPTE1MDAmdmdwSWQ9MTUwMCZ2cElkPTE1MDA=")
+        registries_page = CozevaRegistriesPage(driver)
+        """
+        format of scores - 
+        {
+                'Measure_name 1': {'METRIC_ID': a, 'DOMAIN_NAME': b, 'NUMERATOR': d,'DENOMINATOR': e},
+                'Measure_name 2': {'METRIC_ID': a, 'DOMAIN_NAME': b, 'NUMERATOR': d,'DENOMINATOR': e},
+                ...
+        }
+        Need to pick a random metric ID from score list 
+        """
 
-        providers_list_page = CozevaProvidersPage(driver)
-        if providers_list_page.is_providers_page_open():
-            print("Providers page is open. Fetching practice names...")
-            practice_names = providers_list_page.fetch_practice_names()
-            print("Practice names fetched:", practice_names)
-            print("Now fetching provider names...")
-            provider_names = providers_list_page.fetch_provider_names()
-            print("Provider names fetched:", provider_names)
-            url = header_nav.get_page_report()["CURRENT_URL"]
-            r_practice = choice(practice_names)
-            r_provider = choice(provider_names)
-            print(f"Now clicking on random Practice {r_practice}")
-            providers_list_page.click_practice_by_name(r_practice)
-            header_nav.navigate_to_url(url)
-            print(f"Now clicking on random Provider {r_provider}")
-            providers_list_page.click_provider_by_name(r_provider)
-        else:
-            print("Providers page did not open successfully. Current URL:", driver.current_url)
+        if registries_page.is_registries_page_opened():
+            my_lob_dict, default_dict = registries_page.fetch_my_and_lob()
+            scores = registries_page.fetch_num_den_from_registry(lob=default_dict['LOB'])
+            random_measure = choice(list(scores.keys()))
+            print(f"Randomly selected measure: {random_measure} for filter validation")
+            print("Scores for selected measure:", scores[random_measure])
+            abbr = scores[random_measure]['ABBR']
+            registries_page.filter_by_measure_abbr(abbr)
+            filtered_measures = registries_page.fetch_num_den_from_registry()
+
+            # Now we check that the randomly selected measure is present in the filtered results and that the numerator and denominator match
+            if random_measure in filtered_measures:
+                print(f"Measure {random_measure} is present in the filtered results.")
+                if (filtered_measures[random_measure]['NUMERATOR'] == scores[random_measure]['NUMERATOR'] and
+                    filtered_measures[random_measure]['DENOMINATOR'] == scores[random_measure]['DENOMINATOR']):
+                    print("Numerator and Denominator values match for the filtered measure.")
+                else:
+                    print("Numerator and Denominator values do NOT match for the filtered measure.")
+            else:
+                print(f"Measure {random_measure} is NOT present in the filtered results.")
+
+
 
 
 

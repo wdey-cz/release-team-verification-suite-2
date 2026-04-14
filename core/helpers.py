@@ -5,6 +5,7 @@ Helper utility functions for common operations in tests.
 import time
 import os
 from datetime import datetime
+from core.config import Config
 
 
 class Helpers:
@@ -154,3 +155,48 @@ class Helpers:
             element,
             original_style
         )
+
+    @staticmethod
+    def fetch_downloaded_file(lane_id=None):
+        """
+        Fetch the most recently downloaded file from the downloads directory.
+
+        Returns:
+            Path to the most recently downloaded file
+        """
+        download_directory = Config.RTVS_DOWNLOADS_DIR / (lane_id or "")
+        files = os.listdir(download_directory)
+        paths = [os.path.join(download_directory, f) for f in files]
+        latest_file = max(paths, key=os.path.getctime)
+        return latest_file
+
+    @staticmethod
+    def does_file_have_data(file_path):
+        """
+        Check if a file has data (is not empty).
+
+        Args:
+            file_path: Path to the file
+        Returns:
+            True if file has data, False if empty
+        """
+        return os.path.getsize(file_path) > 0
+
+    @staticmethod
+    def delete_file(file_path):
+        """
+        Delete a file from the filesystem.
+
+        Args:
+            file_path: Path to the file to delete
+        """
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Deleted file: {file_path}")
+        else:
+            print(f"File not found, cannot delete: {file_path}")
+
+if __name__ == "__main__":
+    # Example usage of helper functions
+    helper = Helpers()
+

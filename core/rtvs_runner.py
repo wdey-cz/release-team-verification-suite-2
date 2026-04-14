@@ -171,6 +171,7 @@ def run_lane_serial(
             "--client-id", j.client_id,
             "--user-role", j.user_role,
             "--user-name", j.user_name,
+            "--lane-id", str(lane_id),
             str(Path(Config.RTVS_PROJECT_ROOT / "tests")),
         ]
 
