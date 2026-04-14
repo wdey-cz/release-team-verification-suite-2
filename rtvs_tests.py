@@ -75,16 +75,46 @@ def login_splash_test():
         start_url = header_nav.get_page_report()["CURRENT_URL"]
 
         registries_page = CozevaRegistriesPage(driver)
-        registries_page.is_registries_page_opened()
+        """
+        format of scores - 
+        {
+                'Measure_name 1': {'METRIC_ID': a, 'DOMAIN_NAME': b, 'NUMERATOR': d,'DENOMINATOR': e},
+                'Measure_name 2': {'METRIC_ID': a, 'DOMAIN_NAME': b, 'NUMERATOR': d,'DENOMINATOR': e},
+                ...
+        }
+        Need to pick a random metric ID from score list 
+        """
+
         if registries_page.is_registries_page_opened():
             my_lob_dict, default_dict = registries_page.fetch_my_and_lob()
+            scores = registries_page.fetch_num_den_from_registry(lob=default_dict['LOB'])
+            random_measure = choice(list(scores.keys()))
+            print(f"Randomly selected measure: {random_measure} for filter validation")
+            print("Scores for selected measure:", scores[random_measure])
+            abbr = scores[random_measure]['ABBR']
+            registries_page.filter_by_measure_abbr(abbr)
+            filtered_measures = registries_page.fetch_num_den_from_registry()
 
-        else:
-            print("Registries page did not open successfully. Current URL:", driver.current_url)
+            # Now we check that the randomly selected measure is present in the filtered results and that the numerator and denominator match
+            if random_measure in filtered_measures:
+                print(f"Measure {random_measure} is present in the filtered results.")
+                if (filtered_measures[random_measure]['NUMERATOR'] == scores[random_measure]['NUMERATOR'] and
+                    filtered_measures[random_measure]['DENOMINATOR'] == scores[random_measure]['DENOMINATOR']):
+                    print("Numerator and Denominator values match for the filtered measure.")
+                else:
+                    print("Numerator and Denominator values do NOT match for the filtered measure.")
+            else:
+                print(f"Measure {random_measure} is NOT present in the filtered results.")
 
-        for lob in my_lob_dict['LOB']:
-            registries_page.switch_lob(lob)
-            registries_page.sleep_code(5)
+
+
+
+
+
+
+
+
+
 
     except Exception as e:
         print(f"Error : {e}")

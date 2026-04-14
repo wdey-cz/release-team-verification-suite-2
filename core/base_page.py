@@ -135,6 +135,7 @@ class BasePage:
     def navigate_to_url(self, url):
         # Navigate to a specified URL
         self.driver.get(url)
+        self.ajax_preloader_wait("navigate_to_url")
 
     @staticmethod
     def sleep_code(sleep_time):

@@ -118,6 +118,8 @@ class TestRegistries:
                 registries_page.switch_lob(lob)
                 registries_page.sleep_code(2)  # Wait for page to load after switching lob
 
+                config_assists.add_log_heartbeat("Switched to " + lob + " Lob for test case F_02_02,03,04: Validate Gaps, Overall Rating and Patient count visibility on summary bar for all LoBs",)
+
                 # Here you would add the code to validate the presence of Gaps, Overall Rating and Patient count on the summary bar for the current lob.
                 # This would likely involve checking for specific elements on the page and verifying their visibility and content.
                 gap_count, overall_rating, patient_count = registries_page.fetch_summary_bar_info()
@@ -173,19 +175,259 @@ class TestRegistries:
                                              status="FINISHED")
             registries_page.navigate_to_url(rc.base_landing_url)
 
+
+
             # F_02_05 : Validate the Overall Rating Trend chart for relevant lobs
             '''
             Overall Rating trend chart is currently only present for specific lobs defined by a list.
             We will fetch all lobs, then loop through the common ones. 
+            Currenty, Only Medicare Lob.
             '''
 
+            config_assists.add_log_heartbeat("Starting test case F_02_05: Validate the Overall Rating Trend chart for relevant lobs", driver=driver,status="STARTED")
+
+            my_lob_dict, default_dict = {'MY': [], 'LOB': []}, {'MY': [], 'LOB': []}
+            if registries_page.is_registries_page_opened():
+                my_lob_dict, default_dict = registries_page.fetch_my_and_lob()
+
+            if "Medicare" in my_lob_dict['LOB']:
+                registries_page.switch_lob("Medicare")
+                registries_page.sleep_code(2)  # Wait for page to load after switching lob
+                config_assists.add_log_update("Switched to Medicare Lob for test case F_02_05: Validate the Overall Rating Trend chart for relevant lobs", driver=driver)
+
+                # one to check that the chart is visible and and one to check if it has data in it.
+                registries_page.launch_overall_rating_trend_chart()
+                if registries_page.is_trend_chart_opened():
+                    config_assists.add_log_test_case(
+                        message=f"Validate Overall Rating Trend chart launch for Medicare LOB",
+                        test_case_id="F_02_05",
+                        status='PASSED', driver=driver,
+                        comment=f"Overall Rating Trend chart launched successfully for Medicare LOB.")
+
+                else:
+                    config_assists.add_log_test_case(
+                        message=f"Validate Overall Rating Trend chart launch for Medicare LOB",
+                        test_case_id="F_02_05",
+                        status='FAILED', driver=driver,
+                        comment=f"Overall Rating Trend chart did not launch for Medicare LOB, it seems to be broken.")
+                    failed_cases += 1
+
+
+                chart_overall_rating, chart_nodes = registries_page.fetch_overall_rating_trend_chart_data()
+                registries_rating = registries_page.fetch_summary_bar_info()[1]  # Fetching overall rating from summary bar for comparison
+
+                if chart_overall_rating == registries_rating and chart_nodes > 0:
+                    config_assists.add_log_test_case(
+                        message=f"Validate Overall Rating Trend chart data for Medicare LOB",
+                        test_case_id="F_02_05",
+                        status='PASSED', driver=driver,
+                        comment=f"Overall Rating Trend chart data seems to be correct for Medicare LOB with Overall Rating: {chart_overall_rating} and Nodes count: {chart_nodes}.")
+                else:
+                    config_assists.add_log_test_case(
+                        message=f"Validate Overall Rating Trend chart data for Medicare LOB",
+                        test_case_id="F_02_05",
+                        status='FAILED', driver=driver,
+                        comment=f"Overall Rating Trend chart data seems to be incorrect for Medicare LOB. Chart Overall Rating: {chart_overall_rating}, Summary Bar Overall Rating: {registries_rating} and Nodes count: {chart_nodes}.")
+                    failed_cases += 1
+
+            else:
+                config_assists.add_log_update("Medicare Lob is not present, skipping test case F_02_05: Validate the Overall Rating Trend chart for relevant lobs", driver=driver,)
+
+            config_assists.add_log_heartbeat("Finished test case F_02_05: Validate the Overall Rating Trend chart for relevant lobs", driver=driver,status="FINISHED")
+            registries_page.navigate_to_url(rc.base_landing_url)
 
             # F_02_06 : Validate Summary HCC score for relevant lobs
+            '''
+            Similar to Overall Rating Trend chart, Summary HCC score is also only present for some lobs. 
+            We will fetch all lobs, then loop through the common ones. 
+            '''
+            config_assists.add_log_heartbeat("Starting test case F_02_06: Validate Summary HCC score for relevant lobs", driver=driver,
+                                             status="STARTED")
+            my_lob_dict, default_dict, hcc_lobs = {'MY': [], 'LOB': []}, {'MY': [], 'LOB': []}, []
+            if registries_page.is_registries_page_opened():
+                my_lob_dict, default_dict = registries_page.fetch_my_and_lob()
+                hcc_lobs = registries_page.HCC_LOBS
+
+            # make a list of commons between hcc_lobs and my_lob_dict['LOB']
+            common_hcc_lobs = list(set(hcc_lobs) & set(my_lob_dict['LOB']))
+            for lob in common_hcc_lobs:
+                registries_page.switch_lob(lob)
+                registries_page.sleep_code(2)  # Wait for page to load after switching lob
+                config_assists.add_log_update("Switched to " + lob + " Lob for test case F_02_06: Validate Summary HCC score for relevant lobs",)
+
+                hcc_score = registries_page.fetch_hcc_score()
+                if hcc_score != "None":
+                    config_assists.add_log_test_case(
+                        message=f"Validate Summary HCC score visibility on summary bar for {lob} LOB",
+                        test_case_id="F_02_06",
+                        status='PASSED', driver=driver,
+                        comment=f"Summary HCC score is visible on summary bar for {lob} LOB with value: {hcc_score}.")
+                else:
+                    config_assists.add_log_test_case(
+                        message=f"Validate Summary HCC score visibility on summary bar for {lob} LOB",
+                        test_case_id="F_02_06",
+                        status='FAILED', driver=driver,
+                        comment=f"Summary HCC score is not visible on summary bar for {lob} LOB, it seems to be broken.")
+                    failed_cases += 1
+
+            config_assists.add_log_heartbeat("Finished test case F_02_06: Validate Summary HCC score for relevant lobs", driver=driver,)
+            registries_page.navigate_to_url(rc.base_landing_url)
+
+            # F_02_07 : Validate Continous Enrollment checkbox alters num/den counts
+            ''' 
+            For this case, we will check on the Default Lob. We will fetch the num/den counts with checkbox unchecked, then check the checkbox and fetch the counts again.
+            We will validate that the counts have changed after checking the checkbox.
+            '''
+            config_assists.add_log_heartbeat("Starting test case F_02_07: Validate Continous Enrollment checkbox alters num/den counts", driver=driver,
+                                             status="STARTED")
+            if registries_page.is_registries_page_opened():
+                my_lob_dict, default_dict = registries_page.fetch_my_and_lob()
+                if default_dict['LOB']:
+                    default_lob = default_dict['LOB'][0]
+                    registries_page.switch_lob(default_lob)
+                    registries_page.sleep_code(2)  # Wait for page to load after switching lob
+                    config_assists.add_log_update("Switched to default Lob: " + default_lob + " for test case F_02_07: Validate Continous Enrollment checkbox alters num/den counts", driver=driver)
+
+                    old_scores = registries_page.fetch_num_den_from_registry("Medicare")
+                    registries_page.toggle_continuous_enrollment_checkbox(True)
+                    new_scores = registries_page.fetch_num_den_from_registry()
+
+                    # Now we will compare the old and new scores and count how many measures have changed in numerator and denominator.
+                    changed_scores = {}
+                    for measure_name, measure_data in new_scores.items():
+                        if measure_name in old_scores:
+                            old_measure_data = old_scores[measure_name]
+                            if measure_data['NUMERATOR'] != old_measure_data['NUMERATOR'] or measure_data[
+                                'DENOMINATOR'] != old_measure_data['DENOMINATOR']:
+                                changed_scores[measure_name] = {
+                                    'OLD_NUMERATOR': old_measure_data['NUMERATOR'],
+                                    'NEW_NUMERATOR': measure_data['NUMERATOR'],
+                                    'OLD_DENOMINATOR': old_measure_data['DENOMINATOR'],
+                                    'NEW_DENOMINATOR': measure_data['DENOMINATOR']
+                                }
+                    print(
+                        f"Total measures with changed scores after toggling continuous enrollment: {len(changed_scores)}")
 
 
+                    if len(changed_scores) > 0:
+                        config_assists.add_log_test_case(
+                            message=f"Validate Continous Enrollment checkbox alters num/den counts for {default_lob} LOB",
+                            test_case_id="F_02_07",
+                            status='PASSED', driver=driver,
+                            comment=f"Continuous Enrollment checkbox alters num/den counts for {default_lob} LOB, total measures with changed scores: {len(changed_scores)}.")
+                    else:
+                        config_assists.add_log_test_case(
+                            message=f"Validate Continous Enrollment checkbox alters num/den counts for {default_lob} LOB",
+                            test_case_id="F_02_07",
+                            status='FAILED', driver=driver,
+                            comment=f"Continuous Enrollment checkbox does not alter num/den counts for {default_lob} LOB, it seems to be broken.")
+                        failed_cases += 1
+
+                    config_assists.add_log_heartbeat("Finished test case F_02_07: Validate Continous Enrollment checkbox alters num/den counts", driver=driver,)
+                    registries_page.navigate_to_url(rc.base_landing_url)
 
 
+                else:
+                    config_assists.add_log_update("No default Lob found, skipping test case F_02_07: Validate Continous Enrollment checkbox alters num/den counts", driver=driver,)
 
+            # F_02_08 : Validate chicklets / stars with exceptions
+            config_assists.add_log_heartbeat("Starting test case F_02_08: Validate chicklets / stars with exceptions", driver=driver,)
+            """
+            To Validate this test case, we will validate chicklets/stars on the registries. (DO THIS LATER!!)
+            """
+            config_assists.add_log_heartbeat("Finished test case F_02_08: Validate chicklets / stars with exceptions", driver=driver,)
+            registries_page.navigate_to_url(rc.base_landing_url)
+
+            # F_02_09 : Validate Quality/HCC Measure display on registries contains all elements.
+            """
+            Here, we will look for a random metric, and then validate its values are visible on the UI.
+            """
+            config_assists.add_log_heartbeat("Starting test case F_02_09: Validate Quality/HCC Measure display on registries contains all elements", driver=driver,)
+            scores = registries_page.fetch_num_den_from_registry()
+            random_measure = choice(list(scores.keys()))
+            random_metric_id = scores[random_measure]['METRIC_ID']
+            print(f"Randomly selected measure: {random_measure} with metric ID: {random_metric_id}")
+            config_assists.add_log_update("Randomly selected measure: " + random_measure + " with metric ID: " + random_metric_id + " for test case F_02_09: Validate Quality/HCC Measure display on registries contains all elements", driver=driver,)
+
+
+            details = registries_page.fetch_measure_details(random_metric_id)
+            # Example Format {'MEASURE_NAME': 'Medication Review', 'NUMERATOR': '2,625', 'DENOMINATOR': '5,090'}
+
+            if details and details['NUMERATOR'] != "None" and details['DENOMINATOR'] != "None":
+                config_assists.add_log_test_case(
+                    message=f"Validate Quality/HCC Measure display on registries contains all elements for {random_measure}",
+                    test_case_id="F_02_09",
+                    status='PASSED', driver=driver,
+                    comment=f"Quality/HCC Measure details are displayed correctly for {random_measure} with Numerator: {details['NUMERATOR']} and Denominator: {details['DENOMINATOR']}.")
+            else:
+                config_assists.add_log_test_case(
+                    message=f"Validate Quality/HCC Measure display on registries contains all elements for {random_measure}",
+                    test_case_id="F_02_09",
+                    status='FAILED', driver=driver,
+                    comment=f"Quality/HCC Measure details are not displayed correctly for {random_measure}, it seems to be broken.")
+                failed_cases += 1
+
+            config_assists.add_log_heartbeat("Finished test case F_02_09: Validate Quality/HCC Measure display on registries contains all elements", driver=driver,)
+            registries_page.navigate_to_url(rc.base_landing_url)
+
+            # F_02_10 : Validate registries filter
+            config_assists.add_log_heartbeat("Starting test case F_02_10: Validate registries filter", driver=driver,)
+            """
+            To validate this test case, we will apply a filter on the registries page and then check if the results are
+            consistent with the applied filter. For example, if we apply a filter for a specific measure, we should only see that measure in the results.
+            """
+            if registries_page.is_registries_page_opened():
+                my_lob_dict, default_dict = registries_page.fetch_my_and_lob()
+                scores = registries_page.fetch_num_den_from_registry(lob=default_dict['LOB'])
+                random_measure = choice(list(scores.keys()))
+                print(f"Randomly selected measure: {random_measure} for filter validation")
+                config_assists.add_log_update("Randomly selected measure: " + random_measure + " for filter validation", driver=driver,)
+                abbr = scores[random_measure]['ABBR']
+                registries_page.filter_by_measure_abbr(abbr)
+                filtered_measures = registries_page.fetch_num_den_from_registry()
+
+                # Now we check that the randomly selected measure is present in the filtered results and that the numerator and denominator match
+                if random_measure in filtered_measures:
+                    print(f"Measure {random_measure} is present in the filtered results.")
+                    if (filtered_measures[random_measure]['NUMERATOR'] == scores[random_measure]['NUMERATOR'] and
+                            filtered_measures[random_measure]['DENOMINATOR'] == scores[random_measure]['DENOMINATOR']):
+                        print("Numerator and Denominator values match for the filtered measure.")
+                        config_assists.add_log_test_case(
+                            message=f"Validate registries filter for {random_measure}",
+                            test_case_id="F_02_10",
+                            status='PASSED', driver=driver,
+                            comment=f"Registries filter seems to be working fine for {random_measure}, Numerator and Denominator values match for the filtered measure."
+                        )
+                    else:
+                        print("Numerator and Denominator values do NOT match for the filtered measure.")
+                        config_assists.add_log_test_case(
+                            message=f"Validate registries filter for {random_measure}",
+                            test_case_id="F_02_10",
+                            status='FAILED', driver=driver,
+                            comment=f"Registries filter seems to be broken for {random_measure}, Numerator and Denominator values do NOT match for the filtered measure."
+                        )
+                        failed_cases += 1
+                else:
+                    print(f"Measure {random_measure} is NOT present in the filtered results.")
+                    config_assists.add_log_test_case(
+                        message=f"Validate registries filter for {random_measure}",
+                        test_case_id="F_02_10",
+                        status='FAILED', driver=driver,
+                        comment=f"Registries filter seems to be broken for {random_measure}, measure is NOT present in the filtered results."
+                    )
+                    failed_cases += 1
+
+            config_assists.add_log_heartbeat("Finished test case F_02_10: Validate registries filter", driver=driver,)
+            registries_page.navigate_to_url(rc.base_landing_url)
+
+            # F_02_11 : Validate Accordion summation for all Lobs
+            '''
+            For this test case, we will expand all accordions on the registries page and then validate that the summation of the numerator and denominator values in the expanded accordions matches the numerator
+            '''
+            config_assists.add_log_heartbeat("Starting test case F_02_11: Validate Accordion summation for all Lobs", driver=driver,)
+
+            config_assists.add_log_heartbeat("Finished test case F_02_11: Validate Accordion summation for all Lobs", driver=driver,)
+            registries_page.navigate_to_url(rc.base_landing_url)
 
             # F_02_13
             config_assists.add_log_heartbeat("Starting test case F_02_13: Validate registry export", driver=driver,
