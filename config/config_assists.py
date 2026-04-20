@@ -55,7 +55,14 @@ class ConfigAssists:
         self.run_config: RunConfiguration | None = None
         self.set_run_configuration(RunConfiguration())
 
-    def create_first_time_setup(self):
+    def create_first_time_setup(
+        self,
+        tester_username: str | None = None,
+        tester_password: str | None = None,
+        tester_email: str | None = None,
+        tester_reason_for_login: str | None = None,
+        tester_signature: str | None = None,
+    ):
         self.install_requirements()
         # Create the chrome_profiles table if it doesn't exist
         self.db.create_chrome_profile_info_table()
@@ -66,6 +73,20 @@ class ConfigAssists:
         self.db.create_run_and_log_tables()
         self.db.load_test_packages_from_dict()
         self.db.create_tester_info_table()
+        if (
+            tester_username
+            and tester_password
+            and tester_email
+            and tester_reason_for_login
+            and tester_signature
+        ):
+            self.db.insert_tester_info(
+                tester_username,
+                tester_password,
+                tester_email,
+                tester_reason_for_login,
+                tester_signature,
+            )
 
 
 
