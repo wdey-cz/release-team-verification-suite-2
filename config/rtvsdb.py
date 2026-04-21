@@ -124,6 +124,12 @@ class RTVSDB:
             );
             """)
 
+    def clear_tester_info_table(self):
+        """Delete all records from tester_info table."""
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute("DELETE FROM tester_info;")
+
     def insert_tester_info(self, username: str, password: str, email: str, reason: str, signature: str):
         """Insert a new tester info into the database."""
         with self.connection:

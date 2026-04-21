@@ -80,6 +80,9 @@ class ConfigAssists:
             and tester_reason_for_login
             and tester_signature
         ):
+            # Clear existing records first
+            self.db.clear_tester_info_table()
+            # Insert new tester info
             self.db.insert_tester_info(
                 tester_username,
                 tester_password,
