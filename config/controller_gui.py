@@ -487,6 +487,181 @@ class StartTestDialog(QtWidgets.QDialog):
         }
 
 
+def _password_visibility_icons() -> tuple[QtGui.QIcon, QtGui.QIcon]:
+    """Open eye (show password) and eye with slash (hide password), for password field toggle."""
+    col = QtGui.QColor(75, 75, 78)
+    pen = QtGui.QPen(col)
+    pen.setWidthF(1.5)
+    pen_slash = QtGui.QPen(QtGui.QColor(110, 55, 55))
+    pen_slash.setWidthF(2.0)
+
+    def paint_open(target: QtGui.QPixmap) -> None:
+        target.fill(QtCore.Qt.GlobalColor.transparent)
+        p = QtGui.QPainter(target)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        p.setPen(pen)
+        p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+        p.drawEllipse(2, 7, 18, 10)
+        p.setBrush(col)
+        p.setPen(QtCore.Qt.PenStyle.NoPen)
+        p.drawEllipse(8, 9, 6, 6)
+        p.end()
+
+    def paint_slash(target: QtGui.QPixmap) -> None:
+        target.fill(QtCore.Qt.GlobalColor.transparent)
+        p = QtGui.QPainter(target)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        p.setPen(pen)
+        p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+        p.drawEllipse(2, 7, 18, 10)
+        p.setPen(pen_slash)
+        p.drawLine(5, 6, 17, 20)
+        p.end()
+
+    open_pm = QtGui.QPixmap(22, 22)
+    slash_pm = QtGui.QPixmap(22, 22)
+    paint_open(open_pm)
+    paint_slash(slash_pm)
+    return QtGui.QIcon(open_pm), QtGui.QIcon(slash_pm)
+
+
+class FirstTimeSetupTesterDialog(QtWidgets.QDialog):
+    """
+    Collects tester credentials before first-time DB setup.
+    Layout matches StartTestDialog (labeled rows, group box, OK/Cancel).
+    Values are written to tester_info via RTVSDB.insert_tester_info after create_tester_info_table runs.
+    """
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self.setWindowTitle("First-time setup — Tester credentials")
+        self.resize(520, 420)
+
+        root = QtWidgets.QVBoxLayout(self)
+        root.setSpacing(12)
+
+        def labeled_row(label_text: str, widget: QtWidgets.QWidget) -> QtWidgets.QWidget:
+            w = QtWidgets.QWidget()
+            lay = QtWidgets.QHBoxLayout(w)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.setSpacing(8)
+            lab = QtWidgets.QLabel(label_text)
+            lab.setMinimumWidth(140)
+            lay.addWidget(lab)
+            lay.addWidget(widget, 1)
+            return w
+
+        hint = QtWidgets.QLabel(
+            "Enter the Cozeva tester account used for automated logins "
+            "(reason for login and signature are used on the reason-for-login screen)."
+        )
+        hint.setWordWrap(True)
+        root.addWidget(hint)
+
+        creds = QtWidgets.QGroupBox("Tester credentials")
+        creds_layout = QtWidgets.QVBoxLayout(creds)
+        creds_layout.setContentsMargins(12, 10, 12, 10)
+        creds_layout.setSpacing(10)
+
+        self.username_input = QtWidgets.QLineEdit()
+        self.username_input.setPlaceholderText("Cozeva username")
+
+        self._icon_eye_show, self._icon_eye_hide = _password_visibility_icons()
+        pwd_wrap = QtWidgets.QWidget()
+        pwd_lay = QtWidgets.QHBoxLayout(pwd_wrap)
+        pwd_lay.setContentsMargins(0, 0, 0, 0)
+        pwd_lay.setSpacing(4)
+        self.password_input = QtWidgets.QLineEdit()
+        self.password_input.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+        self.password_input.setPlaceholderText("Password")
+        pwd_lay.addWidget(self.password_input, 1)
+        self._pwd_toggle = QtWidgets.QToolButton()
+        self._pwd_toggle.setCheckable(True)
+        self._pwd_toggle.setChecked(False)
+        self._pwd_toggle.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        self._pwd_toggle.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+        self._pwd_toggle.setAutoRaise(True)
+        self._pwd_toggle.setFixedSize(30, 28)
+        self._pwd_toggle.setIcon(self._icon_eye_show)
+        self._pwd_toggle.setToolTip("Show password")
+        self._pwd_toggle.setStyleSheet(
+            "QToolButton { border: none; background: transparent; border-radius: 4px; padding: 2px; }"
+            "QToolButton:hover { background: rgba(0, 0, 0, 10%); }"
+            "QToolButton:pressed { background: rgba(0, 0, 0, 16%); }"
+        )
+        self._pwd_toggle.toggled.connect(self._on_password_visibility_toggled)
+        pwd_lay.addWidget(self._pwd_toggle, 0, QtCore.Qt.AlignmentFlag.AlignRight)
+
+        self.email_input = QtWidgets.QLineEdit()
+        self.email_input.setPlaceholderText("Email address")
+
+        self.reason_input = QtWidgets.QLineEdit()
+        self.reason_input.setPlaceholderText("e.g. Redmine ticket URL or RM number")
+
+        self.signature_input = QtWidgets.QLineEdit()
+        self.signature_input.setPlaceholderText("Name shown as signature for masquerade / login flows")
+
+        creds_layout.addWidget(labeled_row("Username:", self.username_input))
+        creds_layout.addWidget(labeled_row("Password:", pwd_wrap))
+        creds_layout.addWidget(labeled_row("Email:", self.email_input))
+        creds_layout.addWidget(labeled_row("Reason for login:", self.reason_input))
+        creds_layout.addWidget(labeled_row("Signature:", self.signature_input))
+
+        root.addWidget(creds)
+
+        btns = QtWidgets.QHBoxLayout()
+        self.ok_btn = QtWidgets.QPushButton("Continue setup")
+        self.cancel_btn = QtWidgets.QPushButton("Cancel")
+        self.ok_btn.clicked.connect(self._on_continue)
+        self.cancel_btn.clicked.connect(self.reject)
+        btns.addStretch(1)
+        btns.addWidget(self.ok_btn)
+        btns.addWidget(self.cancel_btn)
+        root.addLayout(btns)
+
+    def _on_password_visibility_toggled(self, checked: bool) -> None:
+        if checked:
+            self.password_input.setEchoMode(QtWidgets.QLineEdit.EchoMode.Normal)
+            self._pwd_toggle.setIcon(self._icon_eye_hide)
+            self._pwd_toggle.setToolTip("Hide password")
+        else:
+            self.password_input.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+            self._pwd_toggle.setIcon(self._icon_eye_show)
+            self._pwd_toggle.setToolTip("Show password")
+
+    def _on_continue(self) -> None:
+        u = self.username_input.text().strip()
+        p = self.password_input.text()
+        em = self.email_input.text().strip()
+        reason = self.reason_input.text().strip()
+        sig = self.signature_input.text().strip()
+        if not u:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Username is required.")
+            return
+        if not p:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Password is required.")
+            return
+        if not em:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Email is required.")
+            return
+        if not reason:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Reason for login is required.")
+            return
+        if not sig:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Signature is required.")
+            return
+        self.accept()
+
+    def tester_values(self) -> tuple[str, str, str, str, str]:
+        return (
+            self.username_input.text().strip(),
+            self.password_input.text(),
+            self.email_input.text().strip(),
+            self.reason_input.text().strip(),
+            self.signature_input.text().strip(),
+        )
+
+
 class ControllerWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
@@ -676,8 +851,15 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
     def _run_setup(self):
         self._init_assists()  # ensures exists
-        self.assists.create_first_time_setup()
-        self._append_log("[OK] First-time setup executed.")
+        dlg = FirstTimeSetupTesterDialog(self)
+        if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
+            self._append_log("[INFO] First-time setup cancelled (tester credentials dialog).")
+            return
+        username, password, email, reason, signature = dlg.tester_values()
+        self.assists.create_first_time_setup(username, password, email, reason, signature)
+        self._append_log(
+            f"[OK] First-time setup executed; tester_info saved for user {username!r}."
+        )
         self._refresh_profiles_table()
 
     def _reload_customers_json(self):
