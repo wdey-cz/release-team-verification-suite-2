@@ -69,13 +69,26 @@ def login_splash_test():
         # Sidebar options. collect all sidebar options, then loop through them, get back to base registries and repeat.
         start_url = header_nav.get_page_report()["CURRENT_URL"]
 
-        #to give URL there
-        starting_page="https://www.cozeva.com/analytics/tab/a0e20053d20c690d51708b1a2354bf7135ba3c9b?session=YXBwX2lkPWFuYWx5dGljcyZjdXN0SWQ9MTUwMCZwYXllcklkPTE1MDAmb3JnSWQ9MTUwMCZ2Z3BJZD0xNTAwJnZwSWQ9MTUwMA%3D%3D&display_type=single_chart"
-        header_nav.navigate_to_url(starting_page)
-        analytics_page=AnalyticsWorksheetPage(driver)
-        analytics_page.get_selected_service_year()
-        time.sleep(5)
-        analytics_page.apply_filter()
+        #to test analytics worksheet
+        # starting_page="https://www.cozeva.com/analytics/tab/a0e20053d20c690d51708b1a2354bf7135ba3c9b?session=YXBwX2lkPWFuYWx5dGljcyZjdXN0SWQ9MTUwMCZwYXllcklkPTE1MDAmb3JnSWQ9MTUwMCZ2Z3BJZD0xNTAwJnZwSWQ9MTUwMA%3D%3D&display_type=single_chart"
+        # header_nav.navigate_to_url(starting_page)
+        # analytics_page=AnalyticsWorksheetPage(driver)
+        # analytics_page.get_selected_service_year()
+        # time.sleep(5)
+        # analytics_page.apply_filter()
+
+        # to test analytics landing page
+        url="https://www.cozeva.com/analytics?session=YXBwX2lkPWFuYWx5dGljcyZjdXN0SWQ9MTMwMCZwYXllcklkPTEzMDAmb3JnSWQ9MTMwMCZ2Z3BJZD0xMzAwJnZwSWQ9MTMwMA"
+        header_nav.navigate_to_url(url)
+        analytics_page = AnalyticsLandingPage(driver)
+        if analytics_page.is_loading_over() :
+            print("Analytics page loaded")
+            recenlty_used_section_display_status=analytics_page.is_recently_used_displayed()
+            print("Recently used section displayed:", recenlty_used_section_display_status)
+            worksheets_found=analytics_page.get_number_of_worksheets()
+            print("Worksheets found:", worksheets_found)
+
+
 
         #providers_list_page = CozevaProvidersPage(driver)
         # if providers_list_page.is_providers_page_open():
