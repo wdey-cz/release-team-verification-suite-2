@@ -29,6 +29,9 @@ class ReportGenerator:
         if not row:
             raise ValueError(f"No data found for run_id={run_id}")
 
+
+        # extract start date , end time and calculate timetaken
+
         return (
             self._split_csv(row[0]),
             self._split_csv(row[1]),
@@ -110,7 +113,8 @@ class ReportGenerator:
                     key = f"{client}_{role}_{browser}"
                     data[key] = self._transform_logs(logs)
 
-        template = self.env.get_template("report_template.html")
+
+        template = self.env.get_template("report_template_combinedco.html")
 
         html = template.render(
             data=data,

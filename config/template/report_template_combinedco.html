@@ -1,0 +1,2615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Validation Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+/* ---------- DARK THEME ONLY ---------- */
+body{
+    margin:0;
+    font-family:Segoe UI, Arial;
+    display:flex;
+    background:#020617;
+    color:#f9fafb;
+}
+
+/* ---------- SIDEBAR ---------- */
+.sidebar{
+    position:fixed;
+    top:0;
+    left:0;
+
+    width:220px;
+    height:100vh;
+
+    background:#020617;
+    color:white;
+    padding:20px;
+
+    overflow:hidden;
+    border-right:1px solid #1f2937;
+}
+
+.sidebar div{
+    padding:10px;
+    border-radius:6px;
+    cursor:pointer;
+    margin-bottom:8px;
+}
+
+.profile-icon{
+    font-size:22px;
+    text-align:center;
+    padding:10px;
+    margin-bottom:10px;
+    cursor:pointer;
+    border-radius:8px;
+}
+
+*{
+    box-sizing:border-box;
+}
+.graph-card{
+    width:100%;
+    overflow:hidden;   /* ✅ prevents cut */
+}
+
+.chart-container,
+.time-chart{
+    width:100%;
+    position:relative;
+}
+
+/* ---------- MAIN ---------- */
+.main{
+    margin-left:220px;
+    padding:25px;
+    width:calc(100% - 220px);
+}
+
+.sidebar.collapsed + .main{
+    margin-left:30px;
+    width:calc(100% - 30px);
+}
+
+/* ---------- TEXT ---------- */
+.pass{ color:#22c55e; }
+.fail{ color:#ef4444; }
+.muted{ color:#9ca3af; font-size:13px; }
+
+/* ---------- GRID ---------- */
+.overview-grid{
+    display:grid;
+    grid-template-columns: 2.2fr 1fr;
+    gap:20px;
+}
+
+/* ---------- CARDS ---------- */
+.ov-card,
+.graph-card{
+    background:linear-gradient(135deg, #020617, #1e293b);
+    border-radius:12px;
+    padding:20px;
+    border:1px solid rgba(255,255,255,0.08);
+    box-shadow:0 8px 25px rgba(0,0,0,0.4);
+    transition:0.25s;
+}
+
+.ov-card:hover{
+    transform:translateY(-4px);
+}
+
+/* ---------- CARD 1 LAYOUT ---------- */
+.card-1{
+    grid-column:span 2;
+}
+
+.card1-grid{
+    display:grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap:20px;
+    align-items:center;
+    position:relative;
+}
+
+/* ---------- META ---------- */
+.meta-block{
+    margin-top:15px;
+    line-height:2;
+}
+
+/* ---------- SUMMARY (RIGHT SIDE) ---------- */
+.summary-box{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    justify-content:center;
+    height:100%;
+    padding-right:25px;
+}
+
+.summary-metrics{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:15px;
+    align-items:center;
+}
+
+.metric{
+    background:rgba(255,255,255,0.08);
+    padding:10px;
+    border-radius:8px;
+    width:100%;
+    text-align:center;
+    font-size:13px;
+}
+
+.metric strong{
+    display:block;
+    font-size:16px;
+}
+
+/* ---------- DONUT ---------- */
+.donut-box{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%, -50%);
+    width:180px;
+    height:180px;
+}
+
+/* ---------- PACKAGE ---------- */
+.pkg{
+    display:flex;
+    justify-content:space-between;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,0.1);
+    cursor:pointer;
+    margin-bottom:6px;
+}
+
+.pkg:hover{
+    background:rgba(255,255,255,0.1);
+}
+
+/* ---------- TREND ---------- */
+.trend-box{
+    position:relative;
+    height:150px;
+}
+
+.empty-state{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    color:#94a3b8;
+}
+
+.logo-header{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:0px;
+    margin-bottom:20px;
+}
+
+.logo-header img{
+    width:150px;
+    height:auto;
+    object-fit:cover;
+    object-position:center;
+}
+
+.logo-header h2{
+    margin-top:-10px;
+    margin-bottom:0;
+}
+
+#graphsSection{
+    display: flex;
+    flex-direction: column;
+    gap:20px;
+    width:100%;
+}
+
+.chart-container{
+    height:150px;
+    width:100%;
+}
+
+.graph-card{
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.time-chart{
+    height:120px;
+    width:100%;
+}
+
+.graph-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+}
+
+.graph-controls{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.graph-btn{
+    border:1px solid rgba(255,255,255,0.15);
+    background:#0f172a;
+    color:#e2e8f0;
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:12px;
+    cursor:pointer;
+}
+
+.graph-btn.active{
+    background:#1d4ed8;
+    border-color:#2563eb;
+    color:#ffffff;
+}
+
+.graph-btn:disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+}
+
+.graph-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+}
+
+.graph-table th,
+.graph-table td{
+    border-bottom:1px solid rgba(255,255,255,0.1);
+    padding:8px;
+    text-align:left;
+    font-size:13px;
+}
+
+.table-view{
+    display:none;
+}
+
+
+/* ---------- COLLAPSE --------- */
+
+.sidebar.collapsed{
+    width:50px;   /* 🔥 thinner */
+    padding:10px;
+}
+
+/* Hide EVERYTHING except toggle button */
+.sidebar.collapsed .logo-header,
+.sidebar.collapsed div:not(.toggle-btn){
+    display:none;
+}
+
+/* Center the toggle button */
+.sidebar.collapsed .toggle-btn{
+    display:block;
+    text-align:center;
+    margin:0 auto;
+}
+
+.lang-switch{
+    position:absolute;
+    bottom:70px;
+    left:20px;
+    right:20px;
+    display:flex;
+    gap:10px;
+}
+
+.lang-switch button{
+    flex:1;
+    padding:6px;
+    border:none;
+    border-radius:6px;
+    background:#111f3f;
+    color:#111f3f;
+    cursor:pointer;
+    font-size:12px;
+}
+.lang-switch button:hover{
+    background:transparent !important;
+}
+
+.lang-switch:hover{
+    background:transparent !important;
+}
+
+.sidebar div.lang-switch:hover{
+    background: transparent !important;
+}
+
+.sidebar.collapsed .lang-switch{
+    display:none;
+}
+
+.goog-te-gadget *{
+    color:white !important;
+}
+
+/* ---------- DETAILS ACCORDION ---------- */
+
+.section{
+    margin-top:12px;
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:8px;
+    overflow:visible;
+}
+.section-header{
+    padding:12px;
+    cursor:pointer;
+    background:rgba(255,255,255,0.05);
+    font-weight:600;
+
+    /* ✅ ADD THESE */
+    position: sticky;
+    top: 0;
+    z-index: 5;
+
+    /* 🔥 Important for clean look */
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(6px);
+
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.test-list{
+    max-height: calc(100vh - 140px); /* adjust if needed */
+    overflow-y: auto;
+
+    position: relative; /* 🔥 important */
+}
+
+.section-header:hover{
+    background:rgba(255,255,255,0.1);
+}
+.section-header{
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.section-body{
+    display:none;
+    padding:10px;
+    background:rgba(255,255,255,0.02);
+}
+
+.section.open .section-body{
+    display:block;
+}
+
+/* ---------- SPLIT LAYOUT ---------- */
+.details-layout{
+    display:flex;
+    gap:20px;
+    margin-top:20px;
+}
+
+/* LEFT */
+.test-list{
+    width:100%;
+    transition:0.3s;
+}
+
+/* RIGHT */
+.details-panel{
+    position: sticky;
+    top: 20px;
+
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+
+    scrollbar-width: thin;
+}
+
+
+.details-layout.active .test-list{
+    width:40%;
+}
+
+.details-layout.active .details-panel{
+    width:60%;
+    opacity:1;
+    padding:15px;
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:10px;
+    background:rgba(255,255,255,0.03);
+}
+
+.details-layout:not(.active) .details-panel{
+    width:0 !important;
+    opacity:0 !important;
+}
+
+.details-layout{
+    align-items:flex-start;   /* 🔥 ADD THIS */
+}
+
+/* ---------- LOG STYLE ---------- */
+.log{
+    background:#1e293b;
+    padding:10px;
+    border-radius:6px;
+    margin-bottom:8px;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.log-time{
+    color:#94a3b8;
+    min-width:160px;
+}
+
+.log-pass{
+    color:#22c55e;
+}
+
+.log-fail{
+    color:#ef4444;
+}
+
+.highlight-section{
+    border:2px solid #38bdf8 !important;
+    box-shadow:0 0 20px rgba(56,189,248,0.4);
+    transition:0.3s;
+}
+
+.details-layout:not(.active){
+    gap:0;
+}
+
+.details-layout:not(.active) .details-panel{
+    display:none;
+}
+
+.snake-container{
+    position:absolute;
+    bottom:10px;
+    left:10px;
+    width:160px;
+    height:160px;
+    background:rgba(255,255,255,0.05);
+    border-radius:10px;
+    padding:5px;
+}
+
+
+#snakeGame{
+    background:#020617;
+    border-radius:6px;
+}
+
+/* Push snake icon to bottom */
+.snake-icon{
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    right:20px;
+
+    text-align:center;
+    font-size:22px;
+    cursor:pointer;
+    padding:10px;
+    border-radius:8px;
+}
+
+/* Hover effect */
+.snake-icon:hover{
+    background:#1e293b;
+}
+
+/* Hide when collapsed (optional) */
+.sidebar.collapsed .snake-icon{
+    display:block;
+}
+
+/* FAILURE CARD DESIGN */
+
+.failure-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:10px;
+    font-size:14px;
+}
+
+.failure-row span:first-child{
+    width:80px;
+}
+
+.bar{
+    flex:1;
+    height:6px;
+    background:rgba(255,255,255,0.1);
+    border-radius:6px;
+    overflow:hidden;
+}
+
+.fill{
+    height:100%;
+    background:#ef4444;
+    border-radius:6px;
+}
+
+.fail-count{
+    width:25px;
+    text-align:right;
+    font-weight:600;
+}
+
+
+/* POPUP */
+.stat-popup{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.7);
+    z-index:999;
+    opacity:0;
+    pointer-events:none;
+    transition:0.3s;
+}
+
+.stat-popup.show{
+    opacity:1;
+    pointer-events:auto;
+}
+
+.popup-card{
+    background:#020617;
+    border:1px solid rgba(255,255,255,0.1);
+    padding:30px;
+    border-radius:12px;
+    text-align:center;
+    box-shadow:0 0 30px rgba(0,0,0,0.6);
+    animation: pop 0.4s ease;
+}
+
+@keyframes pop{
+    from{ transform:scale(0.7); opacity:0; }
+    to{ transform:scale(1); opacity:1; }
+}
+
+/* CONFETTI CANVAS */
+#confettiCanvas{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
+    z-index:1000;
+}
+
+.fail-count-badge{
+    background:#ef4444;
+    color:white;
+    font-size:12px;
+    padding:3px 8px;
+    border-radius:20px;
+    margin-left:10px;
+    font-weight:600;
+}
+
+/* ---------- CORPORATE UX REFRESH ---------- */
+:root{
+    --bg:#020817;
+    --surface:#0b1220;
+    --surface-alt:#0f172a;
+    --text:#e2e8f0;
+    --text-muted:#94a3b8;
+    --line:#1e293b;
+    --brand:#2563eb;
+    --brand-soft:#172554;
+}
+
+body{
+    background:var(--bg);
+    color:var(--text);
+}
+
+.main{
+    background:linear-gradient(180deg, #020817 0%, #030b1c 100%);
+    min-height:100vh;
+    padding:28px 30px;
+}
+
+.main h2, .main h3, .main h4{
+    color:#e2e8f0;
+    letter-spacing:0.2px;
+}
+
+.muted{
+    color:var(--text-muted);
+}
+
+.sidebar{
+    width:248px;
+    background:linear-gradient(180deg, #0f172a 0%, #111f3f 100%);
+    border-right:1px solid rgba(148,163,184,0.25);
+    padding:16px 14px;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+    overflow-x:hidden;
+    border-top-right-radius:16px;
+    border-bottom-right-radius:16px;
+    box-shadow:8px 0 24px rgba(2,6,23,0.45);
+}
+
+.sidebar .toggle-btn{
+    border:none;
+    border-radius:10px;
+    width:40px;
+    height:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#dbeafe;
+    background:rgba(30,64,175,0.18);
+    margin-bottom:12px;
+    transition:all 0.2s ease;
+    box-shadow:inset 0 0 0 1px rgba(96,165,250,0.22);
+}
+
+.sidebar .toggle-btn:hover{
+    background:rgba(37,99,235,0.28);
+    transform:translateY(-1px);
+}
+
+.profile-icon{
+    position:fixed;
+    top:14px;
+    right:18px;
+    z-index:1200;
+    width:60px;
+    height:60px;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    background:rgba(29,78,216,0.2);
+    border:1px solid rgba(96,165,250,0.35);
+    color:#dbeafe;
+    margin-bottom:0;
+}
+
+.profile-icon img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    border-radius:50%;
+}
+
+.profile-icon:hover{
+    background:rgba(30,64,175,0.35);
+}
+
+.logo-header{
+    margin:12px 0 16px;
+    border:none;
+    border-radius:12px;
+    padding:12px 10px;
+    background:transparent;
+}
+
+.logo-header img{
+    width:120px;
+}
+
+.logo-header h2{
+    margin:0;
+    color:#eff6ff;
+    font-size:15px;
+    font-weight:650;
+    line-height:1.35;
+}
+
+.logo-header p{
+    margin:6px 0 0;
+    font-size:11px;
+    letter-spacing:0.8px;
+    text-transform:uppercase;
+    color:#93c5fd;
+}
+
+.nav-menu{
+    margin-top:8px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+}
+
+.sidebar .nav-item{
+    margin-bottom:0;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.2px;
+    color:#cbd5e1;
+    border:1px solid transparent;
+    transition:all 0.2s ease;
+    transform:translateX(0);
+    padding:12px 12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.sidebar .nav-item:hover{
+    background:rgba(30,64,175,0.24);
+    color:#f8fafc;
+    border-color:rgba(96,165,250,0.25);
+    transform:translateX(2px);
+}
+
+.sidebar .nav-item.active{
+    background:var(--brand-soft);
+    border-color:#93c5fd;
+    color:#e2e8f0;
+    box-shadow:0 6px 16px rgba(30,64,175,0.25);
+}
+
+.snake-icon{
+    text-align:left;
+}
+
+.nav-icon{
+    width:18px;
+    text-align:center;
+    opacity:0.9;
+}
+
+.nav-label{
+    white-space:nowrap;
+}
+
+.sidebar-footer{
+    margin-top:auto;
+    padding-top:8px;
+    border-top:none;
+    display:flex;
+    justify-content:stretch;
+    align-items:stretch;
+    min-height:56px;
+    width:100%;
+}
+
+.lang-switch{
+    position:static;
+    left:auto;
+    right:auto;
+    bottom:auto;
+    width:100%;
+    height:100%;
+    min-height:56px;
+    border-radius:10px;
+    overflow:hidden;
+    cursor:pointer;
+}
+
+.lang-switch button{
+    width:100%;
+    height:100%;
+    padding:0;
+    margin:0;
+    font-size:0;
+    line-height:0;
+    color:transparent;
+    background:transparent;
+    border:none;
+    opacity:0;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.lang-switch:hover{
+    background:transparent !important;
+}
+
+.sidebar.collapsed{
+    width:68px;
+    padding:12px 8px;
+}
+
+.sidebar.collapsed + .main{
+    margin-left:68px;
+    width:calc(100% - 68px);
+}
+
+.sidebar.collapsed .profile-icon{
+    display:block !important;
+}
+
+.sidebar.collapsed .toggle-btn{
+    background:rgba(59,130,246,0.32);
+    box-shadow:inset 0 0 0 1px rgba(125,211,252,0.45);
+}
+
+.sidebar.collapsed .nav-menu,
+.sidebar.collapsed .sidebar-footer,
+.sidebar.collapsed .logo-header{
+    display:none;
+}
+
+.main{
+    margin-left:248px;
+    width:calc(100% - 248px);
+}
+
+.ov-card,
+.graph-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:0 12px 24px rgba(0,0,0,0.35);
+}
+
+.ov-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 16px 30px rgba(0,0,0,0.45);
+}
+
+.pkg{
+    border:1px solid #223148;
+    background:var(--surface-alt);
+}
+
+.pkg:hover{
+    background:#13213a;
+}
+
+.metric{
+    background:#0f172a;
+    border:1px solid #223148;
+    color:var(--text);
+}
+
+.summary-metrics .metric.total{
+    background:rgba(37,99,235,0.16);
+    border-color:rgba(96,165,250,0.42);
+    color:#bfdbfe;
+}
+
+.summary-metrics .metric.total strong{
+    color:#dbeafe;
+}
+
+.summary-metrics .metric.pass{
+    background:rgba(34,197,94,0.14);
+    border-color:rgba(74,222,128,0.45);
+    color:#86efac;
+}
+
+.summary-metrics .metric.pass strong{
+    color:#bbf7d0;
+}
+
+.summary-metrics .metric.fail{
+    background:rgba(239,68,68,0.14);
+    border-color:rgba(248,113,113,0.45);
+    color:#fca5a5;
+}
+
+.summary-metrics .metric.fail strong{
+    color:#fecaca;
+}
+
+.graph-btn{
+    border:1px solid #334155;
+    background:#0f172a;
+    color:#e2e8f0;
+}
+
+.graph-btn.active{
+    background:#1e3a8a;
+    border-color:#60a5fa;
+    color:#dbeafe;
+}
+
+.graph-table th{
+    color:#e2e8f0;
+    background:#0f172a;
+}
+
+.graph-table td{
+    color:#cbd5e1;
+}
+
+.profile-grid{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:20px;
+}
+
+.profile-main{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.profile-identity{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:14px;
+}
+
+.profile-tag{
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(96,165,250,0.45);
+    color:#bfdbfe;
+    font-size:12px;
+    font-weight:600;
+    background:rgba(37,99,235,0.16);
+    white-space:nowrap;
+}
+
+.profile-stats{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(120px, 1fr));
+    gap:10px;
+}
+
+.profile-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.profile-btn{
+    border:1px solid rgba(96,165,250,0.35);
+    background:#13213a;
+    color:#dbeafe;
+    border-radius:5px;
+    padding:8px 12px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.profile-btn:hover{
+    background:#1b2f53;
+}
+
+.profile-side{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+}
+
+.profile-icon svg {
+    transition: 0.3s;
+}
+
+.section-header{
+    padding:12px;
+    cursor:pointer;
+    font-weight:600;
+
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    background: rgba(15, 23, 42, 0.98); /* solid enough so content doesn't show through */
+
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.profile-icon:hover svg {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 6px #00E5FF);
+}
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="toggle-btn" onclick="toggleSidebar()">☰</div>
+    <div class="profile-icon nav-item" onclick="showSection('profile', this)">
+
+    <!-- DEFAULT SVG -->
+    <svg id="defaultIcon" width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="8" r="3.5" stroke="#FF1493" stroke-width="3.0"/>
+        <path d="M4 20c1.5-4 6-6 8-6s6.5 2 8 6" stroke="#00E5FF" stroke-width="3.0" stroke-linecap="round"/>
+    </svg>
+
+    <!-- CUSTOM AVATAR -->
+    <img id="profileAvatar" style="display:none;" />
+
+</div>
+    <div class="logo-header" onclick="showSection('overview', this)">
+        <img src="cozevatica.png" alt="logo">
+        <h2>CombinedCo.</h2>
+        <h2>Chalishazarisa</h2>
+    </div>
+    <div class="nav-menu">
+        <div class="nav-item active" data-nav="overview" onclick="showSection('overview', this)"><span class="nav-icon">▦</span><span class="nav-label">Overview</span></div>
+        <div class="nav-item" data-nav="graphs" onclick="showSection('graphs', this)"><span class="nav-icon">◍</span><span class="nav-label">Graphs</span></div>
+        <div class="nav-item" data-nav="details" onclick="showSection('details', this)"><span class="nav-icon">▤</span><span class="nav-label">Sections</span></div>
+        <div class="nav-item" data-nav="testcases" onclick="showSection('testcases', this)"><span class="nav-icon">☰</span><span class="nav-label">Test Cases</span></div>
+        <div id="snakeBtn" class="snake-icon nav-item" data-nav="snake" onclick="showSection('snake', this)"><span class="nav-icon">🎮</span><span class="nav-label">Snake</span></div>
+    </div>
+    <div class="sidebar-footer">
+        <div class="lang-switch" onclick="setLanguage('bn')">
+            <button type="button">বাংলা</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<div id="overviewSection">
+
+<h2>Overview</h2>
+
+<div class="overview-grid">
+
+    <!-- 🔥 CARD 1 (MERGED) -->
+    <div class="ov-card card-1">
+
+        <div class="card1-grid">
+
+            <!-- LEFT -->
+            <div>
+                <h2>Validation Report</h2>
+                <div class="meta-block">
+                    <div><b>Customer:</b> Imperial Health</div>
+                    <div><b>Selected Package:</b> Sticket Validation</div>
+                </div>
+            </div>
+
+            <!-- RIGHT (SUMMARY) -->
+            <div class="summary-box">
+
+                <div class="summary-metrics">
+                    <div class="metric total">
+                        Total <strong>240</strong>
+                    </div>
+                    <div class="metric pass">
+                        Passed <strong id="passedCount">218</strong>
+                    </div>
+                    <div class="metric fail">
+                        Failed <strong>22</strong>
+                    </div>
+                </div>
+
+                <div class="donut-box">
+                    <canvas id="overviewPie"></canvas>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ✅ FAILURES CARD (REPLACES PACKAGES) -->
+<div class="ov-card">
+    <h3 style="cursor:pointer;" onclick="showFailures('all', event)">Failures</h3>
+
+    <!-- LOGIN -->
+<div class="pkg" style="flex-direction:column; align-items:stretch; cursor:default;">
+    <div class="failure-row" onclick="showFailures('Login', event)" style="cursor:pointer;">
+        <span>Login</span>
+
+        <div class="bar" style="display:flex;">
+            <div style="width:80%; background:#22c55e;"></div>
+            <div style="width:20%; background:#ef4444;"></div>
+        </div>
+
+        <span>
+            <span class="pass">20</span> /
+            <span class="fail">5</span>
+        </span>
+    </div>
+</div>
+
+<!-- SEARCH -->
+<div class="pkg" style="flex-direction:column; align-items:stretch; cursor:default;">
+    <div class="failure-row" onclick="showFailures('Search', event)" style="cursor:pointer;">
+        <span>Search</span>
+
+        <div class="bar" style="display:flex;">
+            <div style="width:90%; background:#22c55e;"></div>
+            <div style="width:10%; background:#ef4444;"></div>
+        </div>
+
+        <span>
+            <span class="pass">30</span> /
+            <span class="fail">3</span>
+        </span>
+    </div>
+</div>
+
+<!-- EXPORT -->
+<div class="pkg" style="flex-direction:column; align-items:stretch; cursor:default;">
+    <div class="failure-row" onclick="showFailures('Export', event)" style="cursor:pointer;">
+        <span>Export</span>
+
+        <div class="bar" style="display:flex;">
+            <div style="width:87%; background:#22c55e;"></div>
+            <div style="width:13%; background:#ef4444;"></div>
+        </div>
+
+        <span>
+            <span class="pass">40</span> /
+            <span class="fail">6</span>
+        </span>
+    </div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="pkg" style="flex-direction:column; align-items:stretch; cursor:default;">
+    <div class="failure-row" onclick="showFailures('Analytics', event)" style="cursor:pointer;">
+        <span>Analytics</span>
+
+        <div class="bar" style="display:flex;">
+            <div style="width:82%; background:#22c55e;"></div>
+            <div style="width:18%; background:#ef4444;"></div>
+        </div>
+
+        <span>
+            <span class="pass">33</span> /
+            <span class="fail">8</span>
+        </span>
+    </div>
+</div>
+
+</div>
+
+    <!-- ✅ DATE & TIME CARD (SAFE REPLACEMENT) -->
+<div class="ov-card">
+    <h3>Date & Time</h3>
+
+    <div class="meta-block">
+        <div style="margin-top:10px;">
+    <div class="pkg">
+        <span>Start Time</span>
+        <span>2026-04-02 15:03:45</span>
+    </div>
+
+    <div class="pkg">
+        <span>End Time</span>
+        <span>2026-04-02 15:06:25</span>
+    </div>
+
+    <div class="pkg">
+        <span>Generated</span>
+        <span>2026-04-02 15:06:25</span>
+    </div>
+
+    <div class="pkg">
+        <span>Time Taken</span>
+        <span>00:02:40</span>
+    </div>
+</div>
+    </div>
+</div>
+
+</div>
+
+    <!-- ✅ FAILURES CARD (BOTTOM SAFE) -->
+
+
+</div>
+
+<div id="failureDetails"
+     style="display:none; margin-top:20px; cursor:pointer;"
+     onclick="goToFailedSection(event)">
+
+    <div class="ov-card">
+        <h3>Failed Test Cases</h3>
+
+        <table style="width:100%; border-collapse:collapse; margin-top:15px;">
+
+            <!-- HEADER -->
+            <thead>
+                <tr style="text-align:left; border-bottom:1px solid rgba(255,255,255,0.1);">
+                    <th style="padding:10px;">Section</th>
+                    <th style="padding:10px;">Failed Test Cases</th>
+                </tr>
+            </thead>
+
+            <!-- BODY -->
+            <tbody>
+
+                <tr data-section="Login" style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:10px;">Login</td>
+                    <td style="padding:10px;">
+                        <span class="fail" onclick="event.stopPropagation()">TC_Login_02, TC_Login_07</span>
+                    </td>
+                </tr>
+
+                <tr data-section="Search" style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:10px;">Search</td>
+                    <td style="padding:10px;">
+                        <span class="fail" onclick="event.stopPropagation()">TC_Search_04, TC_Search_09</span>
+                    </td>
+                </tr>
+
+                <tr data-section="Export" style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:10px;">Export</td>
+                    <td style="padding:10px;">
+                        <span class="fail" onclick="event.stopPropagation()">TC_Export_03, TC_Export_08</span>
+                    </td>
+                </tr>
+
+                <tr data-section="Analytics" style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:10px;">Analytics</td>
+                    <td style="padding:10px;">
+                        <span class="fail" onclick="event.stopPropagation()">TC_Analytics_02, TC_Analytics_06</span>
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<div id="graphsSection" style="display:none;">
+
+    <h2>Graphs</h2>
+    <div class="graph-card" id="summaryGraphCard">
+    <div class="graph-head">
+        <h3>Test Case Summary</h3>
+        <div class="graph-controls">
+            <button class="graph-btn active" data-view-btn="graph" onclick="setGraphView('summaryGraphCard', 'graph')">Graph</button>
+            <button class="graph-btn" data-view-btn="table" onclick="setGraphView('summaryGraphCard', 'table')">Table</button>
+            <button class="graph-btn" onclick="exportChartPng('summaryChart', 'test-case-summary.png')">Export PNG</button>
+        </div>
+    </div>
+    <div class="graph-view">
+        <div class="chart-container">
+            <canvas id="summaryChart"></canvas>
+        </div>
+    </div>
+    <div class="table-view">
+        <table class="graph-table" id="summaryChartTable"></table>
+    </div>
+</div>
+
+    <div class="graph-card" id="sectionGraphCard">
+    <div class="graph-head">
+        <h3>Section-wise Results</h3>
+        <div class="graph-controls">
+            <button class="graph-btn active" data-view-btn="graph" onclick="setGraphView('sectionGraphCard', 'graph')">Graph</button>
+            <button class="graph-btn" data-view-btn="table" onclick="setGraphView('sectionGraphCard', 'table')">Table</button>
+            <button class="graph-btn" onclick="exportChartPng('sectionChart', 'section-wise-results.png')">Export PNG</button>
+        </div>
+    </div>
+    <div class="graph-view">
+        <div class="chart-container">
+            <canvas id="sectionChart"></canvas>
+        </div>
+    </div>
+    <div class="table-view">
+        <table class="graph-table" id="sectionChartTable"></table>
+    </div>
+</div>
+
+    <div class="graph-card" id="timeGraphCard">
+    <div class="graph-head">
+        <h3>Execution Time</h3>
+        <div class="graph-controls">
+            <button class="graph-btn active" data-view-btn="graph" onclick="setGraphView('timeGraphCard', 'graph')">Graph</button>
+            <button class="graph-btn" data-view-btn="table" onclick="setGraphView('timeGraphCard', 'table')">Table</button>
+            <button class="graph-btn" onclick="exportChartPng('timeChart', 'execution-time.png')">Export PNG</button>
+        </div>
+    </div>
+    <div class="graph-view">
+        <div class="time-chart">
+            <canvas id="timeChart"></canvas>
+        </div>
+    </div>
+    <div class="table-view">
+        <table class="graph-table" id="timeChartTable"></table>
+    </div>
+</div>
+
+    <div class="graph-card" id="trendGraphCard">
+        <div class="graph-head">
+            <h3>Trend</h3>
+            <div class="graph-controls">
+                <button class="graph-btn active" data-view-btn="graph" onclick="setGraphView('trendGraphCard', 'graph')">Graph</button>
+                <button class="graph-btn" data-view-btn="table" onclick="setGraphView('trendGraphCard', 'table')">Table</button>
+                <button class="graph-btn" id="trendExportBtn" disabled onclick="exportChartPng('trendChart', 'trend.png')">Export PNG</button>
+            </div>
+        </div>
+        <div class="graph-view">
+        <div class="trend-box">
+            <canvas id="trendChart"></canvas>
+            <div class="empty-state">📉 No data</div>
+        </div>
+        </div>
+        <div class="table-view">
+            <table class="graph-table" id="trendChartTable">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>No trend data available</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+<!-- ✅ ADD HERE -->
+<div id="snakeSection" style="display:none;">
+
+    <h2>🐍 Snake Game</h2>
+
+    <div id="gameHUD" style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:10px;
+        padding:0 40px;
+    ">
+        <div>Score: <span id="score">0</span></div>
+        <div>Time: <span id="time">0</span>s</div>
+        <button onclick="restartGame()">Restart</button>
+    </div>
+
+    <div style="
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:70vh;
+    ">
+        <canvas id="snakeGameFull" width="1260" height="720"
+            style="
+                background:black;
+                border-radius:12px;
+                box-shadow:0 0 20px rgba(0,0,0,0.6);
+            ">
+        </canvas>
+    </div>
+
+</div>
+
+<div id ="testcasesSection" style="display:none">
+    <h2>Run Details (Total)</h2>
+    <div class = "overview-grid">
+
+        <!-- ================= CASE DETAILS ================= -->
+        <div class="ov-card card-1">
+            <h3>Test Case Details</h3>
+
+            <div class="details-layout">
+
+                <!-- LEFT: ALL CASES -->
+                <div class="test-list">
+
+                    <div class="pkg" onclick="showCaseSteps('tc1', this)">
+                        TC1 <span class="pass">Passed</span>
+                    </div>
+
+                    <div class="pkg" onclick="showCaseSteps('tc2', this)">
+                        TC2 <span class="fail">Failed</span>
+                    </div>
+
+                    <div class="pkg" onclick="showCaseSteps('tc3', this)">
+                        TC3 <span class="pass">Passed</span>
+                    </div>
+
+                    <div class="pkg" onclick="showCaseSteps('tc4', this)">
+                        TC4 <span class="fail">Failed</span>
+                    </div>
+
+                    <div class="pkg" onclick="showCaseSteps('tc5', this)">
+                        TC5 <span class="pass">Passed</span>
+                    </div>
+
+                    <div class="pkg" onclick="showCaseSteps('tc6', this)">
+                        TC6 <span class="pass">Passed</span>
+                    </div>
+
+                    <div class="pkg" onclick="showCaseSteps('tc7', this)">
+                        TC7 <span class="fail">Failed</span>
+                    </div>
+
+                    <div class="pkg" onclick="showCaseSteps('tc8', this)">
+                        TC8 <span class="pass">Passed</span>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT: STEPS PANEL -->
+                <div class="details-panel" id="caseStepsPanel">
+                    <div class="empty-state">Click a test case to view steps</div>
+                </div>
+
+            </div>
+
+            </div>
+</div>
+
+</div>
+
+<div id="profileSection" style="display:none;">
+
+    <h2>Profile</h2>
+
+    <div class="profile-grid">
+        <div class="ov-card profile-main">
+            <div class="profile-identity">
+                <div>
+                    <h3 style="margin:0;">Suman Basu</h3>
+                    <p class="muted" style="margin:6px 0 0;">QA Engineer • Cozeva</p>
+                </div>
+                <span class="profile-tag">Active Session</span>
+            </div>
+
+            <div class="meta-block" style="margin-top:0;">
+                <div>👤 <b>Username:</b> nsikder.cs</div>
+                <div>🧩 <b>Team:</b> QA Automation</div>
+                <div>📦 <b>Primary Suite:</b> Cozeva Validation Package</div>
+                <div>🌐 <b>Environment:</b> UAT</div>
+            </div>
+
+            <div class="profile-stats">
+                <div class="metric">
+                    Runs
+                    <strong id="profileRuns">--</strong>
+                </div>
+                <div class="metric pass">
+                    Success Rate
+                    <strong id="successRate">--%</strong>
+                </div>
+                <div class="metric fail">
+                    Failures
+                    <strong id="failureCount">--</strong>
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                <button class="profile-btn" onclick="showStats()">📊 View Detailed Stats</button>
+                <button class="profile-btn" onclick="showSection('details', document.querySelector('[data-nav=&quot;details&quot;]'))">🗂 Open Sections</button>
+            </div>
+        </div>
+
+        <div class="profile-side">
+            <div class="ov-card">
+                <h3>🏆 Achievements</h3>
+                <div id="achievementBox" class="muted">
+                    No data yet
+                </div>
+            </div>
+
+            <div class="ov-card">
+                <h3>⏱ Activity</h3>
+                <div id="activityBox" class="muted">
+                    No recent activity
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="detailsSection" style="display:none;">
+
+    <h2>Sections</h2>
+
+    <div class="overview-grid">
+        <div class="ov-card card-1" id="cozevaValidationSection">
+            <h3>Cozeva Validation Package</h3>
+
+            <div class="details-layout">
+
+    <!-- LEFT -->
+    <div class="test-list">
+
+        {% for env, suites in data.items() %}
+            {% for suite_name, tests in suites.items() %}
+
+                <div class="section">
+
+                    <!-- SUITE NAME -->
+                    <div class="section-header" onclick="toggleSection(this)">
+                        ▶ {{ suite_name }}
+                         {% set ns = namespace(fail_count=0) %}
+    {% for t in tests %}
+        {% if t.status and 'FAIL' in t.status|upper %}
+            {% set ns.fail_count = ns.fail_count + 1 %}
+        {% endif %}
+    {% endfor %}
+
+    {% if ns.fail_count > 0 %}
+        <span class="fail-count-badge">{{ ns.fail_count }}</span>
+    {% endif %}
+                    </div>
+
+                    <div class="section-body">
+
+                        {% for test in tests %}
+
+                            <div class="pkg"
+                                 onclick="showDetails('{{ suite_name }}-{{ loop.index0 }}', this)">
+
+                                {{ test.test_case_id }} - {{ test.test_case_name }}
+
+                                <span class="{% if test.status and 'PASS' in test.status|upper %}pass{% else %}fail{% endif %}">
+                                    {{ test.status }}
+                                </span>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+        {% endfor %}
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="details-panel" id="detailsPanel">
+
+        <div class="empty-state">Click a test case to view details</div>
+
+        {% for env, suites in data.items() %}
+            {% for suite_name, tests in suites.items() %}
+                {% for test in tests %}
+
+                    <div id="detail-{{ suite_name }}-{{ loop.index0 }}"
+                         class="case-detail"
+                         style="display:none">
+
+                        <h3>
+                            {{ test.test_case_id }} - {{ test.test_case_name }}
+                            <span class="{% if 'PASS' in test.status|upper %}pass{% else %}fail{% endif %}">
+                                ({{ test.status }})
+                            </span>
+                        </h3>
+
+                        <!-- COMMENT -->
+                        <div><b>Comment:</b> {{ test.comment }}</div>
+
+                        <!-- URL -->
+                        <div>
+                            <b>URL:</b>
+                            {% if test.url %}
+                                <a href="{{ test.url }}" target="_blank">{{ test.url }}</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </div>
+
+                        <!-- LOGS -->
+                        <h4 style="margin-top:15px;">Logs</h4>
+
+                        {% for log in test.logs %}
+                            <div class="log">
+                                <div class="log-time">{{ log.timestamp }}</div>
+
+                                <div class="{% if 'PASS' in log.status|upper %}log-pass{% else %}log-fail{% endif %}">
+                                    {{ log.status }}
+                                </div>
+
+                                <div>{{ log.message }}</div>
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+                {% endfor %}
+            {% endfor %}
+        {% endfor %}
+
+    </div>
+
+</div>
+
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+let isFailureDetailsOpen = false;
+let activeFailureFilter = null;
+
+function refreshFailureDetailsVisibility(activeSection){
+    const failureDetails = document.getElementById("failureDetails");
+    const visibleSections = ['overview', 'details', 'testcases'];
+    const canShow = visibleSections.includes(activeSection);
+
+    failureDetails.style.display = (canShow && isFailureDetailsOpen) ? "block" : "none";
+}
+
+/* NAVIGATION */
+function showSection(section, element){
+
+    document.getElementById("overviewSection").style.display =
+        section === 'overview' ? 'block' : 'none';
+
+    document.getElementById("graphsSection").style.display =
+        section === 'graphs' ? 'block' : 'none';
+
+    document.getElementById("detailsSection").style.display =
+        section === 'details' ? 'block' : 'none';
+
+    document.getElementById("testcasesSection").style.display =
+        section === 'testcases' ? 'block' : 'none';
+
+    document.getElementById("profileSection").style.display =
+    section === 'profile' ? 'block' : 'none';
+
+    document.getElementById("snakeSection").style.display =
+        section === 'snake' ? 'block' : 'none';
+
+       if(section === 'snake'){
+    setTimeout(startSnakeGame, 100);
+    }
+if(section === 'profile'){
+    loadProfileData();
+}
+    refreshFailureDetailsVisibility(section);
+
+    // Remove active
+    document.querySelectorAll('.sidebar .nav-item').forEach(el => {
+        el.classList.remove('active');
+    });
+
+    if (!element.classList.contains('logo-header')) {
+        element.classList.add('active');
+    } else {
+        const defaultNav = document.querySelector('.sidebar .nav-menu .nav-item');
+        if(defaultNav){
+            defaultNav.classList.add('active');
+        }
+    }
+}
+
+function loadProfileData(){
+
+    const runs = Math.floor(Math.random() * 7000);
+    const failures = Math.floor(Math.random() * 100);
+    const success = Math.max(0, Math.min(100, 100 - Math.floor(failures / 2)));
+
+    document.getElementById("profileRuns").innerText = runs;
+    document.getElementById("failureCount").innerText = failures;
+    document.getElementById("successRate").innerText = success + "%";
+
+    // Achievement logic
+    let achievement = "";
+
+    if(runs > 5000){
+        achievement = "🏆 Automation Overlord";
+    }
+    else if(runs > 1000){
+        achievement = "🔥 RTVS Power User";
+    }
+    else if(runs > 200){
+        achievement = "⚡ Rising Tester";
+    }
+    else{
+        achievement = "🌱 Beginner";
+    }
+
+    document.getElementById("achievementBox").innerText = achievement;
+
+    // Activity
+    document.getElementById("activityBox").innerText =
+        `Last run executed ${Math.floor(Math.random()*10)+1} hours ago`;
+}
+
+
+/* PIE */
+new Chart(document.getElementById("overviewPie"), {
+    type: 'doughnut',
+    data: {
+        labels: ['Passed', 'Failed'],
+        datasets: [{
+            data: [218, 22],
+            backgroundColor: ['#22c55e', '#ef4444'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        cutout: '70%',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+let summaryChartInstance;
+let timeChartInstance;
+let sectionChartInstance;
+let trendChartInstance;
+
+function setGraphView(cardId, viewType){
+    const card = document.getElementById(cardId);
+    if(!card) return;
+
+    const graphView = card.querySelector(".graph-view");
+    const tableView = card.querySelector(".table-view");
+
+    if(graphView && tableView){
+        graphView.style.display = viewType === "graph" ? "block" : "none";
+        tableView.style.display = viewType === "table" ? "block" : "none";
+    }
+
+    card.querySelectorAll("[data-view-btn]").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.viewBtn === viewType);
+    });
+}
+
+function exportChartPng(canvasId, fileName){
+    const canvas = document.getElementById(canvasId);
+    if(!canvas) return;
+
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = fileName || `${canvasId}.png`;
+    link.click();
+}
+
+function renderChartTable(tableId, chartInstance){
+    const table = document.getElementById(tableId);
+    if(!table || !chartInstance) return;
+
+    const labels = chartInstance.data.labels || [];
+    const datasets = chartInstance.data.datasets || [];
+
+    if(datasets.length === 0){
+        table.innerHTML = `
+            <thead><tr><th>Status</th></tr></thead>
+            <tbody><tr><td>No chart data available</td></tr></tbody>
+        `;
+        return;
+    }
+
+    const hasPointObjects = Array.isArray(datasets[0].data) &&
+        datasets[0].data.length > 0 &&
+        typeof datasets[0].data[0] === "object";
+
+    if(hasPointObjects){
+        let bodyRows = "";
+        datasets[0].data.forEach((point, index) => {
+            bodyRows += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${point.x}</td>
+                    <td>${point.y}</td>
+                </tr>
+            `;
+        });
+
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>X</th>
+                    <th>Y</th>
+                </tr>
+            </thead>
+            <tbody>${bodyRows}</tbody>
+        `;
+        return;
+    }
+
+    const headerCells = ['<th>Label</th>']
+        .concat(datasets.map(ds => `<th>${ds.label || 'Value'}</th>`))
+        .join("");
+
+    const maxRows = Math.max(
+        labels.length,
+        ...datasets.map(ds => (Array.isArray(ds.data) ? ds.data.length : 0))
+    );
+
+    let rows = "";
+    for(let i = 0; i < maxRows; i++){
+        const label = labels[i] ?? `Row ${i + 1}`;
+        const values = datasets.map(ds => {
+            const value = Array.isArray(ds.data) ? ds.data[i] : "";
+            return `<td>${value ?? ""}</td>`;
+        }).join("");
+
+        rows += `<tr><td>${label}</td>${values}</tr>`;
+    }
+
+    table.innerHTML = `
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${rows}</tbody>
+    `;
+}
+
+
+/* SUMMARY BAR */
+summaryChartInstance = new Chart(document.getElementById("summaryChart"), {
+    type: 'bar',
+    data: {
+        labels: ['Passed', 'Failed'],
+        datasets: [{
+            data: [218, 22],
+            backgroundColor: ['#22c55e', '#ef4444'],
+            borderRadius: 6,
+            barThickness: 30
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: { color: '#9ca3af' },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+                ticks: { color: '#f9fafb' },
+                grid: { display: false }
+            }
+        }
+    }
+});
+
+timeChartInstance = new Chart(document.getElementById("timeChart"), {
+    type: 'line',
+    data: {
+        datasets: [{
+            data: [
+                { x: 0, y: 5 },
+                { x: 20, y: 8 },
+                { x: 40, y: 6 },
+                { x: 60, y: 10 },
+                { x: 80, y: 7 },
+                { x: 100, y: 9 },
+                { x: 120, y: 11 },
+                { x: 140, y: 8 },
+                { x: 160, y: 12 },
+                { x: 180, y: 10 },
+                { x: 200, y: 13 }
+            ],
+            borderColor: '#38bdf8',
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 0,
+            fill: false
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: {
+                type: 'linear',   // 🔥 THIS is key
+                position: 'bottom',
+                ticks: {
+                    color: '#9ca3af',
+                    callback: function(value) {
+                        return value + ' ms';  // 🔥 show ms
+                    }
+                },
+                grid: {
+                    color: 'rgba(255,255,255,0.05)'
+                }
+            },
+            y: {
+                display: false
+            }
+        }
+    }
+});
+
+sectionChartInstance = new Chart(document.getElementById("sectionChart"), {
+    type: 'bar',
+    data: {
+        labels: ['Login', 'Search', 'Export', 'Analytics', 'Sidebar', 'Billing', 'Notifications', 'Settings'],
+        datasets: [
+            {
+                label: 'Passed',
+                data: [58, 64, 40, 33, 12, 21, 16, 14],
+                backgroundColor: '#22c55e'
+            },
+            {
+                label: 'Failed',
+                data: [7, 5, 6, 8, 4, 3, 5, 2],
+                backgroundColor: '#ef4444'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+        legend: {
+            display: false
+            }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    color: '#9ca3af'
+                },
+                grid: {
+                    display: false
+                }
+            },
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: '#9ca3af'
+                },
+                grid: {
+                    color: 'rgba(255,255,255,0.05)'
+                }
+            }
+        }
+    }
+});
+
+trendChartInstance = new Chart(document.getElementById("trendChart"), {
+    type: 'line',
+    data: {
+        labels: ['2026-04-01', '2026-04-02', '2026-04-03', '2026-04-04', '2026-04-05', '2026-04-06', '2026-04-07', '2026-04-08', '2026-04-09', '2026-04-10', '2026-04-11', '2026-04-12', '2026-04-13', '2026-04-14'],
+        datasets: [{
+            label: 'Execution Time (s)',
+            data: [160, 148, 172, 141, 155, 138, 149, 145, 152, 147, 140, 136, 144, 139],
+            borderColor: '#38bdf8',
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 0,
+            fill: false
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    color: '#9ca3af'
+                },
+                grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+                display: false
+            }
+        }
+    }
+});
+
+renderChartTable("summaryChartTable", summaryChartInstance);
+renderChartTable("timeChartTable", timeChartInstance);
+renderChartTable("sectionChartTable", sectionChartInstance);
+renderChartTable("trendChartTable", trendChartInstance);
+
+const trendEmptyState = document.querySelector("#trendGraphCard .empty-state");
+if(trendEmptyState){
+    trendEmptyState.style.display = "none";
+}
+
+const trendExportBtn = document.getElementById("trendExportBtn");
+if(trendExportBtn){
+    trendExportBtn.disabled = false;
+}
+
+function setLanguage(lang){
+    translatePage(lang);
+}
+
+async function translateTextApi(text, targetLanguage){
+    const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLanguage}&dt=t&q=${encodeURIComponent(text)}`);
+    const data = await response.json();
+    return data?.[0]?.map(chunk => chunk[0]).join("") || text;
+}
+
+async function translatePage(lang = "bn"){
+    const elements = document.querySelectorAll("body *:not(script):not(style)");
+    const translationCache = {};
+    const targetLanguage = lang === "en" ? "en" : "bn";
+    const jobs = [];
+
+    elements.forEach(el => {
+        if(el.children.length !== 0){
+            return;
+        }
+
+        const text = el.innerText.trim();
+        if(text.length === 0){
+            return;
+        }
+
+        if(!el.dataset.originalText){
+            el.dataset.originalText = text;
+        }
+
+        const originalText = el.dataset.originalText;
+        if(translationCache[originalText]){
+            jobs.push(Promise.resolve().then(() => {
+                el.innerText = translationCache[originalText];
+            }));
+            return;
+        }
+
+        jobs.push(
+            translateTextApi(originalText, targetLanguage)
+                .then(translated => {
+                    translationCache[originalText] = translated;
+                    el.innerText = translated;
+                })
+                .catch(() => {
+                    el.innerText = originalText;
+                })
+        );
+    });
+
+    await Promise.all(jobs);
+}
+
+function toggleSidebar(){
+    document.querySelector('.sidebar').classList.toggle('collapsed');
+
+    setTimeout(() => {
+        Chart.helpers.each(Chart.instances, function(instance){
+            instance.resize();
+        });
+    }, 300);
+}
+function toggleSection(header){
+
+    const section = header.parentElement;
+
+    document.querySelectorAll('.section').forEach(sec => {
+        if(sec !== section){
+            sec.classList.remove('open');
+        }
+    });
+
+    const layout = header.closest(".details-layout");
+
+    const isOpening = !section.classList.contains("open");
+
+    section.classList.toggle('open');
+
+    if(!isOpening){
+        layout.classList.remove("active");
+    }
+
+    const panel = layout.querySelector(".details-panel");
+
+    if(panel){
+        panel.querySelectorAll(".case-detail").forEach(e => {
+            e.style.display = "none";
+        });
+    }
+}
+
+function showCaseSteps(tcId, el){
+
+    const layout = el.closest(".details-layout");
+    const panel = layout.querySelector(".details-panel");
+
+    // Check if this item is already active
+    const isCurrentlyActive = el.classList.contains('active');
+
+    // If clicking the same item, close it
+    if(isCurrentlyActive){
+        layout.classList.remove("active");
+        document.querySelectorAll('.pkg').forEach(p => p.classList.remove('active'));
+        panel.innerHTML = '<div class="empty-state">Click a test case to view steps</div>';
+        return;
+    }
+
+    // Otherwise, open the steps
+    const steps = testCaseSteps[tcId];
+
+    let html = `
+        <div style="
+            margin-bottom:15px;
+            padding-bottom:10px;
+            border-bottom:1px solid rgba(255,255,255,0.1);
+        ">
+            <h3 style="margin:0;">${tcId.toUpperCase()} - Test Steps</h3>
+        </div>
+    `;
+
+    steps.forEach((step, index) => {
+        html += `
+            <div class="log">
+                <div class="log-time">Step ${index + 1}</div>
+                <div>${step}</div>
+            </div>
+        `;
+    });
+
+    panel.innerHTML = html;
+    layout.classList.add("active");
+    document.querySelectorAll('.pkg').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+}
+
+function showDetails(id, el){
+
+    const layout = el.closest(".details-layout");
+    const panel = layout.querySelector(".details-panel");
+
+    // Activate split layout
+    layout.classList.add("active");
+
+    // Highlight selected test
+    document.querySelectorAll('.pkg').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+
+    // Hide all details
+    panel.querySelectorAll(".case-detail").forEach(e => {
+        e.style.display = "none";
+    });
+
+       // hide empty state
+    const empty = panel.querySelector(".empty-state");
+    if(empty) empty.style.display = "none";
+
+    // Show selected
+    const selected = panel.querySelector("#detail-" + id);
+    if(selected){
+        selected.style.display = "block";
+    }
+}
+const snarkyRemarks = [
+    "Do you even sleep or just run RTVS?",
+    "At this point, RTVS runs *you*.",
+    "Congrats, you've unlocked 'Automation Overlord'.",
+    "HR is concerned. We are too.",
+    "You vs RTVS… who’s testing whom now?"
+];
+
+const encouragingRemarks = [
+    "Nice! You're building momentum 🚀",
+    "Great consistency, keep going 💪",
+    "Solid effort — you're getting sharper 🔥",
+    "You're on track to become a legend 👑"
+];
+
+function showStats(){
+
+    const runs = Math.floor(Math.random() * 7000);
+
+    let message = "";
+
+    if(runs > 5000){
+        message = snarkyRemarks[Math.floor(Math.random() * snarkyRemarks.length)];
+    }
+    else if(runs > 500){
+        message = encouragingRemarks[Math.floor(Math.random() * encouragingRemarks.length)];
+    }
+    else{
+        message = "Keep going, you're just getting started 👍";
+    }
+
+    // SET POPUP CONTENT
+    document.getElementById("popupRuns").innerText = `RTVS Runs: ${runs}`;
+    document.getElementById("popupMessage").innerText = message;
+
+    // SHOW POPUP
+    const popup = document.getElementById("statPopup");
+    popup.classList.add("show");
+
+    launchConfetti();
+
+    // AUTO CLOSE
+    setTimeout(()=>{
+        popup.classList.remove("show");
+    }, 3000);
+}
+
+function launchConfetti(){
+
+    const canvas = document.getElementById("confettiCanvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let pieces = [];
+
+    for(let i=0;i<120;i++){
+        pieces.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            size: Math.random() * 6 + 4,
+            speed: Math.random() * 3 + 2,
+            color: ["#22c55e","#ef4444","#38bdf8","#facc15"][Math.floor(Math.random()*4)],
+            angle: Math.random() * 360
+        });
+    }
+
+    let frame = 0;
+
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+
+        pieces.forEach(p => {
+            p.y += p.speed;
+            p.x += Math.sin(p.angle);
+
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+        });
+
+        frame++;
+
+        if(frame < 120){
+            requestAnimationFrame(draw);
+        } else {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+        }
+    }
+
+    draw();
+}
+
+function goToRegression(){
+
+    const detailsBtn = [...document.querySelectorAll('.sidebar .nav-item')]
+        .find(el => el.dataset.nav === "details");
+
+    // Switch correctly
+    showSection('details', detailsBtn);
+
+    setTimeout(() => {
+
+        const section = document.getElementById("loginSection");
+
+        section.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        section.classList.add("highlight-section");
+
+        setTimeout(() => {
+            section.classList.remove("highlight-section");
+        }, 2000);
+
+    }, 100);
+}
+
+function goToSmoke(){
+
+    // Switch to Details tab
+    const detailsNavItem = [...document.querySelectorAll('.sidebar .nav-item')]
+        .find(el => el.dataset.nav === "details");
+    if(detailsNavItem){
+        showSection('details', detailsNavItem);
+    }
+
+    setTimeout(() => {
+
+        const section = document.getElementById("searchSection");
+
+        // Scroll
+        section.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Highlight
+        section.classList.add("highlight-section");
+
+        setTimeout(() => {
+            section.classList.remove("highlight-section");
+        }, 2000);
+
+    }, 100);
+}
+let gameStarted = false;
+let gameInterval;
+let timeInterval;
+
+let score = 0;
+let seconds = 0;
+
+function startSnakeGame(){
+
+    if(gameStarted) return;
+
+    const canvas = document.getElementById("snakeGameFull");
+    const ctx = canvas.getContext("2d");
+
+    const box = 20;
+
+    let snake = [{x: 600, y: 360}];
+    let direction = "RIGHT";
+
+    let food = randomFood();
+
+    score = 0;
+    seconds = 0;
+    updateHUD();
+
+    // ⏱ TIME
+    timeInterval = setInterval(()=>{
+        seconds++;
+        document.getElementById("time").innerText = seconds;
+    },1000);
+
+    document.addEventListener("keydown", control);
+
+    function control(e){
+        if(document.getElementById("snakeSection").style.display !== "block") return;
+
+        if(e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+        else if(e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+        else if(e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+        else if(e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+    }
+
+    function randomFood(){
+        return {
+            x: Math.floor(Math.random()*(1260/box))*box,
+            y: Math.floor(Math.random()*(720/box))*box
+        };
+    }
+
+    function draw(){
+
+        ctx.fillStyle = "black";
+        ctx.fillRect(0,0,1260,720);
+
+        // snake
+        snake.forEach((s,i)=>{
+            ctx.fillStyle = i === 0 ? "#22c55e" : "#16a34a";
+            ctx.fillRect(s.x, s.y, box, box);
+        });
+
+        // food
+        ctx.fillStyle = "#ef4444";
+        ctx.fillRect(food.x, food.y, box, box);
+
+        let head = {x: snake[0].x, y: snake[0].y};
+
+        if(direction === "UP") head.y -= box;
+        if(direction === "DOWN") head.y += box;
+        if(direction === "LEFT") head.x -= box;
+        if(direction === "RIGHT") head.x += box;
+
+        // eat food
+        if(head.x === food.x && head.y === food.y){
+            score++;
+            updateHUD();
+            food = randomFood();
+        } else {
+            snake.pop();
+        }
+
+        // collision
+        if(
+            head.x < 0 || head.y < 0 ||
+            head.x >= 1260 || head.y >= 720 ||
+            snake.some(s => s.x === head.x && s.y === head.y)
+        ){
+            gameOver();
+            return;
+        }
+
+        snake.unshift(head);
+    }
+
+    // 🐢 SLOWER SPEED (was 100)
+    gameInterval = setInterval(draw, 180);
+
+    gameStarted = true;
+}
+
+function updateHUD(){
+    document.getElementById("score").innerText = score;
+}
+
+function restartGame(){
+    clearInterval(gameInterval);
+    clearInterval(timeInterval);
+    gameStarted = false;
+
+    startSnakeGame();
+}
+
+function gameOver(){
+
+    clearInterval(gameInterval);
+    clearInterval(timeInterval);
+
+    const canvas = document.getElementById("snakeGameFull");
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "rgba(0,0,0,0.8)";
+    ctx.fillRect(0,0,1260,720);
+
+    ctx.fillStyle = "white";
+    ctx.font = "40px Segoe UI";
+    ctx.textAlign = "center";
+
+    ctx.fillText("Game Over 😢", 630, 300);
+    ctx.fillText("Score: " + score, 630, 360);
+
+    ctx.font = "24px Segoe UI";
+    ctx.fillText("You're getting better! Try again 💪", 630, 420);
+
+    ctx.fillText("Press Restart to play again", 630, 470);
+
+    gameStarted = false;
+}
+
+checkSnakeVisibility();
+
+function checkSnakeVisibility(){
+    const snakeBtn = document.getElementById("snakeBtn");
+    snakeBtn.style.display = "block";
+}
+
+function showFailures(sectionName, event){
+
+    if(event){
+        event.stopPropagation();
+    }
+
+    const section = document.getElementById("failureDetails");
+    const rows = section.querySelectorAll("tbody tr");
+    const selectedFilter = sectionName || "all";
+    const isShowAll = selectedFilter === "all";
+
+    // Uniform toggle: clicking the same trigger again closes it.
+    if(isFailureDetailsOpen && activeFailureFilter === selectedFilter){
+        isFailureDetailsOpen = false;
+        activeFailureFilter = null;
+        refreshFailureDetailsVisibility('overview');
+        return;
+    }
+
+    rows.forEach(row => {
+        if(isShowAll || row.dataset.section === selectedFilter){
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+
+    isFailureDetailsOpen = true;
+    activeFailureFilter = selectedFilter;
+
+    refreshFailureDetailsVisibility('overview');
+
+    // Smooth scroll
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // Highlight effect
+    section.classList.add("highlight-section");
+
+    setTimeout(() => {
+        section.classList.remove("highlight-section");
+    }, 2000);
+}
+
+function goToFailedSection(e){
+
+    // optional safety
+    if(e.target.closest('.fail')) return;
+
+    const detailsBtn = [...document.querySelectorAll('.sidebar .nav-item')]
+        .find(el => el.dataset.nav === "details");
+
+    // go to Details page
+    showSection('details', detailsBtn);
+
+    setTimeout(() => {
+
+        const section = document.getElementById("failedSection");
+
+        if(section){
+            section.scrollIntoView({ behavior: "smooth", block: "start" });
+
+            section.classList.add("highlight-section");
+
+            setTimeout(() => {
+                section.classList.remove("highlight-section");
+            }, 2000);
+        }
+
+    }, 100);
+}
+
+window.addEventListener("load", () => {
+    const passed = document.getElementById("passedCount").innerText;
+    const failed = document.querySelector(".metric.fail strong").innerText;
+
+    document.getElementById("passedCountCard").innerText = passed;
+    document.getElementById("failedCountCard").innerText = failed;
+});
+
+function setAvatar(src){
+    const img = document.getElementById("profileAvatar");
+    const svg = document.getElementById("defaultIcon");
+
+    img.src = src;
+    img.style.display = "block";
+    svg.style.display = "none";
+
+    localStorage.setItem("selectedAvatar", src);
+}
+
+// Load on start
+window.addEventListener("load", () => {
+    const saved = localStorage.getItem("selectedAvatar");
+
+    const img = document.getElementById("profileAvatar");
+    const svg = document.getElementById("defaultIcon");
+
+    if(saved){
+        img.src = saved;
+        img.style.display = "block";
+        svg.style.display = "none";
+    } else {
+        img.style.display = "none";
+        svg.style.display = "block";
+    }
+});
+
+
+</script>
+
+<div id="statPopup" class="stat-popup">
+    <div class="popup-card">
+        <h2 id="popupRuns"></h2>
+        <p id="popupMessage"></p>
+    </div>
+</div>
+
+<canvas id="confettiCanvas"></canvas>
+
+</body>
+</html>
