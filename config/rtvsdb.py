@@ -196,6 +196,7 @@ class RTVSDB:
             {"name": "AnalyticsTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "BridgeRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "RegistriesRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+            {"name": "PatientDashboardTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "ChartListRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "NavigationsRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "CozevaComboPack1", "category": "REG", "desc": "Contains All of the above",

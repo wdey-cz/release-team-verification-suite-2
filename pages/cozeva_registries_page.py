@@ -393,6 +393,18 @@ class CozevaRegistriesPage(BasePage):
         # print(f"Fetched num/den data for measures under LOB '{lob}':", measure_data)
         return measure_data
 
+    def click_on_measure_by_metric_id(self, metric_id):
+        try:
+            measure_element = self.find_element((self.measure_by_metric_id(metric_id)), timeout=10)
+            if measure_element:
+                self.click_element((self.measure_by_metric_id(metric_id)), timeout=10)
+                print(f"Clicked on measure with Metric ID '{metric_id}'.")
+            else:
+                print(f"Measure with Metric ID '{metric_id}' not found.")
+        except Exception as e:
+            print(f"Error while clicking on measure with Metric ID '{metric_id}':", str(e))
+            traceback.print_exc()
+
     def fetch_measure_details(self, metric_id):
         # This function will find the measure with the given metric id and fetch details from the element. It will return the details as a dictionary.
         details = {}
