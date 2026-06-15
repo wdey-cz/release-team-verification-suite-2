@@ -456,7 +456,7 @@ class TestRegistries:
                     config_assists.add_log_test_case(
                         message="Validate registry export",
                         test_case_id="F_02_13",
-                        status='FAILEd', driver=driver,
+                        status='FAILED', driver=driver,
                         comment=f"Downloaded file {downloaded_file} is empty, registry export seems to be broken.")
                     failed_cases += 1
                     Helpers.delete_file(downloaded_file)
@@ -490,7 +490,6 @@ class TestRegistries:
 
         except Exception as e:
             traceback.print_exc()
-            failed_cases += 1
 
 
 

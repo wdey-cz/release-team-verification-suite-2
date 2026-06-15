@@ -1,6 +1,7 @@
 import traceback
 
 from selenium.common import TimeoutException
+from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
@@ -112,13 +113,27 @@ class BasePage:
         except:
             return False
 
-    def is_element_visible(self, locator, timeout=10):
+    def is_element_visible(self, locator, root=None, timeout=10):
         # Check if an element is visible within the specified timeout
-        try:
+        """
+                if root is None:
             WebDriverWait(self.driver, timeout).until(
-                EC.visibility_of_element_located(locator)
+                EC.presence_of_element_located(locator)
             )
-            return True
+            return self.driver.find_elements(*locator)
+        return root.find_elements(*locator)
+        """
+        try:
+            if root is None:
+                WebDriverWait(self.driver, timeout).until(
+                    EC.visibility_of_element_located(locator)
+                )
+                return True
+            else:
+                WebDriverWait(root, timeout).until(
+                    EC.visibility_of_element_located(locator)
+                )
+                return True
         except:
             return False
 
@@ -131,6 +146,33 @@ class BasePage:
             return True
         except:
             return False
+
+    def hover_over_element(self, locator, timeout=10):
+        element = WebDriverWait(self.driver, timeout).until(
+            EC.visibility_of_element_located(locator)
+        )
+        self.driver.execute_script(
+            "arguments[0].scrollIntoView({block: 'center'});",
+            element
+        )
+        ActionChains(self.driver).move_to_element(element).pause(0.2).perform()
+        return element
+
+    def trigger_mouseover_js(self, locator, timeout=10):
+        element = WebDriverWait(self.driver, timeout).until(
+            EC.visibility_of_element_located(locator)
+        )
+        self.driver.execute_script("""
+            arguments[0].dispatchEvent(
+                new MouseEvent('mouseover', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                })
+            );
+        """, element)
+        return element
+
 
     def navigate_to_url(self, url):
         # Navigate to a specified URL
