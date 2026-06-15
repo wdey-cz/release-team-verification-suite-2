@@ -1,3 +1,6 @@
+import shutil
+from pathlib import Path
+
 from jinja2 import Environment, FileSystemLoader
 from jinja2 import Environment, FileSystemLoader
 from collections import defaultdict
@@ -113,13 +116,19 @@ class ReportGenerator:
                     key = f"{client}_{role}_{browser}"
                     data[key] = self._transform_logs(logs)
 
+            # ✅ Copy image directly next to HTML
+        icon_path = Path(icon_path)
+        dest_icon = output_dir / icon_path.name
+
+        if not dest_icon.exists():
+            shutil.copy(icon_path, dest_icon)
 
         template = self.env.get_template("report_template_combinedco.html")
 
         html = template.render(
             data=data,
             run_id=run_id,
-            icon_path=icon_path
+            icon_path=icon_path.name
         )
         print(data)
         output_path = output_dir / f"Report_{run_id}.html"

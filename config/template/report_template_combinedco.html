@@ -110,10 +110,21 @@ body{
 
 .card1-grid{
     display:grid;
-    grid-template-columns: 1.5fr 1fr;
-    gap:20px;
+    grid-template-columns: 1fr 350px;
+    gap:40px;
     align-items:center;
-    position:relative;
+}
+
+.donut-center{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:32px;
+    font-weight:700;
+    color:#f8fafc;
+    pointer-events:none;
 }
 
 /* ---------- META ---------- */
@@ -122,14 +133,12 @@ body{
     line-height:2;
 }
 
-/* ---------- SUMMARY (RIGHT SIDE) ---------- */
 .summary-box{
     display:flex;
     flex-direction:column;
-    align-items:flex-end;
+    align-items:center;
     justify-content:center;
-    height:100%;
-    padding-right:25px;
+    gap:20px;
 }
 
 .summary-metrics{
@@ -156,12 +165,18 @@ body{
 
 /* ---------- DONUT ---------- */
 .donut-box{
-    position:absolute;
-    left:50%;
-    top:50%;
-    transform:translate(-50%, -50%);
-    width:180px;
-    height:180px;
+    width:260px;
+    height:260px;
+    position:relative;
+    margin:20px auto 0;
+    flex-shrink:0;
+}
+.donut-box canvas{
+    width:260px !important;
+    height:260px !important;
+}
+.summary-box{
+    position:relative;
 }
 
 /* ---------- PACKAGE ---------- */
@@ -1000,6 +1015,52 @@ body{
     background:#1b2f53;
 }
 
+.logo-header{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    padding: 30px 20px;
+    text-align: center;
+
+    cursor: pointer;
+}
+.logo-header img{
+    width: 200px;                 /* 🔥 bigger */
+    margin-bottom: 18px;
+
+    transition: transform 0.35s ease, filter 0.35s ease;
+    filter: drop-shadow(0 0 10px rgba(99,102,241,0.35));
+}
+
+/* 🚀 Hover animation */
+.logo-header:hover img{
+    transform: scale(1.50) ;
+    filter: drop-shadow(0 0 20px rgba(99,102,241,0.7));
+}
+/* 🧠 First line (RTVS 2.0) */
+.logo-header h2:first-of-type{
+    font-size: 22px;
+    font-weight: 700;
+    color: #e5e7eb;
+    margin: 0;
+}
+
+/* ⚡ Second line (Test Pulse Report) */
+.logo-header h2:last-of-type{
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 5px;
+
+    background: linear-gradient(90deg, #22c55e, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    letter-spacing: 0.5px;
+}
+
+
 .profile-side{
     display:flex;
     flex-direction:column;
@@ -1023,11 +1084,38 @@ body{
 
     border-bottom: 1px solid rgba(255,255,255,0.08);
 }
+.sidebar{
+    width:280px;
+}
 
+.main{
+    margin-left:280px;
+    width:calc(100% - 280px);
+}
+
+.logo-header{
+    padding: 25px 10px;
+}
+
+.logo-header img{
+    width:180px;
+    object-fit: contain;
+}
+.failure-row span:first-child{
+    width:180px;              /* ⬅ increase space for name */
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+.bar{
+    flex:1;
+    margin:0 10px;            /* ⬅ give breathing space */
+}
 .profile-icon:hover svg {
     transform: scale(1.1);
     filter: drop-shadow(0 0 6px #00E5FF);
 }
+
 </style>
 </head>
 
@@ -1049,9 +1137,9 @@ body{
 
 </div>
     <div class="logo-header" onclick="showSection('overview', this)">
-        <img src="cozevatica.png" alt="logo">
-        <h2>CombinedCo.</h2>
-        <h2>Chalishazarisa</h2>
+        <img src="{{ icon_path }}" alt="logo">
+        <h2>RTVS 2.0 </h2>
+        <h2>Test Pulse Report </h2>
     </div>
     <div class="nav-menu">
         <div class="nav-item active" data-nav="overview" onclick="showSection('overview', this)"><span class="nav-icon">▦</span><span class="nav-label">Overview</span></div>
@@ -1091,104 +1179,98 @@ body{
                 </div>
             </div>
 
-            <!-- RIGHT (SUMMARY) -->
             <div class="summary-box">
 
-                <div class="summary-metrics">
-                    <div class="metric total">
-                        Total <strong>240</strong>
-                    </div>
-                    <div class="metric pass">
-                        Passed <strong id="passedCount">218</strong>
-                    </div>
-                    <div class="metric fail">
-                        Failed <strong>22</strong>
-                    </div>
-                </div>
+    <div class="summary-metrics">
+        <div class="metric total">
+            Total
+            <strong id="totalCount">
+                {{ total }}
+            </strong>
+        </div>
 
-                <div class="donut-box">
-                    <canvas id="overviewPie"></canvas>
+        <div class="metric pass">
+            Passed
+            <strong id="passedCount">
+                {{ passed }}
+            </strong>
+        </div>
+
+        <div class="metric fail">
+            Failed
+            <strong id="failedCount">
+                {{ failed }}
+            </strong>
+        </div>
+    </div>
+
+    <div class="donut-box">
+        <canvas id="overviewPie"></canvas>
+
+        <!-- 🔥 CENTER TEXT -->
+        <div class="donut-center">
+            <span>{{ (passed * 100 // total) if total else 0 }}%</span>
+        </div>
+    </div>
+
+</div>
+
+    </div>
+
+
+</div>
+
+       <!-- ✅ FAILURES CARD (REPLACES PACKAGES) -->
+<div class="ov-card">
+    <h3 style="cursor:pointer;" onclick="showFailures('all', event)">Failures</h3>
+
+    {% for env, suites in data.items() %}
+        {% for suite_name, tests in suites.items() %}
+
+            {% set ns = namespace(pass=0, fail=0) %}
+
+            {% for t in tests %}
+                {% if t.status and 'PASS' in t.status|upper %}
+                    {% set ns.pass = ns.pass + 1 %}
+                {% else %}
+                    {% set ns.fail = ns.fail + 1 %}
+                {% endif %}
+            {% endfor %}
+
+            {% set total = ns.pass + ns.fail %}
+            {% set pass_pct = (ns.pass * 100 / total) if total > 0 else 0 %}
+            {% set fail_pct = (ns.fail * 100 / total) if total > 0 else 0 %}
+
+            <!-- 🔥 ROW -->
+            <div class="pkg" style="flex-direction:column; align-items:stretch;">
+
+                <div class="failure-row"
+                     onclick="showFailures('{{ suite_name }}', event)"
+                     style="cursor:pointer;">
+
+                    <!-- NAME -->
+                    <span>{{ suite_name }}</span>
+
+                    <!-- PROGRESS BAR -->
+                    <div class="bar" style="display:flex;">
+                        <div style="width:{{ pass_pct }}%; background:#22c55e;"></div>
+                        <div style="width:{{ fail_pct }}%; background:#ef4444;"></div>
+                    </div>
+
+                    <!-- COUNT -->
+                    <span>
+                        <span class="pass">{{ ns.pass }}</span> /
+                        <span class="fail">{{ ns.fail }}</span>
+                    </span>
+
                 </div>
 
             </div>
 
-        </div>
-
-    </div>
-
-    <!-- ✅ FAILURES CARD (REPLACES PACKAGES) -->
-<div class="ov-card">
-    <h3 style="cursor:pointer;" onclick="showFailures('all', event)">Failures</h3>
-
-    <!-- LOGIN -->
-<div class="pkg" style="flex-direction:column; align-items:stretch; cursor:default;">
-    <div class="failure-row" onclick="showFailures('Login', event)" style="cursor:pointer;">
-        <span>Login</span>
-
-        <div class="bar" style="display:flex;">
-            <div style="width:80%; background:#22c55e;"></div>
-            <div style="width:20%; background:#ef4444;"></div>
-        </div>
-
-        <span>
-            <span class="pass">20</span> /
-            <span class="fail">5</span>
-        </span>
-    </div>
+        {% endfor %}
+    {% endfor %}
 </div>
 
-<!-- SEARCH -->
-<div class="pkg" style="flex-direction:column; align-items:stretch; cursor:default;">
-    <div class="failure-row" onclick="showFailures('Search', event)" style="cursor:pointer;">
-        <span>Search</span>
-
-        <div class="bar" style="display:flex;">
-            <div style="width:90%; background:#22c55e;"></div>
-            <div style="width:10%; background:#ef4444;"></div>
-        </div>
-
-        <span>
-            <span class="pass">30</span> /
-            <span class="fail">3</span>
-        </span>
-    </div>
-</div>
-
-<!-- EXPORT -->
-<div class="pkg" style="flex-direction:column; align-items:stretch; cursor:default;">
-    <div class="failure-row" onclick="showFailures('Export', event)" style="cursor:pointer;">
-        <span>Export</span>
-
-        <div class="bar" style="display:flex;">
-            <div style="width:87%; background:#22c55e;"></div>
-            <div style="width:13%; background:#ef4444;"></div>
-        </div>
-
-        <span>
-            <span class="pass">40</span> /
-            <span class="fail">6</span>
-        </span>
-    </div>
-</div>
-
-<!-- ANALYTICS -->
-<div class="pkg" style="flex-direction:column; align-items:stretch; cursor:default;">
-    <div class="failure-row" onclick="showFailures('Analytics', event)" style="cursor:pointer;">
-        <span>Analytics</span>
-
-        <div class="bar" style="display:flex;">
-            <div style="width:82%; background:#22c55e;"></div>
-            <div style="width:18%; background:#ef4444;"></div>
-        </div>
-
-        <span>
-            <span class="pass">33</span> /
-            <span class="fail">8</span>
-        </span>
-    </div>
-</div>
-
-</div>
 
     <!-- ✅ DATE & TIME CARD (SAFE REPLACEMENT) -->
 <div class="ov-card">
@@ -1226,61 +1308,6 @@ body{
 
 </div>
 
-<div id="failureDetails"
-     style="display:none; margin-top:20px; cursor:pointer;"
-     onclick="goToFailedSection(event)">
-
-    <div class="ov-card">
-        <h3>Failed Test Cases</h3>
-
-        <table style="width:100%; border-collapse:collapse; margin-top:15px;">
-
-            <!-- HEADER -->
-            <thead>
-                <tr style="text-align:left; border-bottom:1px solid rgba(255,255,255,0.1);">
-                    <th style="padding:10px;">Section</th>
-                    <th style="padding:10px;">Failed Test Cases</th>
-                </tr>
-            </thead>
-
-            <!-- BODY -->
-            <tbody>
-
-                <tr data-section="Login" style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                    <td style="padding:10px;">Login</td>
-                    <td style="padding:10px;">
-                        <span class="fail" onclick="event.stopPropagation()">TC_Login_02, TC_Login_07</span>
-                    </td>
-                </tr>
-
-                <tr data-section="Search" style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                    <td style="padding:10px;">Search</td>
-                    <td style="padding:10px;">
-                        <span class="fail" onclick="event.stopPropagation()">TC_Search_04, TC_Search_09</span>
-                    </td>
-                </tr>
-
-                <tr data-section="Export" style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                    <td style="padding:10px;">Export</td>
-                    <td style="padding:10px;">
-                        <span class="fail" onclick="event.stopPropagation()">TC_Export_03, TC_Export_08</span>
-                    </td>
-                </tr>
-
-                <tr data-section="Analytics" style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                    <td style="padding:10px;">Analytics</td>
-                    <td style="padding:10px;">
-                        <span class="fail" onclick="event.stopPropagation()">TC_Analytics_02, TC_Analytics_06</span>
-                    </td>
-                </tr>
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-</div>
 
 <div id="graphsSection" style="display:none;">
 
@@ -1613,11 +1640,11 @@ body{
                         <!-- URL -->
                         <div>
                             <b>URL:</b>
-                            {% if test.url %}
-                                <a href="{{ test.url }}" target="_blank">{{ test.url }}</a>
-                            {% else %}
-                                N/A
-                            {% endif %}
+                            {% if test.url and 'file://' not in test.url %}
+    <a href="{{ test.url }}" target="_blank">{{ test.url }}</a>
+{% else %}
+    <span class="muted">Local file</span>
+{% endif %}
                         </div>
 
                         <!-- LOGS -->
@@ -1652,39 +1679,47 @@ body{
 </div>
 
 <script>
-let isFailureDetailsOpen = false;
-let activeFailureFilter = null;
 
-function refreshFailureDetailsVisibility(activeSection){
-    const failureDetails = document.getElementById("failureDetails");
-    const visibleSections = ['overview', 'details', 'testcases'];
-    const canShow = visibleSections.includes(activeSection);
+    document.addEventListener("click", function(e){
+    const link = e.target.closest("a");
 
-    failureDetails.style.display = (canShow && isFailureDetailsOpen) ? "block" : "none";
-}
+    if (!link) return;
+
+    // ONLY check raw attribute (safe)
+    const rawHref = link.getAttribute("href") || "";
+
+    if (rawHref.startsWith("file://")) {
+        e.preventDefault();
+        console.warn("Blocked file:// navigation");
+    }
+});
+
+
 
 /* NAVIGATION */
 function showSection(section, element){
 
-    document.getElementById("overviewSection").style.display =
-        section === 'overview' ? 'block' : 'none';
 
-    document.getElementById("graphsSection").style.display =
-        section === 'graphs' ? 'block' : 'none';
 
-    document.getElementById("detailsSection").style.display =
-        section === 'details' ? 'block' : 'none';
+        document.getElementById("overviewSection").style.display =
+            section === 'overview' ? 'block' : 'none';
 
-    document.getElementById("testcasesSection").style.display =
-        section === 'testcases' ? 'block' : 'none';
+        document.getElementById("graphsSection").style.display =
+            section === 'graphs' ? 'block' : 'none';
 
-    document.getElementById("profileSection").style.display =
-    section === 'profile' ? 'block' : 'none';
+        document.getElementById("detailsSection").style.display =
+            section === 'details' ? 'block' : 'none';
 
-    document.getElementById("snakeSection").style.display =
-        section === 'snake' ? 'block' : 'none';
+        document.getElementById("testcasesSection").style.display =
+            section === 'testcases' ? 'block' : 'none';
 
-       if(section === 'snake'){
+        document.getElementById("profileSection").style.display =
+            section === 'profile' ? 'block' : 'none';
+
+        document.getElementById("snakeSection").style.display =
+            section === 'snake' ? 'block' : 'none';
+
+         if(section === 'snake'){
     setTimeout(startSnakeGame, 100);
     }
 if(section === 'profile'){
@@ -1697,7 +1732,7 @@ if(section === 'profile'){
         el.classList.remove('active');
     });
 
-    if (!element.classList.contains('logo-header')) {
+    if (element && !element.classList.contains('logo-header')) {
         element.classList.add('active');
     } else {
         const defaultNav = document.querySelector('.sidebar .nav-menu .nav-item');
@@ -1740,6 +1775,22 @@ function loadProfileData(){
         `Last run executed ${Math.floor(Math.random()*10)+1} hours ago`;
 }
 
+/* CALCULATE COUNTS */
+let passed = 0;
+let failed = 0;
+
+{% for env, suites in data.items() %}
+    {% for suite_name, tests in suites.items() %}
+        {% for test in tests %}
+            {% if test.status and 'PASS' in test.status|upper %}
+                passed++;
+            {% else %}
+                failed++;
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+
 
 /* PIE */
 new Chart(document.getElementById("overviewPie"), {
@@ -1747,7 +1798,7 @@ new Chart(document.getElementById("overviewPie"), {
     data: {
         labels: ['Passed', 'Failed'],
         datasets: [{
-            data: [218, 22],
+            data: [passed, failed],   // ✅ USE HERE
             backgroundColor: ['#22c55e', '#ef4444'],
             borderWidth: 0
         }]
@@ -2049,54 +2100,6 @@ function setLanguage(lang){
     translatePage(lang);
 }
 
-async function translateTextApi(text, targetLanguage){
-    const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLanguage}&dt=t&q=${encodeURIComponent(text)}`);
-    const data = await response.json();
-    return data?.[0]?.map(chunk => chunk[0]).join("") || text;
-}
-
-async function translatePage(lang = "bn"){
-    const elements = document.querySelectorAll("body *:not(script):not(style)");
-    const translationCache = {};
-    const targetLanguage = lang === "en" ? "en" : "bn";
-    const jobs = [];
-
-    elements.forEach(el => {
-        if(el.children.length !== 0){
-            return;
-        }
-
-        const text = el.innerText.trim();
-        if(text.length === 0){
-            return;
-        }
-
-        if(!el.dataset.originalText){
-            el.dataset.originalText = text;
-        }
-
-        const originalText = el.dataset.originalText;
-        if(translationCache[originalText]){
-            jobs.push(Promise.resolve().then(() => {
-                el.innerText = translationCache[originalText];
-            }));
-            return;
-        }
-
-        jobs.push(
-            translateTextApi(originalText, targetLanguage)
-                .then(translated => {
-                    translationCache[originalText] = translated;
-                    el.innerText = translated;
-                })
-                .catch(() => {
-                    el.innerText = originalText;
-                })
-        );
-    });
-
-    await Promise.all(jobs);
-}
 
 function toggleSidebar(){
     document.querySelector('.sidebar').classList.toggle('collapsed');
@@ -2563,13 +2566,7 @@ function goToFailedSection(e){
     }, 100);
 }
 
-window.addEventListener("load", () => {
-    const passed = document.getElementById("passedCount").innerText;
-    const failed = document.querySelector(".metric.fail strong").innerText;
 
-    document.getElementById("passedCountCard").innerText = passed;
-    document.getElementById("failedCountCard").innerText = failed;
-});
 
 function setAvatar(src){
     const img = document.getElementById("profileAvatar");
@@ -2599,6 +2596,12 @@ window.addEventListener("load", () => {
     }
 });
 
+window.addEventListener("DOMContentLoaded", () => {
+    const defaultNav = document.querySelector('[data-nav="overview"]');
+    if (defaultNav) {
+        showSection('overview', defaultNav);
+    }
+});
 
 </script>
 
