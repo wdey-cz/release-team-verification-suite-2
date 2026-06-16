@@ -8,13 +8,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 import re
 
-
 class ReportGenerator:
 
     def __init__(self, db, log_fn, template_dir):
         self.db = db
         self.log = log_fn
         self.env = Environment(loader=FileSystemLoader(template_dir))
+
 
     def _split_csv(self, s):
         return [x.strip() for x in (s or "").split(",") if x.strip()]
