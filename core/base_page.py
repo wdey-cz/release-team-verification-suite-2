@@ -1,6 +1,6 @@
 import traceback
 
-from selenium.common import TimeoutException
+from selenium.common import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
@@ -94,6 +94,13 @@ class BasePage:
             EC.visibility_of_element_located(locator)
         )
         return element.text
+
+    def check_exists_byclass(self, classname):
+        try:
+            self.driver.find_element(By.CLASS_NAME, classname)
+        except NoSuchElementException:
+            return False
+        return True
 
     def get_element_attribute(self, locator, attribute, timeout=10):
         # Get a specific attribute value from an element
