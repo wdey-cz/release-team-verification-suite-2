@@ -133,7 +133,7 @@ def init_session_state(pytestconfig, config_assists):
         rc.env = Config.get_test_env()
         rc.browser = Config.get_browser()
         rc.browsers = rc.browser
-        rc.started_at = datetime.now().strftime("%Y%m%d_%H%M%S")
+        rc.started_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         config_assists.set_unique_id()
         rc.category = rc.category or "REG"
         rc.test_package = rc.test_package or "UNCATEGORIZED"

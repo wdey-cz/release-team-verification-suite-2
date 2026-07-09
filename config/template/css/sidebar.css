@@ -1,0 +1,104 @@
+/* ============================================================
+   sidebar.css
+   Sidebar container, toggle, logo, nav menu, collapsed state,
+   and the fixed top-right profile icon.
+   ============================================================ */
+
+.sidebar{
+    position:fixed;
+    top:0; left:0;
+    width:280px;
+    height:100vh;
+    background:linear-gradient(180deg,#0f172a 0%,#111f3f 100%);
+    border-right:1px solid rgba(148,163,184,0.25);
+    padding:16px 14px;
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+    overflow-x:hidden;
+    border-top-right-radius:16px;
+    border-bottom-right-radius:16px;
+    box-shadow:8px 0 24px rgba(2,6,23,0.45);
+    z-index:100;
+}
+
+/* ---------- TOGGLE BUTTON ---------- */
+.sidebar .toggle-btn{
+    border:none; border-radius:10px;
+    width:40px; height:40px;
+    display:flex; align-items:center; justify-content:center;
+    color:#dbeafe;
+    background:rgba(30,64,175,0.18);
+    margin-bottom:12px; cursor:pointer;
+    transition:all 0.2s ease;
+    box-shadow:inset 0 0 0 1px rgba(96,165,250,0.22);
+}
+.sidebar .toggle-btn:hover{ background:rgba(37,99,235,0.28); transform:translateY(-1px); }
+
+/* ---------- LOGO / HEADER ---------- */
+.logo-header{
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    padding:25px 10px; text-align:center;
+    cursor:pointer; border-radius:12px;
+    margin:0 0 8px 0; border:none; background:transparent;
+}
+.logo-header img{
+    width:180px; object-fit:contain; margin-bottom:18px;
+    transition:transform 0.35s ease, filter 0.35s ease;
+    filter:drop-shadow(0 0 10px rgba(99,102,241,0.35));
+}
+.logo-header:hover img{ transform:scale(1.15); filter:drop-shadow(0 0 20px rgba(99,102,241,0.7)); }
+.logo-header h2:first-of-type{ font-size:22px; font-weight:700; color:#e5e7eb; margin:0; }
+.logo-header h2:last-of-type{
+    font-size:18px; font-weight:600; margin-top:5px;
+    background:linear-gradient(90deg,#22c55e,#06b6d4);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    letter-spacing:0.5px;
+}
+
+/* ---------- NAV MENU ---------- */
+.nav-menu{ margin-top:8px; display:flex; flex-direction:column; gap:4px; }
+.sidebar .nav-item{
+    margin-bottom:0; border-radius:10px;
+    font-size:15px; font-weight:600; letter-spacing:0.2px;
+    color:#cbd5e1; border:1px solid transparent;
+    transition:all 0.2s ease; padding:12px;
+    display:flex; align-items:center; gap:10px; cursor:pointer;
+}
+.sidebar .nav-item:hover{
+    background:rgba(30,64,175,0.24); color:#f8fafc;
+    border-color:rgba(96,165,250,0.25); transform:translateX(2px);
+}
+.sidebar .nav-item.active{
+    background:var(--brand-soft); border-color:#93c5fd; color:#e2e8f0;
+    box-shadow:0 6px 16px rgba(30,64,175,0.25);
+}
+.nav-icon{ width:18px; text-align:center; opacity:0.9; }
+.nav-label{ white-space:nowrap; }
+
+/* ---------- COLLAPSED STATE ---------- */
+.sidebar.collapsed{ width:68px; padding:12px 8px; }
+.sidebar.collapsed + .main{ margin-left:68px; width:calc(100% - 68px); }
+.sidebar.collapsed .toggle-btn{
+    background:rgba(59,130,246,0.32);
+    box-shadow:inset 0 0 0 1px rgba(125,211,252,0.45);
+}
+.sidebar.collapsed .nav-menu,
+.sidebar.collapsed .logo-header{ display:none; }
+
+/* ---------- PROFILE ICON (fixed top-right, own class) ---------- */
+.profile-icon{
+    position:fixed; top:14px; right:18px; z-index:1200;
+    width:60px; height:60px; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:999px;
+    background:rgba(29,78,216,0.2);
+    border:1px solid rgba(96,165,250,0.35);
+    color:#dbeafe; cursor:pointer;
+    transition:background 0.2s ease;
+}
+.profile-icon img{ width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.profile-icon:hover{ background:rgba(30,64,175,0.35); }
+.profile-icon svg{ transition:0.3s; }
+.profile-icon:hover svg{ transform:scale(1.1); filter:drop-shadow(0 0 6px #00E5FF); }

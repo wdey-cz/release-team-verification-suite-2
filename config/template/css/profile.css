@@ -1,0 +1,35 @@
+/* ============================================================
+   profile.css
+   Profile page layout (identity, stats, actions, side cards).
+   Metric tiles reuse .metric variants from dashboard.css.
+   ============================================================ */
+
+.profile-grid{ display:grid; grid-template-columns:2fr 1fr; gap:20px; }
+.profile-main{ display:flex; flex-direction:column; gap:18px; }
+
+.profile-identity{
+    display:flex; justify-content:space-between;
+    align-items:flex-start; gap:14px;
+}
+.profile-tag{
+    padding:6px 10px; border-radius:999px;
+    border:1px solid rgba(96,165,250,0.45);
+    color:#bfdbfe; font-size:12px; font-weight:600;
+    background:rgba(37,99,235,0.16); white-space:nowrap;
+}
+.profile-stats{ display:grid; grid-template-columns:repeat(3,minmax(120px,1fr)); gap:10px; }
+.profile-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+.profile-btn{
+    border:1px solid rgba(96,165,250,0.35);
+    background:#13213a; color:#dbeafe;
+    border-radius:5px; padding:8px 12px;
+    font-size:14px; font-weight:600; cursor:pointer;
+}
+.profile-btn:hover{ background:#1b2f53; }
+.profile-side{ display:flex; flex-direction:column; gap:20px; }
+
+/* ---------- RESPONSIVE (profile) ---------- */
+@media (max-width: 1100px){
+    .profile-grid{ grid-template-columns:1fr; }
+    .profile-stats{ grid-template-columns:1fr; }
+}

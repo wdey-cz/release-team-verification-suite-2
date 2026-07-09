@@ -158,7 +158,7 @@ class BasePage:
         report = {'CURRENT_URL': self.driver.current_url, 'CURRENT_TITLE': self.driver.title}  # [Current URL, Page Title]
         return report
 
-    def ajax_preloader_wait(self, desc="", appear_timeout=1, disappear_timeout=300):
+    def ajax_preloader_wait(self, desc="", appear_timeout=1, disappear_timeout=500):
         t0 = time.perf_counter()
         seen = False
 
