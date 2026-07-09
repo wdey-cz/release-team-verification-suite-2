@@ -124,6 +124,12 @@ class RTVSDB:
             );
             """)
 
+    def clear_tester_info_table(self):
+        """Delete all records from tester_info table."""
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute("DELETE FROM tester_info;")
+
     def insert_tester_info(self, username: str, password: str, email: str, reason: str, signature: str):
         """Insert a new tester info into the database."""
         with self.connection:
@@ -196,6 +202,7 @@ class RTVSDB:
             {"name": "AnalyticsTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "BridgeRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "RegistriesRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+            {"name": "PatientDashboardTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "ChartListRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "NavigationsRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "CozevaComboPack1", "category": "REG", "desc": "Contains All of the above",

@@ -22,6 +22,7 @@ class CozevaReasonForLoginPage(BasePage):
 
     def is_reason_page_opened(self):
         try:
+            self.sleep_code(2)
             current_url = self.get_page_report()["CURRENT_URL"]
             return self.REASON_FOR_LOGIN_URL in current_url
         except Exception as e:

@@ -9,19 +9,24 @@ from multiprocessing import Pool
 from config.rtvsdb import RTVSDB
 
 from pages.cozeva_mfa_page import CozevaMFAPage
+from pages.cozeva_patient_dashboard_page import CozevaPatientDashboardPage
 from pages.cozeva_reason_for_login_page import CozevaReasonForLoginPage
 from core.base_page import HeaderNavBar
 from pages.cozeva_users_page import CozevaUsersPage
 from pages.cozeva_payment_tool_page import CozevaPaymentToolPage
 from pages.cozeva_providers_page import CozevaProvidersPage
 from pages.cozeva_analytics_page import AnalyticsLandingPage,AnalyticsWorksheetPage
+from pages.cozeva_registries_page import CozevaRegistriesPage
+from pages.cozeva_mspl_page import CozevaMSPLPage
+
 
 def login_splash_test():
     print("Initializing WebDriver...")
-    driver, profile = WebDriverFactory.get_driver(use_chrome_profile=True)
+    driver, profile = WebDriverFactory.get_driver(use_chrome_profile=True, download_directory=Config.RTVS_DOWNLOADS_DIR, lane_id='1')
     db = RTVSDB()
     user_role, user_name = "CS", "wdey.cs"
-    #user_role, user_name = "CU", "AltaMed_AlUtria"
+    #user_role, user_name = "Office Admin Practice Delegate", "AltaMed_Abigail"
+    #user_role, user_name = "Provider", "altamed_kprice"
     try:
         login_page = CozevaLoginPage(driver)
         print("Navigating to login page...")
@@ -66,6 +71,10 @@ def login_splash_test():
                 traceback.print_exc()
                 print("Exception occurred while searching for user:", str(e))
 
+            if users_page.is_eula_page_opened():
+                print("EULA page detected after masquerade. Attempting to skip EULA...")
+                users_page.skip_eula()
+
         # Sidebar options. collect all sidebar options, then loop through them, get back to base registries and repeat.
         start_url = header_nav.get_page_report()["CURRENT_URL"]
 
@@ -108,6 +117,43 @@ def login_splash_test():
         #     providers_list_page.click_provider_by_name(r_provider)
         # else:
         #     print("Providers page did not open successfully. Current URL:", driver.current_url)
+        registries_page = CozevaRegistriesPage(driver)
+        """
+        format of scores - 
+        {
+                'Measure_name 1': {'METRIC_ID': a, 'DOMAIN_NAME': b, 'NUMERATOR': d,'DENOMINATOR': e},
+                'Measure_name 2': {'METRIC_ID': a, 'DOMAIN_NAME': b, 'NUMERATOR': d,'DENOMINATOR': e},
+                ...
+        }
+        Need to pick a random metric ID from score list 
+        """
+
+
+        pat_dash = CozevaPatientDashboardPage(driver)
+        pat_dash.navigate_to_url("https://www.cozeva.com/patient_detail/3ES838F?session=YXBwX2lkPXJlZ2lzdHJpZXMmcGF5ZXJJZD0xNTAwJmN1c3RJZD0xNTAwJnZncElkPTE1MDAmdnBJZD0xNTAwJnZnMElkPTE1MDAmb3JnSWQ9MTUwMCZwVWlkPTExNTM3OA%3D%3D&cozeva_id=3ES838F&patient_id=129614771&tab_type=CareOps&first_load=1")
+        pat_dash.ajax_preloader_wait("Loading patient dashboard")
+        #print(pat_dash.perform_pcp_checks())
+
+        # Next demographic
+        #print(pat_dash.fetch_gaps())
+        #print(pat_dash.perform_pcp_checks())
+        dropdown_names = pat_dash.fetch_history_dropdown_names()
+        pat_dash.sleep_code(4)
+        for dropdown in dropdown_names:
+            print(f"Interacting with dropdown: {dropdown}")
+            pat_dash.click_history_dropdown_option(dropdown)
+            pat_dash.sleep_code(4)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
