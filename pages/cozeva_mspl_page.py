@@ -104,4 +104,118 @@ class CozevaMSPLPage(BasePage):
             print("Error in clicking on random patient:", str(e))
             traceback.print_exc()
 
+    def fetch_practice_names(self):
+        if self.is_mspl_page_opened():
+            mspl_type = self.fetch_mspl_type()
+            print("MSPL Type detected:", mspl_type)
+            try:
+                if mspl_type in ["Support MSPL"]:
+                    self.click_element(self.TAB_BAR_PRACTICES)
+                    self.ajax_preloader_wait("Clicked on Practices tab in " + mspl_type)
+                    practices_table = self.find_element(self.PRACTICE_TABLE, 10)
+                    practice_rows = self.find_elements(self.GET_TR_TAGS_LOCATOR, root=practices_table)
+                    practice_names = []
+                    for row in practice_rows:
+                        try:
+                            name_element = self.find_elements(self.GET_ANCHOR_TAGS_LOCATOR, root=row)[1]
+                            practice_names.append(name_element.text)
+                        except Exception as e:
+                            print("Error fetching practice name from row:", e)
+                            traceback.print_exc()
+                    return practice_names
+                else:
+                    print("MSPL type is not Support MSPL, cannot fetch practice names.")
+                    return []
+            except Exception as e:
+                print("Error in fetching practice names:", str(e))
+                traceback.print_exc()
+                return []
+        return []
+
+    def fetch_provider_names(self):
+        if self.is_mspl_page_opened():
+            mspl_type = self.fetch_mspl_type()
+            print("MSPL Type detected:", mspl_type)
+            try:
+                if mspl_type in ["Support MSPL", "Practice MSPL"]:
+                    self.click_element(self.TAB_BAR_PROVIDERS)
+                    self.ajax_preloader_wait("Clicked on Providers tab in " + mspl_type)
+                    providers_table = self.find_element(self.PROVIDER_TABLE, 10)
+                    provider_rows = self.find_elements(self.GET_TR_TAGS_LOCATOR, root=providers_table)
+                    provider_names = []
+                    for row in provider_rows:
+                        try:
+                            name_element = self.find_elements(self.GET_ANCHOR_TAGS_LOCATOR, root=row)[2]
+                            provider_names.append(name_element.text)
+                        except Exception as e:
+                            print("Error fetching provider name from row:", e)
+                            traceback.print_exc()
+                    return provider_names
+                else:
+                    print("MSPL type is not Support or Practice MSPL, cannot fetch provider names.")
+                    return []
+            except Exception as e:
+                print("Error in fetching provider names:", str(e))
+                traceback.print_exc()
+                return []
+        return []
+
+    def fetch_patient_names(self):
+        if self.is_mspl_page_opened():
+            mspl_type = self.fetch_mspl_type()
+            print("MSPL Type detected:", mspl_type)
+            try:
+                if mspl_type in ["Support MSPL", "Practice MSPL"]:
+                    self.click_element(self.TAB_BAR_PATIENTS)
+                    self.ajax_preloader_wait("Clicked on Patients tab in " + mspl_type)
+                    patients_table = self.find_element(self.PATIENTS_TABLE, 10)
+                    patient_rows = self.find_elements(self.GET_TR_TAGS_LOCATOR, root=patients_table)
+                    patient_names = []
+                    for row in patient_rows:
+                        try:
+                            name_element = self.find_element(self.GET_ANCHOR_TAGS_LOCATOR, root=row)
+                            patient_names.append(name_element.text)
+                        except Exception as e:
+                            print("Error fetching patient name from row:", e)
+                            traceback.print_exc()
+                    return patient_names
+                elif mspl_type == "Provider MSPL":
+                    self.click_element(self.TAB_PATIENTS_PROVMSPL)
+                    self.ajax_preloader_wait("Clicked on Patients tab in Provider MSPL")
+                    patients_table = self.find_element(self.PATIENTS_TABLE_PROVMSPL, 10)
+                    patient_rows = self.find_elements(self.GET_TR_TAGS_LOCATOR, root=patients_table)
+                    patient_names = []
+                    for row in patient_rows:
+                        try:
+                            name_element = self.find_element(self.GET_ANCHOR_TAGS_LOCATOR, root=row)
+                            patient_names.append(name_element.text)
+                        except Exception as e:
+                            print("Error fetching patient name from row in Provider MSPL:", e)
+                            traceback.print_exc()
+                    return patient_names
+                else:
+                    print("Unknown MSPL type, cannot fetch patient names.")
+                    return []
+            except Exception as e:
+                print("Error in fetching patient names:", str(e))
+                traceback.print_exc()
+                return []
+        return []
+
+
+    def fetch_global_search_data(self):
+        mspl_type = self.fetch_mspl_type()
+        print("MSPL Type detected:", mspl_type)
+        try:
+            # Can try to fetch all 3 data (Prac, prov, pat)
+            if mspl_type in ["Support MSPL"]:
+                x=0
+
+        except Exception as e:
+            print("Error in fetching global search data:", str(e))
+            traceback.print_exc()
+
+
+
+
 
