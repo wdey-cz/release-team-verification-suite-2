@@ -9,6 +9,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 import time
 from core.wait_helpers import WaitHelpers
+from selenium.webdriver.common.keys import Keys
+
 
 
 class BasePage:
@@ -311,6 +313,11 @@ class HeaderNavBar(BasePage):
                                 "Batches", "Add Patient", "Appointments", "Imported Charts", "Hospital Activity",
                                 "Contact Log", "Sticket Log", "Export Dashboard", "Shared Forms", "Payment Tool"]
 
+    # GLOBAL SEARCH SECTION
+    # Global search locators
+    GLOBAL_SEARCH_BAR_INPUT = (By.ID, "globalsearch_input")
+
+
 
 
 
@@ -361,15 +368,6 @@ class HeaderNavBar(BasePage):
                 entry_element.click()
                 self.ajax_preloader_wait()
                 return
-
-
-
-
-
-
-
-
-
 
 
 

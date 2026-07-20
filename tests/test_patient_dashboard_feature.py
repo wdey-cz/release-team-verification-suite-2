@@ -103,9 +103,9 @@ class TestPatientDashboard:
                     time_taken_ms=0,
                     comment = "Demographic information fetched successfully: "
                                 + "\n CZ-ID: "+ str(demographic_info['cozeva_id'])
-                                + "\n Name: " + str(demographic_info['name'])
-                                + "\n DoB: " + str(demographic_info['dob'])
-                                + "\n Gender: " + str(demographic_info['gender'])
+                                # + "\n Name: " + str(demographic_info['name'])
+                                # + "\n DoB: " + str(demographic_info['dob'])
+                                # + "\n Gender: " + str(demographic_info['gender'])
                                 + "\n Age: " + str(demographic_info['age']))
             else:
                 config_assists.add_log_test_case(
@@ -116,9 +116,9 @@ class TestPatientDashboard:
                     time_taken_ms=0,
                     comment = "Failed to fetch some/all demographic information: "
                               + "\n CZ-ID: " + str(demographic_info['cozeva_id'])
-                              + "\n Name: " + str(demographic_info['name'])
-                              + "\n DoB: " + str(demographic_info['dob'])
-                              + "\n Gender: " + str(demographic_info['gender'])
+                              # + "\n Name: " + str(demographic_info['name'])
+                              # + "\n DoB: " + str(demographic_info['dob'])
+                              # + "\n Gender: " + str(demographic_info['gender'])
                               + "\n Age: " + str(demographic_info['age']))
                 failed_cases += 1
 
@@ -296,7 +296,62 @@ class TestPatientDashboard:
             patient_dashboard_page.ajax_preloader_wait("Reloading patient dashboard for next test case")
 
             # F_04_06 : Validate care team
+            """
+            For this case, we will navigate to the patient dropdown, go to care team, and validate that careteam names are displayed.
+            """
+            config_assists.add_log_heartbeat("Starting test case F_04_06: Validate care team",
+                                             driver=driver,
+                                             status="STARTED")
 
+            care_team_info = patient_dashboard_page.fetch_care_team_info()
+            if len(care_team_info) > 0:
+                config_assists.add_log_test_case(
+                    message= "Validate care team",
+                    test_case_id="F_04_06",
+                    status='PASSED',
+                    driver=driver,
+                    time_taken_ms=0,
+                    comment = "Care team info fetched successfully: "
+                              + "\n Care Team Info: " + str(care_team_info))
+            else:
+                config_assists.add_log_test_case(
+                    message= "Validate care team",
+                    test_case_id="F_04_06",
+                    status='FAILED',
+                    driver=driver,
+                    time_taken_ms=0,
+                    comment = "Failed to fetch care team info.")
+                failed_cases += 1
+
+            # reset
+            config_assists.add_log_heartbeat("finished test case F_04_06: Validate care team",)
+            patient_dashboard_page.navigate_to_url(rc.test_page_url)
+            patient_dashboard_page.ajax_preloader_wait("Reloading patient dashboard for next test case")
+
+            # F_04_07 : Validate patient active insurance cards
+            config_assists.add_log_heartbeat("Starting test case F_04_07: Validate patient active insurance cards",
+                                             driver=driver,
+                                             status="STARTED")
+
+            coverage_cards = patient_dashboard_page.fetch_coverage_info()
+            if len(coverage_cards) > 0:
+                config_assists.add_log_test_case(
+                    message= "Validate patient active insurance cards",
+                    test_case_id="F_04_07",
+                    status='PASSED',
+                    driver=driver,
+                    time_taken_ms=0,
+                    comment = "Patient active insurance cards fetched successfully: "
+                              + "Cards count: " + str(len(coverage_cards)))
+            else:
+                config_assists.add_log_test_case(
+                    message= "Validate patient active insurance cards",
+                    test_case_id="F_04_07",
+                    status='FAILED',
+                    driver=driver,
+                    time_taken_ms=0,
+                    comment = "Failed to fetch patient active insurance cards.")
+                failed_cases += 1
 
 
             if failed_cases == 0:
