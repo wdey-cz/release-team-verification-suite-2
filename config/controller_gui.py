@@ -194,6 +194,25 @@ class TestRunWorker(QtCore.QThread):
             self.run_failed.emit(self.run_id, str(e))
 
 
+class ClickAnywhereCheckListWidget(QtWidgets.QListWidget):
+    """
+    Checkbox list where clicking anywhere on the row toggles selection.
+    """
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            item = self.itemAt(event.position().toPoint())
+            if item and (item.flags() & QtCore.Qt.ItemFlag.ItemIsUserCheckable):
+                self.setCurrentItem(item)
+                if item.checkState() == QtCore.Qt.CheckState.Checked:
+                    item.setCheckState(QtCore.Qt.CheckState.Unchecked)
+                else:
+                    item.setCheckState(QtCore.Qt.CheckState.Checked)
+                event.accept()
+                return
+        super().mouseReleaseEvent(event)
+
+
 class StartTestDialog(QtWidgets.QDialog):
     """
     Secondary window to gather run config and lane options.
@@ -361,7 +380,7 @@ class StartTestDialog(QtWidgets.QDialog):
     def _make_check_list(self, title: str) -> dict:
         group = QtWidgets.QGroupBox(title)
         layout = QtWidgets.QVBoxLayout(group)
-        lw = QtWidgets.QListWidget()
+        lw = ClickAnywhereCheckListWidget()
         layout.addWidget(lw)
         return {"group": group, "list": lw}
 
@@ -528,13 +547,25 @@ def _password_visibility_icons() -> tuple[QtGui.QIcon, QtGui.QIcon]:
 class FirstTimeSetupTesterDialog(QtWidgets.QDialog):
     """
     Collects tester credentials before first-time DB setup.
-    Layout matches StartTestDialog (labeled rows, group box, OK/Cancel).
-    Values are written to tester_info via RTVSDB.insert_tester_info after create_tester_info_table runs.
+    Username/password go to CS2_RTVS_User / CS2_RTVS_Password env vars;
+    email / reason / signature are written to tester_info.
     """
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
+    def __init__(
+        self,
+        parent: QtWidgets.QWidget | None = None,
+        *,
+        title: str = "First-time setup — Tester credentials",
+        action_label: str = "Continue setup",
+        username_readonly: bool = False,
+        initial_username: str = "",
+        initial_password: str = "",
+        initial_email: str = "",
+        initial_reason: str = "",
+        initial_signature: str = "",
+    ):
         super().__init__(parent)
-        self.setWindowTitle("First-time setup — Tester credentials")
+        self.setWindowTitle(title)
         self.resize(520, 420)
 
         root = QtWidgets.QVBoxLayout(self)
@@ -565,6 +596,9 @@ class FirstTimeSetupTesterDialog(QtWidgets.QDialog):
 
         self.username_input = QtWidgets.QLineEdit()
         self.username_input.setPlaceholderText("Cozeva username")
+        if initial_username:
+            self.username_input.setText(initial_username)
+        self.username_input.setReadOnly(username_readonly)
 
         self._icon_eye_show, self._icon_eye_hide = _password_visibility_icons()
         pwd_wrap = QtWidgets.QWidget()
@@ -574,6 +608,8 @@ class FirstTimeSetupTesterDialog(QtWidgets.QDialog):
         self.password_input = QtWidgets.QLineEdit()
         self.password_input.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
         self.password_input.setPlaceholderText("Password")
+        if initial_password:
+            self.password_input.setText(initial_password)
         pwd_lay.addWidget(self.password_input, 1)
         self._pwd_toggle = QtWidgets.QToolButton()
         self._pwd_toggle.setCheckable(True)
@@ -594,12 +630,18 @@ class FirstTimeSetupTesterDialog(QtWidgets.QDialog):
 
         self.email_input = QtWidgets.QLineEdit()
         self.email_input.setPlaceholderText("Email address")
+        if initial_email:
+            self.email_input.setText(initial_email)
 
         self.reason_input = QtWidgets.QLineEdit()
         self.reason_input.setPlaceholderText("e.g. Redmine ticket URL or RM number")
+        if initial_reason:
+            self.reason_input.setText(initial_reason)
 
         self.signature_input = QtWidgets.QLineEdit()
         self.signature_input.setPlaceholderText("Name shown as signature for masquerade / login flows")
+        if initial_signature:
+            self.signature_input.setText(initial_signature)
 
         creds_layout.addWidget(labeled_row("Username:", self.username_input))
         creds_layout.addWidget(labeled_row("Password:", pwd_wrap))
@@ -610,7 +652,8 @@ class FirstTimeSetupTesterDialog(QtWidgets.QDialog):
         root.addWidget(creds)
 
         btns = QtWidgets.QHBoxLayout()
-        self.ok_btn = QtWidgets.QPushButton("Continue setup")
+
+        self.ok_btn = QtWidgets.QPushButton(action_label)
         self.cancel_btn = QtWidgets.QPushButton("Cancel")
         self.ok_btn.clicked.connect(self._on_continue)
         self.cancel_btn.clicked.connect(self.reject)
@@ -793,16 +836,38 @@ class ControllerWindow(QtWidgets.QMainWindow):
             return None
 
     def _init_assists(self):
+        created = False
         if self.assists is None:
             self.assists = ConfigAssists()
+            created = True
         self._refresh_db_path_label()
+        self._refresh_account_panel()
         # self._refresh_profiles_table()
-        self._append_log("[OK] ConfigAssists initialized and first-time setup ensured.")
+        if created:
+            self._append_log("[OK] ConfigAssists initialized and first-time setup ensured.")
 
     def _db(self) -> RTVSDB:
         if not self.assists:
             raise RuntimeError("ConfigAssists not initialized.")
         return self.assists.db
+
+    def _reopen_db_connection(self):
+        """
+        Re-open DB connection to reflect external edits done while controller is running.
+        Useful when rows are changed/deleted from an external SQLite editor.
+        """
+        if not self.assists:
+            self._init_assists()
+            return
+        old_db = self.assists.db
+        db_path = getattr(old_db, "db_path", None)
+        if db_path is None:
+            return
+        try:
+            old_db.close()
+        except Exception:
+            pass
+        self.assists.db = RTVSDB(db_path)
 
     # -------------------------
     # Setup tab
@@ -812,6 +877,23 @@ class ControllerWindow(QtWidgets.QMainWindow):
         tab = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(tab)
 
+        account_header = QtWidgets.QHBoxLayout()
+        account_header.addStretch(1)
+        self.btn_account_chip = QtWidgets.QToolButton()
+        self.btn_account_chip.setText("Login")
+        self.btn_account_chip.setToolTip("Open first-time setup")
+        self.btn_account_chip.setAutoRaise(True)
+        self.btn_account_chip.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        self.btn_account_chip.setStyleSheet(
+            "QToolButton { font-weight: 600; padding: 4px 10px; }"
+            "QToolButton:hover { text-decoration: underline; }"
+        )
+        self.btn_account_chip.clicked.connect(
+            lambda: self._safe_call("Account chip click", self._on_account_chip_clicked)
+        )
+        account_header.addWidget(self.btn_account_chip)
+        layout.addLayout(account_header)
+
         form = QtWidgets.QFormLayout()
         self.db_path_label = QtWidgets.QLabel("(unknown)")
         self.assets_dir_label = QtWidgets.QLabel("(unknown)")
@@ -820,9 +902,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
         layout.addLayout(form)
 
         btn_row = QtWidgets.QHBoxLayout()
-        self.btn_run_setup = QtWidgets.QPushButton("Run first-time setup")
-        self.btn_run_setup.clicked.connect(lambda: self._safe_call("Run first-time setup", self._run_setup))
-        btn_row.addWidget(self.btn_run_setup)
 
         self.btn_reload_customers = QtWidgets.QPushButton("Reload customers JSON...")
         self.btn_reload_customers.clicked.connect(lambda: self._safe_call("Reload customers JSON", self._reload_customers_json))
@@ -850,7 +929,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.assets_dir_label.setText(str(assets_dir) if assets_dir else "(missing ASSETS_DIR on RTVSDB)")
 
     def _run_setup(self):
-        self._init_assists()  # ensures exists
+        self._init_assists()
         dlg = FirstTimeSetupTesterDialog(self)
         if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
             self._append_log("[INFO] First-time setup cancelled (tester credentials dialog).")
@@ -858,9 +937,75 @@ class ControllerWindow(QtWidgets.QMainWindow):
         username, password, email, reason, signature = dlg.tester_values()
         self.assists.create_first_time_setup(username, password, email, reason, signature)
         self._append_log(
-            f"[OK] First-time setup executed; tester_info saved for user {username!r}."
+            f"[OK] First-time setup executed; credentials stored in env for user {username!r}."
         )
+        self._refresh_account_panel()
         self._refresh_profiles_table()
+
+    def _refresh_account_panel(self, *, reload_from_disk: bool = False):
+        if not self.assists:
+            return
+        if reload_from_disk:
+            self._reopen_db_connection()
+        ConfigAssists.load_cs2_credentials_into_environ()
+        db = self._db()
+        username = (os.environ.get("CS2_RTVS_User") or "").strip()
+        if username:
+            db.initialize_chrome_profiles_for_tester(username, profile_count=10)
+            self.btn_account_chip.setText(username)
+            self.btn_account_chip.setToolTip("Update tester account")
+        else:
+            self.btn_account_chip.setText("Login")
+            self.btn_account_chip.setToolTip("No tester account found. Click to run first-time setup")
+
+    def _on_account_chip_clicked(self):
+        self._init_assists()
+        ConfigAssists.load_cs2_credentials_into_environ()
+        username = (os.environ.get("CS2_RTVS_User") or "").strip()
+        if not username:
+            self._run_setup()
+            return
+        self._update_account()
+
+    def _update_account(self):
+        db = self._db()
+        ConfigAssists.load_cs2_credentials_into_environ()
+        row = db.fetch_tester_account() or {}
+        username = (os.environ.get("CS2_RTVS_User") or "").strip()
+        password = os.environ.get("CS2_RTVS_Password") or ""
+        dlg = FirstTimeSetupTesterDialog(
+            self,
+            title=f"Update account — {username or 'tester'}",
+            action_label="Update account",
+            username_readonly=bool(username),
+            initial_username=username,
+            initial_password=password,
+            initial_email=str(row.get("email", "")),
+            initial_reason=str(row.get("reason_for_login", "")),
+            initial_signature=str(row.get("signature", "")),
+        )
+        if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
+            return
+        new_user, new_password, email, reason, signature = dlg.tester_values()
+        exclude_id = int(row["id"]) if row.get("id") is not None else None
+        if db.tester_signature_exists(signature, exclude_id=exclude_id):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Duplicate signature",
+                f"Signature '{signature}' already exists in tester_info. Use a different signature.",
+            )
+            return
+        ok = db.update_tester_info(
+            email=email,
+            reason_for_login=reason,
+            signature=signature,
+        )
+        ConfigAssists.ensure_cs2_credentials_env(new_user, new_password)
+        if ok:
+            self._append_log(f"[OK] Updated tester account meta for: {new_user or username}")
+        else:
+            self._append_log(f"[WARN] Could not update tester account meta: {new_user or username}")
+        self._refresh_account_panel(reload_from_disk=True)
 
     def _reload_customers_json(self):
         self._init_assists()
@@ -942,13 +1087,26 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
     def _query_profiles(self) -> list[ChromeProfileRow]:
         db = self._db()
-        db.cursor.execute(
-            """
-            SELECT id, profile_name, currently_running, is_active, last_mfa_time
-            FROM chrome_profiles
-            ORDER BY id ASC;
-            """
-        )
+        ConfigAssists.load_cs2_credentials_into_environ()
+        owner = (os.environ.get("CS2_RTVS_User") or "").strip() or None
+        if owner:
+            db.cursor.execute(
+                """
+                SELECT id, profile_name, currently_running, is_active, last_mfa_time
+                FROM chrome_profiles
+                WHERE owner_username = ?
+                ORDER BY id ASC;
+                """,
+                (owner,),
+            )
+        else:
+            db.cursor.execute(
+                """
+                SELECT id, profile_name, currently_running, is_active, last_mfa_time
+                FROM chrome_profiles
+                ORDER BY id ASC;
+                """
+            )
         rows = db.cursor.fetchall()
         out: list[ChromeProfileRow] = []
         for r in rows:
