@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import calendar
 import re
+from collections import defaultdict
+from config.report_generator import ReportGenerator
 from openpyxl import Workbook
 from openpyxl.styles import Font
 import os
@@ -13,12 +15,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
-
+from jinja2 import Environment, FileSystemLoader
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QSplashScreen
 from PySide6 import QtCore, QtGui, QtWidgets
-
+import webbrowser
 from config.rtvsdb import RTVSDB  # type: ignore
 from config.config_assists import ConfigAssists  # type: ignore
 from core.rtvs_runner import build_lanes, print_plan, run_lanes_parallel, _pick_external_python
@@ -699,10 +701,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.statusBar().showMessage("Ready")
 
 
-
-
-
-
     # dumb watermark idea
 
     def _init_log_watermark(self) -> None:
@@ -772,7 +770,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
             elif event.type() == QtCore.QEvent.Type.Show:
                 self._update_log_watermark()
         return super().eventFilter(obj, event)
-
 
 
     # -------------------------
@@ -1201,6 +1198,11 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.btn_export_reports_csv.clicked.connect(lambda: self._safe_call("Export reports CSV", self._export_reports_xlsx_for_selected_run))
         top_row.addWidget(self.btn_export_reports_csv)
 
+        #push button for Export reports for selected run HTML
+        self.btn_export_reports_html = QtWidgets.QPushButton("Export reports for selected run (HTML)...")
+        self.btn_export_reports_html.clicked.connect(lambda: self._safe_call("Export reports HTML", self._export_reports_html_for_selected_run))
+        top_row.addWidget(self.btn_export_reports_html)
+
         top_row.addStretch(1)
         layout.addLayout(top_row)
 
@@ -1384,39 +1386,90 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
     def _export_reports_xlsx_for_selected_run(self):
 
-
         run_id = self._selected_run_id()
+
+        if not run_id:
+            QtWidgets.QMessageBox.information(
+                self,
+                "No run selected",
+                "Please select a test run first."
+            )
+            return
+
+        try:
+            # Create reports directory
+            reports_dir = Path(
+                os.getenv("LOCALAPPDATA", r"C:\Users\Public\AppData\Local")
+            ) / "RTVS2" / "reports" / run_id
+
+            reports_dir.mkdir(parents=True, exist_ok=True)
+
+            # Initialize generator
+            template_dir = Path(__file__).parent / "template"  # required for consistency
+
+            generator = ReportGenerator(
+                db=self._db(),
+                log_fn=self._append_log,
+                template_dir=template_dir
+            )
+
+            # Generate XLSX
+            generator.generate_xlsx(
+                run_id=run_id,
+                output_dir=reports_dir
+            )
+
+            QtWidgets.QMessageBox.information(
+                self,
+                "Export Complete",
+                f"Reports exported to {reports_dir}"
+            )
+
+            self._append_log(
+                f"[OK] XLSX reports exported for run_id={run_id} to {reports_dir}"
+            )
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", str(e))
+            self._append_log(f"[ERROR] XLSX export failed: {e}")
+
+    def _export_reports_html_for_selected_run(self):
+        run_id = self._selected_run_id()
+
         if not run_id:
             QtWidgets.QMessageBox.information(self, "No run selected", "Please select a test run first.")
             return
 
-        db = self._db()
-        cursor = db.connection.cursor()
+        try:
+            reports_dir = Path(os.getenv("LOCALAPPDATA", r"C:\Users\Public\AppData\Local")) \
+                          / "RTVS2" / "reports" / run_id
+            reports_dir.mkdir(parents=True, exist_ok=True)
 
-        cursor.execute(
-            """
-            SELECT browsers, clients, user_roles
-            FROM test_runs
-            WHERE run_id = ?;
-            """,
-            (run_id,),
-        )
-        row = cursor.fetchone()
-        if not row:
-            QtWidgets.QMessageBox.warning(self, "Run not found", f"No data found for run_id={run_id}.")
-            return
+            template_dir = Path(__file__).parent / "template"
+            icon_path = str((Path.cwd() / "assets" / "CombinedCo_RTVS2_logo.png").resolve()).replace("\\", "/")
 
-        def _split_csv(s: str) -> list[str]:
-            return [x.strip() for x in (s or "").split(",") if x.strip()]
+            generator = ReportGenerator(
+                db=self._db(),
+                log_fn=self._append_log,
+                template_dir=template_dir
+            )
 
-        browsers = _split_csv(row[0])
-        clients = _split_csv(row[1])
-        roles = _split_csv(row[2])
+            output_path = generator.generate_html(
+                run_id=run_id,
+                output_dir=reports_dir,
+                icon_path=icon_path
+            )
 
-        if not browsers or not clients or not roles:
-            QtWidgets.QMessageBox.warning(self, "Missing run metadata", "Run row is missing browsers/clients/roles.")
-            return
+            webbrowser.open(str(output_path))
 
+            QtWidgets.QMessageBox.information(
+                self,
+                "Report Generated",
+                f"Reports generated at {reports_dir}"
+            )
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", str(e))
         reports_dir = Path(os.getenv("LOCALAPPDATA", r"C:\Users\Public\AppData\Local")) / "RTVS2" / "reports" / run_id
         reports_dir.mkdir(parents=True, exist_ok=True)
 

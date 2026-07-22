@@ -389,8 +389,8 @@ class ConfigAssists:
     def add_log_heartbeat(self, message: str = "heartbeat", *, status="Info", driver=None) -> None:
         self._log(type_="heartbeat", message=message, status=status, driver=driver)
 
-
-
+    def add_log_failed(self,message: str,*,driver=None,status:str="Failed",current_url: str | None = None) -> None:
+        self._log(type_="update",message=message,status=status,driver=driver,current_url=current_url,mark_fail=True)
 
 
 

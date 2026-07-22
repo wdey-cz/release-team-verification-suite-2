@@ -831,6 +831,52 @@ class RTVSDB:
                 (final_status, run_id),
             )
 
+    def get_customer_worksheets(self, customer_id):
+        """Get worksheet count for a given customer."""
+        query = """
+            SELECT Worksheets 
+            FROM customer_analytics_info 
+            WHERE CustomerID = ?;
+        """
+
+        cursor = self.connection.cursor()
+        cursor.execute(query, (customer_id,))
+        row = cursor.fetchone()
+
+        if row:
+            return row[0]
+        return None
+
+    def ensure_customer_analytics_entry(self, customer_id, worksheets=0):
+        """Insert customer into analytics table if not present."""
+
+        check_query = """
+            SELECT 1 
+            FROM customer_analytics_info 
+            WHERE CustomerID = ?;
+        """
+
+        insert_query = """
+            INSERT INTO customer_analytics_info (CustomerID, Worksheets)
+            VALUES (?, ?);
+        """
+
+        cursor = self.connection.cursor()
+
+        # Step 1: Check existence
+        cursor.execute(check_query, (customer_id,))
+        exists = cursor.fetchone()
+
+        if exists:
+            return "EXISTS"
+
+        # Step 2: Insert
+        cursor.execute(insert_query, (customer_id, worksheets))
+        self.connection.commit()
+
+        return "INSERTED"
+
+
 
 
 

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validation Dashboard</title>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/sidebar.css">
+<link rel="stylesheet" href="css/graphs.css">
+<link rel="stylesheet" href="css/sections.css">
+<link rel="stylesheet" href="css/profile.css">
+<link rel="stylesheet" href="css/snake.css">
+</head>
+
+<body>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<div class="sidebar">
+
+    <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+
+    <div class="logo-header" onclick="showSection('overview',this)">
+        <img src="assets/icons/{{ icon_path }}" alt="logo">
+        <h2>RTVS 2.0</h2>
+        <h2>Test Pulse Report</h2>
+    </div>
+
+    <div class="nav-menu">
+        <div class="nav-item active" data-nav="overview" onclick="showSection('overview',this)">
+            <span class="nav-icon">▦</span><span class="nav-label">Overview</span>
+        </div>
+        <div class="nav-item" data-nav="graphs" onclick="showSection('graphs',this)">
+            <span class="nav-icon">◍</span><span class="nav-label">Graphs</span>
+        </div>
+        <div class="nav-item" data-nav="details" onclick="showSection('details',this)">
+            <span class="nav-icon">▤</span><span class="nav-label">Sections</span>
+        </div>
+        <div class="nav-item" data-nav="snake" onclick="showSection('snake',this)">
+            <span class="nav-icon">🎮</span><span class="nav-label">Snake</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- Profile icon — fixed top-right -->
+<div class="profile-icon" onclick="showSection('profile',this)">
+    <svg id="defaultIcon" width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="8" r="3.5" stroke="#FF1493" stroke-width="3.0"/>
+        <path d="M4 20c1.5-4 6-6 8-6s6.5 2 8 6" stroke="#00E5FF" stroke-width="3.0" stroke-linecap="round"/>
+    </svg>
+    <img id="profileAvatar" style="display:none;"/>
+</div>
+
+<!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+<div class="main">
+
+<!-- ===================== OVERVIEW ===================== -->
+<div id="overviewSection">
+
+    <h2>Overview</h2>
+
+    <div class="overview-grid">
+
+        <!-- CARD 1 : Report summary -->
+        <div class="ov-card card-1">
+            <div class="card1-grid">
+
+                <div>
+                    <h2>Validation Report</h2>
+                    <div class="meta-block">
+                        <div><span class="label">Run ID:</span>{{ run_summary.run_id }}</div>
+                        <div><span class="label">Package:</span>{{ run_summary.test_package }}</div>
+
+                        {% if run_summary.test_package_desc %}
+                            <div><span class="label">Description:</span>{{ run_summary.test_package_desc }}</div>
+                        {% endif %}
+
+                        {% if run_summary.customers|length == 1 %}
+                            <div>
+                                <span class="label">Customer:</span>
+                                {{ run_summary.customers[0].name }}
+                                <span class="muted">(ID: {{ run_summary.customers[0].id }})</span>
+                            </div>
+                        {% elif run_summary.customers|length > 1 %}
+                            <div style="margin-top:10px;">
+                                <span class="label">Customers ({{ run_summary.customers|length }}):</span>
+                                <div style="margin-top:8px;border:1px solid #223148;border-radius:8px;overflow:hidden;">
+                                    {% for cust in run_summary.customers %}
+                                        <div class="customer-row" style="
+                                            padding:8px 12px;
+                                            {% if not loop.last %}border-bottom:1px solid #223148;{% endif %}
+                                            background:{{ '#0f172a' if loop.index0 % 2 == 0 else 'transparent' }};
+                                        ">
+                                            <span class="cust-name">{{ cust.name }}</span>
+                                            <span class="cust-id">ID: {{ cust.id }}</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div><span class="label">Customer:</span><span class="muted">N/A</span></div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="summary-box">
+                    <div class="summary-metrics">
+                        <div class="metric total">Total<strong id="totalCount">{{ total }}</strong></div>
+                        <div class="metric pass">Passed<strong id="passedCount">{{ passed }}</strong></div>
+                        <div class="metric fail">Failed<strong id="failedCount">{{ failed }}</strong></div>
+                    </div>
+                    <div class="donut-box">
+                        <canvas id="overviewPie"></canvas>
+                        <div class="donut-center">
+                            <span id="pctLabel">{{ (passed * 100 // total) if total else 0 }}%</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- CARD 2 : Suite results -->
+        <div class="ov-card">
+            <h3>Suite Results</h3>
+            {% for env, suites in data.items() %}
+                {% for suite_name, tests in suites.items() %}
+                    {% set ns = namespace(pass=0, fail=0) %}
+                    {% for t in tests %}
+                        {% if t.status and 'PASS' in t.status|upper %}{% set ns.pass = ns.pass + 1 %}
+                        {% else %}{% set ns.fail = ns.fail + 1 %}{% endif %}
+                    {% endfor %}
+                    {% set st = ns.pass + ns.fail %}
+                    {% set pass_pct = (ns.pass * 100 / st) if st > 0 else 0 %}
+                    {% set fail_pct = (ns.fail * 100 / st) if st > 0 else 0 %}
+
+                    <div class="pkg static">
+                        <div class="failure-row">
+                            <span title="{{ suite_name }}">{{ suite_name }}</span>
+                            <div class="bar">
+                                <div style="width:{{ pass_pct }}%; background:#22c55e;"></div>
+                                <div style="width:{{ fail_pct }}%; background:#ef4444;"></div>
+                            </div>
+                            <span style="flex-shrink:0;">
+                                <span class="pass">{{ ns.pass }}</span> /
+                                <span class="fail">{{ ns.fail }}</span>
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- CARD 3 : Date & time (verbatim) -->
+        <div class="ov-card">
+            <h3>Date &amp; Time</h3>
+            <div class="meta-block">
+                <div class="pkg static"><span>Start Time</span><span>{{ run_summary.started_at }}</span></div>
+                <div class="pkg static"><span>End Time</span><span>{{ run_summary.ended_at }}</span></div>
+                <div class="pkg static"><span>Time Taken</span><span>{{ run_summary.time_taken }}</span></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ===================== GRAPHS ===================== -->
+<div id="graphsSection" style="display:none;">
+    <h2>Graphs</h2>
+
+    <div class="graph-card" id="summaryGraphCard">
+        <div class="graph-head">
+            <h3>Test Case Summary</h3>
+            <div class="graph-controls">
+                <button class="graph-btn active" data-view-btn="graph" onclick="setGraphView('summaryGraphCard','graph')">Graph</button>
+                <button class="graph-btn" data-view-btn="table" onclick="setGraphView('summaryGraphCard','table')">Table</button>
+                <button class="graph-btn" onclick="exportChartPng('summaryChart','test-case-summary.png')">Export PNG</button>
+            </div>
+        </div>
+        <div class="graph-view"><div class="chart-container"><canvas id="summaryChart"></canvas></div></div>
+        <div class="table-view"><table class="graph-table" id="summaryChartTable"></table></div>
+    </div>
+
+    <div class="graph-card" id="sectionGraphCard">
+        <div class="graph-head">
+            <h3>Section-wise Results</h3>
+            <div class="graph-controls">
+                <button class="graph-btn active" data-view-btn="graph" onclick="setGraphView('sectionGraphCard','graph')">Graph</button>
+                <button class="graph-btn" data-view-btn="table" onclick="setGraphView('sectionGraphCard','table')">Table</button>
+                <button class="graph-btn" onclick="exportChartPng('sectionChart','section-wise.png')">Export PNG</button>
+            </div>
+        </div>
+        <div class="graph-view"><div class="chart-container"><canvas id="sectionChart"></canvas></div></div>
+        <div class="table-view"><table class="graph-table" id="sectionChartTable"></table></div>
+    </div>
+
+    <div class="graph-card" id="timeGraphCard">
+        <div class="graph-head">
+            <h3>Execution Time</h3>
+            <div class="graph-controls">
+                <button class="graph-btn active" data-view-btn="graph" onclick="setGraphView('timeGraphCard','graph')">Graph</button>
+                <button class="graph-btn" data-view-btn="table" onclick="setGraphView('timeGraphCard','table')">Table</button>
+                <button class="graph-btn" onclick="exportChartPng('timeChart','execution-time.png')">Export PNG</button>
+            </div>
+        </div>
+        <div class="graph-view"><div class="time-chart"><canvas id="timeChart"></canvas></div></div>
+        <div class="table-view"><table class="graph-table" id="timeChartTable"></table></div>
+    </div>
+
+    <div class="graph-card" id="trendGraphCard">
+        <div class="graph-head">
+            <h3>Trend</h3>
+            <div class="graph-controls">
+                <button class="graph-btn active" data-view-btn="graph" onclick="setGraphView('trendGraphCard','graph')">Graph</button>
+                <button class="graph-btn" data-view-btn="table" onclick="setGraphView('trendGraphCard','table')">Table</button>
+                <button class="graph-btn" id="trendExportBtn" onclick="exportChartPng('trendChart','trend.png')">Export PNG</button>
+            </div>
+        </div>
+        <div class="graph-view">
+            <div class="trend-box">
+                <canvas id="trendChart"></canvas>
+                <div class="empty-state" id="trendEmpty">📉 No trend data</div>
+            </div>
+        </div>
+        <div class="table-view"><table class="graph-table" id="trendChartTable"></table></div>
+    </div>
+</div>
+
+<!-- ===================== SECTIONS / DETAILS ===================== -->
+<div id="detailsSection" style="display:none;">
+    <h2>Sections</h2>
+
+    <div class="overview-grid">
+        <div class="ov-card card-1">
+            <h3>{{ run_summary.test_package }}</h3>
+
+            <div class="details-layout">
+
+                <!-- LEFT : suite accordion -->
+                <div class="test-list">
+                    {% for env, suites in data.items() %}
+                        {% for suite_name, tests in suites.items() %}
+                            {% set sslug = suite_name | replace(' ', '_') | replace('.', '_') | replace('/', '_') | replace('\\', '_') | replace('"', '') | replace("'", '') %}
+                            <div class="section">
+                                <div class="section-header" onclick="toggleSection(this)">
+                                    ▶ {{ suite_name }}
+                                    {% set ns = namespace(fail_count=0) %}
+                                    {% for t in tests %}
+                                        {% if t.status and ('FAIL' in t.status|upper or t.status == 'ERROR' or t.status == 'INCOMPLETE') %}
+                                            {% set ns.fail_count = ns.fail_count + 1 %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if ns.fail_count > 0 %}
+                                        <span class="fail-count-badge">{{ ns.fail_count }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="section-body">
+                                    {% for test in tests %}
+                                        {% if test.test_case_id == 'ORPHAN' %}
+                                            {% set row_style = 'border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.06);' %}
+                                        {% elif test.status == 'INCOMPLETE' %}
+                                            {% set row_style = 'border-color:rgba(250,204,21,0.4);background:rgba(250,204,21,0.06);' %}
+                                        {% else %}
+                                            {% set row_style = '' %}
+                                        {% endif %}
+
+                                        <div class="pkg" style="{{ row_style }}"
+                                             onclick="showDetails('{{ sslug }}-{{ loop.index0 }}',this)">
+                                            <span style="flex:1;">
+                                                {% if test.test_case_id == 'ORPHAN' %}
+                                                    ⚠ {{ test.test_case_name }}
+                                                {% else %}
+                                                    {{ test.test_case_id }} — {{ test.test_case_name }}
+                                                {% endif %}
+                                            </span>
+                                            <span style="
+                                                font-size:11px; font-weight:600;
+                                                padding:2px 10px; border-radius:20px; flex-shrink:0;
+                                                {% if test.status and 'PASS' in test.status|upper %}
+                                                    color:#22c55e;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);
+                                                {% elif test.test_case_id == 'ORPHAN' or (test.status and 'ERROR' in test.status|upper) %}
+                                                    color:#ef4444;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);
+                                                {% elif test.status == 'INCOMPLETE' %}
+                                                    color:#facc15;background:rgba(250,204,21,0.12);border:1px solid rgba(250,204,21,0.35);
+                                                {% else %}
+                                                    color:#ef4444;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);
+                                                {% endif %}
+                                            ">{{ test.status }}</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+
+                <!-- RIGHT : detail panel -->
+                <div class="details-panel" id="detailsPanel">
+                    <div class="detail-navbar">
+                        <button class="detail-nav-btn" id="detailPrevBtn" onclick="detailNav(-1)">‹ Prev</button>
+                        <span id="detailNavLabel">Test — of —</span>
+                        <button class="detail-nav-btn" id="detailNextBtn" onclick="detailNav(1)">Next ›</button>
+                        <button class="detail-nav-btn detail-collapse-btn" id="detailCollapseBtn" onclick="toggleDetailPanel()">Collapse ▴</button>
+                    </div>
+
+                    <div class="detail-content" id="detailContent">
+                        <div class="empty-state" style="position:static;transform:none;padding:20px;color:#94a3b8;">
+                            Click a test case to view details
+                        </div>
+
+                        {% for env, suites in data.items() %}
+                            {% for suite_name, tests in suites.items() %}
+                                {% set sslug = suite_name | replace(' ', '_') | replace('.', '_') | replace('/', '_') | replace('\\', '_') | replace('"', '') | replace("'", '') %}
+                                {% for test in tests %}
+                                    <div id="detail-{{ sslug }}-{{ loop.index0 }}" class="case-detail" style="display:none;">
+
+                                        {% if test.test_case_id == 'ORPHAN' %}
+                                            <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+                                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                                                    <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid rgba(239,68,68,0.4);letter-spacing:0.5px;">⚠ ORPHAN</span>
+                                                    <h3 style="margin:0;color:#fca5a5;">{{ test.test_case_name }}</h3>
+                                                </div>
+                                                <div style="color:#94a3b8;font-size:13px;">{{ test.comment }}</div>
+                                            </div>
+                                        {% else %}
+                                            <h3>
+                                                {{ test.test_case_id }} — {{ test.test_case_name }}
+                                                <span style="font-size:13px;
+                                                    {% if test.status and 'PASS' in test.status|upper %}color:#22c55e;
+                                                    {% elif test.status == 'INCOMPLETE' %}color:#facc15;
+                                                    {% else %}color:#ef4444;{% endif %}
+                                                ">({{ test.status }})</span>
+                                            </h3>
+                                            {% if test.comment %}
+                                                <div style="margin-bottom:8px;font-size:13px;"><b>Comment:</b> {{ test.comment }}</div>
+                                            {% endif %}
+                                            {# time shown verbatim — no conversion #}
+                                            {% if test.time and test.time != 'x' %}
+                                                <div style="margin-bottom:8px;font-size:13px;"><b>Time taken:</b> {{ test.time }}</div>
+                                            {% endif %}
+                                            <div style="margin-bottom:14px;font-size:13px;">
+                                                <b>URL:</b>
+                                                {% if test.url and 'file://' not in test.url %}
+                                                    <a href="{{ test.url }}" target="_blank" style="color:#60a5fa;word-break:break-all;">{{ test.url }}</a>
+                                                {% else %}
+                                                    <span class="muted">—</span>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+
+                                        <h4 style="margin:10px 0 8px;">Logs</h4>
+                                        {% for log in test.logs %}
+                                            <div class="log" style="
+                                                border-left: 3px solid
+                                                {% if log.type == 'error' %}#ef4444
+                                                {% elif log.type == 'force_skip' %}#facc15
+                                                {% elif log.type == 'heartbeat' %}#38bdf8
+                                                {% elif log.type == 'update' %}#818cf8
+                                                {% else %}#334155{% endif %};
+                                            ">
+                                                {# timestamp printed verbatim #}
+                                                <div class="log-time">{{ log.timestamp }}</div>
+                                                <div class="log-type-badge" style="
+                                                    background:
+                                                    {% if log.type == 'heartbeat' %}rgba(56,189,248,0.15)
+                                                    {% elif log.type == 'error' %}rgba(239,68,68,0.15)
+                                                    {% elif log.type == 'force_skip' %}rgba(250,204,21,0.15)
+                                                    {% elif log.type == 'update' %}rgba(99,102,241,0.15)
+                                                    {% else %}rgba(255,255,255,0.05){% endif %};
+                                                    color:
+                                                    {% if log.type == 'heartbeat' %}#38bdf8
+                                                    {% elif log.type == 'error' %}#ef4444
+                                                    {% elif log.type == 'force_skip' %}#facc15
+                                                    {% elif log.type == 'update' %}#818cf8
+                                                    {% else %}#94a3b8{% endif %};
+                                                ">{{ log.type | upper }}</div>
+                                                <div class="log-status-dot" style="
+                                                    background:
+                                                    {% if log.status and 'PASS' in log.status|upper %}#22c55e
+                                                    {% elif log.status and ('FAIL' in log.status|upper or 'ERROR' in log.status|upper) %}#ef4444
+                                                    {% elif log.status and 'SKIP' in log.status|upper %}#facc15
+                                                    {% else %}#334155{% endif %};
+                                                "></div>
+                                                <div class="log-message">{{ log.message }}</div>
+                                            </div>
+                                        {% else %}
+                                            <div class="muted" style="padding:10px;">No logs captured for this block.</div>
+                                        {% endfor %}
+
+                                    </div>
+                                {% endfor %}
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== PROFILE ===================== -->
+<div id="profileSection" style="display:none;">
+    <h2>Profile</h2>
+    <div class="profile-grid">
+        <div class="ov-card profile-main">
+            <div class="profile-identity">
+                <div>
+                    <h3 style="margin:0;">Run Operator</h3>
+                    <p class="muted" style="margin:6px 0 0;">QA Automation • RTVS</p>
+                </div>
+                <span class="profile-tag">Active Session</span>
+            </div>
+            <div class="meta-block" style="margin-top:0;">
+                <div>📦 <b>Package:</b> {{ run_summary.test_package }}</div>
+                <div>🌐 <b>Run ID:</b> {{ run_summary.run_id }}</div>
+            </div>
+            <div class="profile-stats">
+                <div class="metric total">Runs<strong id="profileRuns">--</strong></div>
+                <div class="metric pass">Success Rate<strong id="successRate">--%</strong></div>
+                <div class="metric fail">Failures<strong id="failureCount">--</strong></div>
+            </div>
+            <div class="profile-actions">
+                <button class="profile-btn" onclick="showStats()">📊 View Detailed Stats</button>
+                <button class="profile-btn" onclick="showSection('details', document.querySelector('[data-nav=&quot;details&quot;]'))">🗂 Open Sections</button>
+            </div>
+        </div>
+        <div class="profile-side">
+            <div class="ov-card">
+                <h3>🏆 Achievements</h3>
+                <div id="achievementBox" class="muted">No data yet</div>
+            </div>
+            <div class="ov-card">
+                <h3>⏱ Activity</h3>
+                <div id="activityBox" class="muted">No recent activity</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SNAKE ===================== -->
+<div id="snakeSection" style="display:none;">
+    <h2>🐍 Snake Game</h2>
+    <div class="snake-hud">
+        <div>Score: <span id="score">0</span></div>
+        <div>Time: <span id="time">0</span>s</div>
+        <button onclick="restartGame()">Restart</button>
+    </div>
+    <div class="snake-stage">
+        <canvas id="snakeGameFull" class="snake-canvas" width="1260" height="720"></canvas>
+    </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ===================== POPUP + CONFETTI ===================== -->
+<div id="statPopup" class="stat-popup">
+    <div class="popup-card">
+        <h2 id="popupRuns"></h2>
+        <p id="popupMessage"></p>
+    </div>
+</div>
+<canvas id="confettiCanvas"></canvas>
+
+<!-- ============================================================
+     SERVER → CLIENT BOOTSTRAP
+     The ONLY place Jinja injects values into JavaScript.
+     Every JS module reads from this REPORT object, so the
+     external .js files contain no template syntax at all.
+     ============================================================ -->
+<script>
+var REPORT = {
+    total : {{ total  | default(0) }},
+    passed: {{ passed | default(0) }},
+    failed: {{ failed | default(0) }},
+
+    /* section-wise chart series, emitted from `data` */
+    sectionLabels: [
+        {% for env, suites in data.items() %}
+            {% for suite_name, tests in suites.items() %}
+                "{{ suite_name | truncate(20, true, '…') }}",
+            {% endfor %}
+        {% endfor %}
+    ],
+    sectionPass: [
+        {% for env, suites in data.items() %}
+            {% for suite_name, tests in suites.items() %}
+                {% set ns = namespace(p=0) %}
+                {% for t in tests %}{% if t.status and 'PASS' in t.status|upper %}{% set ns.p = ns.p+1 %}{% endif %}{% endfor %}
+                {{ ns.p }},
+            {% endfor %}
+        {% endfor %}
+    ],
+    sectionFail: [
+        {% for env, suites in data.items() %}
+            {% for suite_name, tests in suites.items() %}
+                {% set ns = namespace(f=0) %}
+                {% for t in tests %}{% if not (t.status and 'PASS' in t.status|upper) %}{% set ns.f = ns.f+1 %}{% endif %}{% endfor %}
+                {{ ns.f }},
+            {% endfor %}
+        {% endfor %}
+    ]
+};
+window.REPORT = REPORT;
+</script>
+
+<!-- ============================================================
+     SCRIPTS (modular, plain classic scripts)
+     Load order matters:
+       utils → navigation → graphs → sections → profile → snake → app(init)
+     ============================================================ -->
+<script src="js/utils.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/graphs.js"></script>
+<script src="js/sections.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/snake.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

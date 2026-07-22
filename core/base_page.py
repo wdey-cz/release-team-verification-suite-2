@@ -1,5 +1,6 @@
 import traceback
 
+from selenium.common import TimeoutException, NoSuchElementException
 from selenium.common import TimeoutException
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
@@ -95,6 +96,13 @@ class BasePage:
             EC.visibility_of_element_located(locator)
         )
         return element.text
+
+    def check_exists_byclass(self, classname):
+        try:
+            self.driver.find_element(By.CLASS_NAME, classname)
+        except NoSuchElementException:
+            return False
+        return True
 
     def get_element_attribute(self, locator, attribute, timeout=10):
         # Get a specific attribute value from an element
@@ -194,7 +202,7 @@ class BasePage:
         report = {'CURRENT_URL': self.driver.current_url, 'CURRENT_TITLE': self.driver.title}  # [Current URL, Page Title]
         return report
 
-    def ajax_preloader_wait(self, desc="", appear_timeout=1, disappear_timeout=300):
+    def ajax_preloader_wait(self, desc="", appear_timeout=1, disappear_timeout=500):
         t0 = time.perf_counter()
         seen = False
 
