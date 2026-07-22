@@ -134,19 +134,80 @@ def login_splash_test():
 
 
         pat_dash = CozevaPatientDashboardPage(driver)
-        pat_dash.navigate_to_url("https://www.cozeva.com/patient_detail/3ES838F?session=YXBwX2lkPXJlZ2lzdHJpZXMmcGF5ZXJJZD0xNTAwJmN1c3RJZD0xNTAwJnZncElkPTE1MDAmdnBJZD0xNTAwJnZnMElkPTE1MDAmb3JnSWQ9MTUwMCZwVWlkPTExNTM3OA%3D%3D&cozeva_id=3ES838F&patient_id=129614771&tab_type=CareOps&first_load=1")
-        pat_dash.ajax_preloader_wait("Loading patient dashboard")
+        # pat_dash.navigate_to_url("https://www.cozeva.com/registries/219?session=YXBwX2lkPXJlZ2lzdHJpZXMmY3VzdElkPTE1MDAmcGF5ZXJJZD0xNTAwJm9yZ0lkPTE1MDAmdmdwSWQ9MTUwMCZ2cElkPTE1MDA&orgId=1500&plan_type=ALL&quarter=2026-12-31&payerId=1500&perf_stats_enabled=1&utl=0&is_cost=0&dashboard_metric_category=0&cont_discont_flag=0&table_id=metric-support-prov-ls#qt-sp-prov-ls")
+        # pat_dash.ajax_preloader_wait("loading mspl")
+
+        mspl = CozevaMSPLPage(driver)
+
+        measures = registries_page.fetch_num_den_from_registry()
+        random_measure = choice(list(measures.keys()))
+        print("Clicking on random measure:", random_measure, "with Metric ID:",
+              measures[random_measure]['METRIC_ID'])
+
+        registries_page.click_on_measure_by_metric_id(measures[random_measure]['METRIC_ID'])
+
+
+        registries_page.ajax_preloader_wait("Loading mspl for measure: " + random_measure)
         #print(pat_dash.perform_pcp_checks())
 
         # Next demographic
         #print(pat_dash.fetch_gaps())
         #print(pat_dash.perform_pcp_checks())
-        dropdown_names = pat_dash.fetch_history_dropdown_names()
-        pat_dash.sleep_code(4)
-        for dropdown in dropdown_names:
-            print(f"Interacting with dropdown: {dropdown}")
-            pat_dash.click_history_dropdown_option(dropdown)
-            pat_dash.sleep_code(4)
+        # dropdown_names = pat_dash.fetch_history_dropdown_names()
+        # pat_dash.sleep_code(4)
+        # for dropdown in dropdown_names:
+        #     print(f"Interacting with dropdown: {dropdown}")
+        #     pat_dash.click_history_dropdown_option(dropdown)
+        #     pat_dash.sleep_code(4)
+
+        # print(pat_dash.fetch_coverage_info())
+        search_strings = {'Practice': None, 'Provider': None, 'Patient': None}
+        if mspl.is_mspl_page_opened():
+
+
+            search_strings['Practice'] = choice(
+                mspl.fetch_practice_names()) if mspl.fetch_practice_names() else None
+            search_strings['Provider'] = choice(
+                mspl.fetch_provider_names()) if mspl.fetch_provider_names() else None
+            search_strings['Patient'] = choice(
+                mspl.fetch_patient_names()) if mspl.fetch_patient_names() else None
+
+            print("SEARCHING STRINGS COLLECTED FROM MSPL PAGE:", search_strings)
+
+            header_nav.enter_global_search_value(search_strings['Practice'], 'Practice')
+            collection_header_visible = header_nav.submit_global_search()
+            header_nav.click_global_search_result("Practice", "Altamed")
+
+            header_nav.switch_tab(1)
+            header_nav.sleep_code(5)
+            header_nav.switch_tab_and_close_current(0)
+            header_nav.navigate_to_url(start_url)
+
+            header_nav.enter_global_search_value(search_strings['Provider'], 'Provider')
+            collection_header_visible = header_nav.submit_global_search()
+            header_nav.click_global_search_result("Provider", "Altamed")
+
+            header_nav.switch_tab(1)
+            header_nav.sleep_code(5)
+            header_nav.switch_tab_and_close_current(0)
+            header_nav.navigate_to_url(start_url)
+
+            header_nav.enter_global_search_value(search_strings['Patient'], 'Patient')
+            collection_header_visible = header_nav.submit_global_search()
+            header_nav.click_global_search_result("Patient", "Altamed")
+
+            header_nav.switch_tab(1)
+            header_nav.sleep_code(5)
+            header_nav.switch_tab_and_close_current(0)
+            header_nav.navigate_to_url(start_url)
+
+
+
+        pat_dash.sleep_code(50)
+
+
+
+
 
 
 
