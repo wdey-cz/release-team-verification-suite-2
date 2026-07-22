@@ -183,8 +183,11 @@ def logged_in_driver(session_driver, config_assists):
     print("Navigating to login page...")
     login_page.go_to_login_page("https://www.cozeva.com")
     print("Performing login...")
-    creds = db.fetch_tester_credentials()
-    login_page.enter_credentials_and_login(*creds)
+    username = os.environ.get("CS2_RTVS_User")
+    password = os.environ.get("CS2_RTVS_Password")
+    if not username or not password:
+        raise RuntimeError("CS2_RTVS_User / CS2_RTVS_Password environment variables are not set.")
+    login_page.enter_credentials_and_login(username, password)
     print("Login Complete. Waiting for 5 seconds...")
     login_page.sleep_code(5)
 

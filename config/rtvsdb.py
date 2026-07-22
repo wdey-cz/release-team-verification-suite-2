@@ -108,21 +108,56 @@ class RTVSDB:
         """Close the database connection."""
         self.connection.close()
 
-    # DB functions for the tester_info table
+    # DB functions for the tester_info table (single account; credentials live in env)
     def create_tester_info_table(self):
         with self.connection:
             cursor = self.connection.cursor()
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS tester_info (
               id                   INTEGER PRIMARY KEY AUTOINCREMENT,
-              username             TEXT NOT NULL UNIQUE,
-              password             TEXT NOT NULL,
               email                TEXT NOT NULL,
               reason_for_login     TEXT NOT NULL,
               signature            TEXT NOT NULL,
               updated_at           TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
             """)
+            self._migrate_tester_info_drop_credentials(cursor)
+
+    def _migrate_tester_info_drop_credentials(self, cursor) -> None:
+        """Drop legacy username/password columns by rebuilding the table if needed."""
+        cursor.execute("PRAGMA table_info(tester_info);")
+        cols = {r[1] for r in cursor.fetchall()}
+        if not cols:
+            return
+        if "username" not in cols and "password" not in cols:
+            return
+        cursor.execute(
+            """
+            SELECT email, reason_for_login, signature, updated_at
+            FROM tester_info
+            ORDER BY id ASC
+            LIMIT 1;
+            """
+        )
+        row = cursor.fetchone()
+        cursor.execute("DROP TABLE tester_info;")
+        cursor.execute("""
+            CREATE TABLE tester_info (
+              id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+              email                TEXT NOT NULL,
+              reason_for_login     TEXT NOT NULL,
+              signature            TEXT NOT NULL,
+              updated_at           TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+        if row:
+            cursor.execute(
+                """
+                INSERT INTO tester_info (email, reason_for_login, signature, updated_at)
+                VALUES (?, ?, ?, ?);
+                """,
+                row,
+            )
 
     def clear_tester_info_table(self):
         """Delete all records from tester_info table."""
@@ -130,54 +165,132 @@ class RTVSDB:
             cursor = self.connection.cursor()
             cursor.execute("DELETE FROM tester_info;")
 
-    def insert_tester_info(self, username: str, password: str, email: str, reason: str, signature: str):
-        """Insert a new tester info into the database."""
+    def insert_tester_info(
+        self,
+        email: str,
+        reason: str,
+        signature: str,
+    ):
+        """Replace tester_info with a single account row (no credentials)."""
         with self.connection:
             cursor = self.connection.cursor()
+            cursor.execute("DELETE FROM tester_info;")
             cursor.execute("""
-                INSERT INTO tester_info (username, password, email, reason_for_login, signature)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(username) DO UPDATE SET
-                  password=excluded.password,
-                  email=excluded.email,
-                  reason_for_login=excluded.reason_for_login,
-                  signature=excluded.signature,
-                  updated_at=CURRENT_TIMESTAMP;
-            """, (username, password, email, reason, signature))
+                INSERT INTO tester_info (email, reason_for_login, signature)
+                VALUES (?, ?, ?);
+            """, (email, reason, signature))
+
+    def tester_signature_exists(self, signature: str, *, exclude_id: int | None = None) -> bool:
+        cursor = self.connection.cursor()
+        if exclude_id is not None:
+            cursor.execute(
+                """
+                SELECT 1
+                FROM tester_info
+                WHERE lower(signature) = lower(?)
+                  AND id <> ?
+                LIMIT 1;
+                """,
+                (signature, exclude_id),
+            )
+        else:
+            cursor.execute(
+                "SELECT 1 FROM tester_info WHERE lower(signature) = lower(?) LIMIT 1;",
+                (signature,),
+            )
+        return cursor.fetchone() is not None
+
+    def fetch_tester_account(self) -> dict | None:
+        """Fetch the single stored tester meta row (email/reason/signature)."""
+        cursor = self.connection.cursor()
+        cursor.execute(
+            """
+            SELECT id, email, signature, reason_for_login, updated_at
+            FROM tester_info
+            ORDER BY id ASC
+            LIMIT 1;
+            """
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        cols = [d[0] for d in cursor.description]
+        return dict(zip(cols, row))
+
+    def fetch_primary_tester_account(self) -> dict | None:
+        """
+        Fetch tester account meta from DB plus username from CS2_RTVS_User env.
+        Returns None when neither env username nor DB meta is present.
+        """
+        account = self.fetch_tester_account()
+        username = (os.environ.get("CS2_RTVS_User") or "").strip()
+        if not account and not username:
+            return None
+        out = dict(account) if account else {}
+        if username:
+            out["username"] = username
+        return out
+
+    def update_tester_info(
+        self,
+        *,
+        email: str,
+        reason_for_login: str,
+        signature: str,
+    ) -> bool:
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute("SELECT id FROM tester_info ORDER BY id ASC LIMIT 1;")
+            row = cursor.fetchone()
+            if not row:
+                cursor.execute(
+                    """
+                    INSERT INTO tester_info (email, reason_for_login, signature)
+                    VALUES (?, ?, ?);
+                    """,
+                    (email, reason_for_login, signature),
+                )
+                return True
+            cursor.execute(
+                """
+                UPDATE tester_info
+                SET email = ?, reason_for_login = ?, signature = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?;
+                """,
+                (email, reason_for_login, signature, int(row[0])),
+            )
+            return cursor.rowcount > 0
 
     def fetch_tester_reason(self):
-        """Fetch tester reason for login by username."""
+        """Fetch tester reason for login."""
         cursor = self.connection.cursor()
         cursor.execute("""
             SELECT reason_for_login
-            FROM tester_info;
+            FROM tester_info
+            ORDER BY id ASC
+            LIMIT 1;
             """)
         return cursor.fetchone()
 
     def fetch_tester_signature(self):
-        """Fetch tester signature by username."""
+        """Fetch tester signature."""
         cursor = self.connection.cursor()
         cursor.execute("""
             SELECT signature
-            FROM tester_info;
+            FROM tester_info
+            ORDER BY id ASC
+            LIMIT 1;
             """)
         return cursor.fetchone()
 
     def fetch_tester_email(self):
-        """Fetch tester email by username."""
+        """Fetch tester email."""
         cursor = self.connection.cursor()
         cursor.execute("""
             SELECT email
-            FROM tester_info;
-            """)
-        return cursor.fetchone()
-
-    def fetch_tester_credentials(self):
-        """Fetch tester credentials (username and password)."""
-        cursor = self.connection.cursor()
-        cursor.execute("""
-            SELECT username, password
-            FROM tester_info;
+            FROM tester_info
+            ORDER BY id ASC
+            LIMIT 1;
             """)
         return cursor.fetchone()
 
@@ -280,13 +393,35 @@ class RTVSDB:
         columns = {
             'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
             'profile_name': 'TEXT NOT NULL UNIQUE',
+            'owner_username': "TEXT",
             'currently_running': 'TEXT',
             'is_active': 'BOOLEAN NOT NULL DEFAULT 0',
             'last_mfa_time': f"TEXT NOT NULL DEFAULT '{default_timestamp}'",
         }
         self.create_table('chrome_profiles', columns)
+        self._ensure_chrome_profile_owner_column()
 
-    def initialize_chrome_profiles(self, profile_count: int = 5, name_prefix: str = "ChromeTestProfile"):
+    def _ensure_chrome_profile_owner_column(self):
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute("PRAGMA table_info(chrome_profiles);")
+            cols = {r[1] for r in cursor.fetchall()}
+            if "owner_username" not in cols:
+                cursor.execute("ALTER TABLE chrome_profiles ADD COLUMN owner_username TEXT;")
+            # for old data, map unowned rows to CS2_RTVS_User if set
+            owner = (os.environ.get("CS2_RTVS_User") or "").strip()
+            if owner:
+                cursor.execute(
+                    "UPDATE chrome_profiles SET owner_username = ? WHERE owner_username IS NULL OR owner_username = '';",
+                    (owner,),
+                )
+
+    def initialize_chrome_profiles(
+        self,
+        profile_count: int = 5,
+        name_prefix: str = "ChromeTestProfile",
+        owner_username: str | None = None,
+    ):
         """
         Initialize chrome_profiles with default profiles (idempotent).
         Creates rows: ChromeTestProfile1...N with profile_path NULL and is_active 0.
@@ -294,18 +429,36 @@ class RTVSDB:
         if profile_count <= 0:
             return
 
-        profiles = [(f"{name_prefix}{i}", "Not running, MFA Expired", 0) for i in range(1, profile_count + 1)]
+        profiles = [
+            (
+                f"{owner_username}__{name_prefix}{i}" if owner_username else f"{name_prefix}{i}",
+                owner_username,
+                "Not running, MFA Expired",
+                0,
+            )
+            for i in range(1, profile_count + 1)
+        ]
 
         with self.connection:
             cursor = self.connection.cursor()
             cursor.executemany(
                 """
-                INSERT INTO chrome_profiles (profile_name, currently_running, is_active)
-                VALUES (?, ?, ?)
+                INSERT INTO chrome_profiles (profile_name, owner_username, currently_running, is_active)
+                VALUES (?, ?, ?, ?)
                 ON CONFLICT(profile_name) DO NOTHING;
                 """,
                 profiles,
             )
+
+    def initialize_chrome_profiles_for_tester(
+        self, username: str, profile_count: int = 10, name_prefix: str = "ChromeTestProfile"
+    ) -> None:
+        self.create_chrome_profile_info_table()
+        self.initialize_chrome_profiles(
+            profile_count=profile_count,
+            name_prefix=name_prefix,
+            owner_username=username,
+        )
 
     def display_chrome_profiles(self):
         """Display the Chrome profiles in the database."""
@@ -363,7 +516,7 @@ class RTVSDB:
         """)
         return cursor.fetchall()
 
-    def claim_first_inactive_chrome_profile(self, claimed_by: str) -> str | None:
+    def claim_first_inactive_chrome_profile(self, claimed_by: str, owner_username: str | None = None) -> str | None:
         """
         Atomically:
           - lock for write (BEGIN IMMEDIATE)
@@ -389,12 +542,13 @@ class RTVSDB:
                         SELECT id
                         FROM chrome_profiles
                         WHERE is_active = 0
+                          AND (? IS NULL OR owner_username = ?)
                         ORDER BY id ASC
                         LIMIT 1
                     )
                     RETURNING profile_name;
                     """,
-                    (claimed_by,),
+                    (claimed_by, owner_username, owner_username),
                 )
                 row = cur.fetchone()
                 self.connection.commit()
@@ -407,9 +561,12 @@ class RTVSDB:
                     SELECT id, profile_name
                     FROM chrome_profiles
                     WHERE is_active = 0
+                      AND (? IS NULL OR owner_username = ?)
                     ORDER BY id ASC
                     LIMIT 1;
                     """
+                    ,
+                    (owner_username, owner_username),
                 )
                 row = cur.fetchone()
                 if not row:

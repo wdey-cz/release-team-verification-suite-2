@@ -56,6 +56,7 @@ class ConfigAssists:
         self.db = RTVSDB()
         self.run_config: RunConfiguration | None = None
         self.set_run_configuration(RunConfiguration())
+        self.load_cs2_credentials_into_environ()
 
     def create_first_time_setup(
         self,
@@ -68,8 +69,9 @@ class ConfigAssists:
         self.install_requirements()
         # Create the chrome_profiles table if it doesn't exist
         self.db.create_chrome_profile_info_table()
-        # Initialize the table with default profiles
-        self.db.initialize_chrome_profiles(profile_count=10)
+        # Initialize generic default profiles only for legacy/no-account setup.
+        if not tester_username:
+            self.db.initialize_chrome_profiles(profile_count=10)
         self.db.create_customer_tables()
         self.db.load_customer_json_into_db()
         self.db.create_run_and_log_tables()
@@ -82,18 +84,81 @@ class ConfigAssists:
             and tester_reason_for_login
             and tester_signature
         ):
-            # Clear existing records first
-            self.db.clear_tester_info_table()
-            # Insert new tester info
+            self.ensure_cs2_credentials_env(tester_username, tester_password)
             self.db.insert_tester_info(
-                tester_username,
-                tester_password,
                 tester_email,
                 tester_reason_for_login,
                 tester_signature,
             )
+            self.db.initialize_chrome_profiles_for_tester(
+                os.environ.get("CS2_RTVS_User") or tester_username,
+                profile_count=10,
+            )
 
+    @staticmethod
+    def ensure_cs2_credentials_env(username: str, password: str) -> None:
+        """
+        Persist CS2_RTVS_User / CS2_RTVS_Password as Windows user environment variables if missing.
+        Also mirrors into the current process os.environ when the process does not already have them.
+        """
+        ConfigAssists._ensure_user_env_var("CS2_RTVS_User", username)
+        ConfigAssists._ensure_user_env_var("CS2_RTVS_Password", password)
 
+    @staticmethod
+    def load_cs2_credentials_into_environ() -> None:
+        """Load CS2_RTVS_User / CS2_RTVS_Password from the user environment into this process if missing."""
+        ConfigAssists._load_user_env_var_into_process("CS2_RTVS_User")
+        ConfigAssists._load_user_env_var_into_process("CS2_RTVS_Password")
+
+    @staticmethod
+    def _load_user_env_var_into_process(name: str) -> None:
+        if os.environ.get(name):
+            return
+        if os.name != "nt":
+            return
+        import winreg
+
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as key:
+                os.environ[name] = str(winreg.QueryValueEx(key, name)[0])
+        except FileNotFoundError:
+            return
+
+    @staticmethod
+    def _ensure_user_env_var(name: str, value: str) -> None:
+        # Prefer already-present process env (do not overwrite).
+        if os.environ.get(name):
+            return
+
+        if os.name == "nt":
+            import winreg
+
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as key:
+                    existing = winreg.QueryValueEx(key, name)[0]
+                    # Exists in user env but not this process — load into process only.
+                    os.environ[name] = str(existing)
+                    return
+            except FileNotFoundError:
+                pass
+
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_SET_VALUE
+            ) as key:
+                winreg.SetValueEx(key, name, 0, winreg.REG_EXPAND_SZ, value)
+            try:
+                import ctypes
+
+                ctypes.windll.user32.SendMessageTimeoutW(
+                    0xFFFF, 0x001A, 0, "Environment", 0x0002, 5000, None
+                )
+            except Exception:
+                pass
+        else:
+            # Non-Windows: no persistent user env API here; set for this process only.
+            pass
+
+        os.environ[name] = value
 
     def install_requirements(self) -> list[str]:
         prefix = self._pick_external_python_for_setup()
@@ -253,8 +318,11 @@ class ConfigAssists:
 
         tag = run_id or "no_run_id"
         claimed_by = f"{tag}|pid={os.getpid()}"
-
-        return self.db.claim_first_inactive_chrome_profile(claimed_by=claimed_by)
+        owner_username = (os.environ.get("CS2_RTVS_User") or "").strip() or None
+        return self.db.claim_first_inactive_chrome_profile(
+            claimed_by=claimed_by,
+            owner_username=owner_username,
+        )
 
     # Customer table interactors
     def get_role_dict_for_customer_id(self, customer_id: int) -> dict:

@@ -1,5 +1,6 @@
 import time
 import traceback
+import os
 from random import choice
 
 from core.driver_factory import WebDriverFactory
@@ -32,8 +33,11 @@ def login_splash_test():
         print("Navigating to login page...")
         login_page.go_to_login_page("https://www.cozeva.com")
         print("Performing login...")
-        creds = db.fetch_tester_credentials()
-        login_page.enter_credentials_and_login(creds[0], creds[1])
+        username = os.environ.get("CS2_RTVS_User")
+        password = os.environ.get("CS2_RTVS_Password")
+        if not username or not password:
+            raise RuntimeError("CS2_RTVS_User / CS2_RTVS_Password environment variables are not set.")
+        login_page.enter_credentials_and_login(username, password)
         print("Login Complete. Waiting for 5 seconds...")
         login_page.sleep_code(5)
 
