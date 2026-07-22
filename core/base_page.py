@@ -316,6 +316,25 @@ class HeaderNavBar(BasePage):
     # GLOBAL SEARCH SECTION
     # Global search locators
     GLOBAL_SEARCH_BAR_INPUT = (By.ID, "globalsearch_input")
+    GLOBAL_SEARCH_COLLECTION_HEADER = (By.CLASS_NAME, "collection-header")
+    GLOBAL_SEARCH_NO_RESULTS = (By.XPATH, "//ul[@id='search_results']/li[contains(text(),'No results found')]")
+
+    # Global search locators for practice
+    GLOBAL_SEARCH_PRACTICES_TAB = (By.ID, "search_practices_link")
+    GLOBAL_SEARCH_PRACTICES_LIST = (By.XPATH, "//ul[@class = 'collection with-header']/li[contains(@class,'collection-item')]")
+    GLOBAL_SEARCH_PRACTICES_CLIENT_NAME = (By.XPATH, ".//div[contains(@class,'col')]")
+
+    # global search locators for provider
+    GLOBAL_SEARCH_PROVIDERS_TAB = (By.ID, "search_providers_link")
+    GLOBAL_SEARCH_PROVIDERS_LIST = (By.XPATH, "//ul[@class = 'collection with-header']/li[contains(@class,'collection-item')]")
+    GLOBAL_SEARCH_PROVIDERS_CLIENT_NAME = (By.XPATH, ".//div[contains(@class,'col')]")
+
+    # Global search locators for patient
+    GLOBAL_SEARCH_PATIENTS_TAB = (By.ID, "search_patients_link")
+    GLOBAL_SEARCH_PATIENTS_LIST = (By.XPATH, "//ul[@class = 'collection with-header']/li[contains(@class,'collection-item')]")
+    GLOBAL_SEARCH_PATIENTS_CLIENT_NAME = (By.XPATH, ".//div[contains(@class,'cust_name_content')]")
+
+
 
 
 
@@ -368,6 +387,89 @@ class HeaderNavBar(BasePage):
                 entry_element.click()
                 self.ajax_preloader_wait()
                 return
+
+    def enter_global_search_value(self, search_string, string_type=""):
+        # enter the search string into the global search bar and press enter
+        self.enter_text(self.GLOBAL_SEARCH_BAR_INPUT, search_string)
+
+    def submit_global_search(self):
+
+        # need to wait for a collection header. Convert this into POM code
+        # start_time = time.perf_counter()
+        #         WebDriverWait(driver, 30).until(
+        #             EC.presence_of_element_located((By.CLASS_NAME, 'collection-header')))
+        #         if len(driver.find_elements(By.CLASS_NAME, 'collection-header')) != 0:
+        #             print("Result got")
+        #             collection_header_found = 1
+        #         driver.find_element_by_id('globalsearch_input').send_keys(Keys.RETURN)
+        #         sf.ajax_preloader_wait(driver)
+        #         time_taken = round((time.perf_counter() - start_time), 3)
+
+        # Wait for the collection header to appear or the no result box instead.
+        try:
+            # self.wait_helpers.wait_for_element_present(self.GLOBAL_SEARCH_COLLECTION_HEADER, timeout=30)
+
+            # Wait until either results header OR no-results message appears try:
+            WebDriverWait(self.driver, 30).until(
+                lambda d: d.find_elements(*self.GLOBAL_SEARCH_COLLECTION_HEADER)
+                          or d.find_elements(*self.GLOBAL_SEARCH_NO_RESULTS)
+            )
+            # press enter in the global search input
+            global_search_input = self.find_element(self.GLOBAL_SEARCH_BAR_INPUT, timeout=10)
+            global_search_input.send_keys(Keys.RETURN)
+            return True
+        except TimeoutException as e:
+            print("Timeout waiting for collection header before submitting global search:", str(e))
+            return False
+
+    def click_global_search_result(self, string_type, client_name):
+        # click the org matching result in the global search results for the given string type (Practice, Patient, Provider)
+        if string_type.lower() == "practice":
+            self.click_element(self.GLOBAL_SEARCH_PRACTICES_TAB, timeout=10)
+            self.ajax_preloader_wait("Clicking Practices tab in global search")
+            practice_results = self.find_elements(self.GLOBAL_SEARCH_PRACTICES_LIST, timeout=10)
+
+            # now we will have to find the client name and make sure its the correct one on the list, and click that one.
+            for result in practice_results:
+                client_name_element = self.find_elements(self.GLOBAL_SEARCH_PRACTICES_CLIENT_NAME, root=result)[6]
+                if client_name_element.text.strip().lower() == client_name.strip().lower():
+                    self.find_element(self.GET_ANCHOR_TAGS_LOCATOR, root=result).click()
+                    self.ajax_preloader_wait("Clicking practice result with client name: " + client_name)
+                    break
+
+        if string_type.lower() == "provider":
+            # Implement provider search click logic here
+            self.click_element(self.GLOBAL_SEARCH_PROVIDERS_TAB, timeout=10)
+            self.ajax_preloader_wait("Clicking Provider tab in global search")
+            provider_results = self.find_elements(self.GLOBAL_SEARCH_PROVIDERS_LIST, timeout=10)
+
+            # now we will have to find the client name and make sure its the correct one on the list, and click that one.
+            for result in provider_results:
+                client_name_element = self.find_elements(self.GLOBAL_SEARCH_PROVIDERS_CLIENT_NAME, root=result)[6]
+                if client_name_element.text.strip().lower() == client_name.strip().lower():
+                    self.find_element(self.GET_ANCHOR_TAGS_LOCATOR, root=result).click()
+                    self.ajax_preloader_wait("Clicking provider result with client name: " + client_name)
+                    break
+
+        if string_type.lower() == "patient":
+            self.click_element(self.GLOBAL_SEARCH_PATIENTS_TAB, timeout=10)
+            self.ajax_preloader_wait("Clicking patient tab in global search")
+            patient_results = self.find_elements(self.GLOBAL_SEARCH_PATIENTS_LIST, timeout=10)
+
+            # now we will have to find the client name and make sure its the correct one on the list, and click that one.
+            for result in patient_results:
+                client_name_element = self.find_element(self.GLOBAL_SEARCH_PATIENTS_CLIENT_NAME, root=result)
+                if client_name_element.text.strip().lower() == client_name.strip().lower():
+                    self.find_element(self.GET_ANCHOR_TAGS_LOCATOR, root=result).click()
+                    self.ajax_preloader_wait("Clicking patient result with client name: " + client_name)
+                    break
+
+
+
+
+
+
+
 
 
 
