@@ -1657,64 +1657,64 @@ class ControllerWindow(QtWidgets.QMainWindow):
                     return candidate
                 i += 1
 
-        for client in clients:
-            for role in roles:
-                for browser in browsers:
-                    xlsx_file = reports_dir / f"report_{client}_{role}_{browser}.xlsx"
-
-                    cursor.execute(
-                        """
-                        SELECT timestamp, type, test_case_id, test_name, message, status, time_taken_ms, comment, current_url
-                        FROM test_logs tl
-                        WHERE tl.run_id = ?
-                          AND tl.client_id = ?
-                          AND tl.user_role = ?
-                          AND tl.browser = ?
-                          AND tl.type IN ('test_case', 'heartbeat', 'update')
-                        ORDER BY id ASC;
-                        """,
-                        (run_id, client, role, browser),
-                    )
-                    logs = cursor.fetchall()
-
-                    wb = Workbook()
-                    # Remove the default empty sheet
-                    default_sheet = wb.active
-                    wb.remove(default_sheet)
-
-                    sheets = {}  # map raw tab key -> worksheet
-
-                    if not logs:
-                        # still write an empty workbook with a single sheet so user knows it ran
-                        ws = wb.create_sheet("NO_DATA")
-                        for c, h in enumerate(header, start=1):
-                            cell = ws.cell(row=1, column=c, value=h)
-                            cell.font = header_font
-                    else:
-                        for ts, typ, tci, test_name, msg, status, timetaken, comment, url in logs:
-                            # Put heartbeats (and anything with missing test_name) into a dedicated tab
-                            if typ == "heartbeat" or typ == "update":
-                                tab_key = "HEARTBEAT"
-                            else:
-                                tab_key = str(test_name) if test_name is not None else "NO_TEST_NAME"
-
-                            if tab_key not in sheets:
-                                title = _unique_sheet_title(wb, tab_key)
-                                ws = wb.create_sheet(title)
-                                sheets[tab_key] = ws
-
-                                # header row
-                                for c, h in enumerate(header, start=1):
-                                    cell = ws.cell(row=1, column=c, value=h)
-                                    cell.font = header_font
-
-                            ws = sheets[tab_key]
-                            ws.append([ts, typ, tci, test_name, msg, status, timetaken, comment, url])
-
-                    wb.save(xlsx_file)
-
-        QtWidgets.QMessageBox.information(self, "Export Complete", f"Reports exported to {reports_dir}.")
-        self._append_log(f"[OK] XLSX reports exported for run_id={run_id} to {reports_dir}")
+        # for client in clients:
+        #     for role in roles:
+        #         for browser in browsers:
+        #             xlsx_file = reports_dir / f"report_{client}_{role}_{browser}.xlsx"
+        #
+        #             cursor.execute(
+        #                 """
+        #                 SELECT timestamp, type, test_case_id, test_name, message, status, time_taken_ms, comment, current_url
+        #                 FROM test_logs tl
+        #                 WHERE tl.run_id = ?
+        #                   AND tl.client_id = ?
+        #                   AND tl.user_role = ?
+        #                   AND tl.browser = ?
+        #                   AND tl.type IN ('test_case', 'heartbeat', 'update')
+        #                 ORDER BY id ASC;
+        #                 """,
+        #                 (run_id, client, role, browser),
+        #             )
+        #             logs = cursor.fetchall()
+        #
+        #             wb = Workbook()
+        #             # Remove the default empty sheet
+        #             default_sheet = wb.active
+        #             wb.remove(default_sheet)
+        #
+        #             sheets = {}  # map raw tab key -> worksheet
+        #
+        #             if not logs:
+        #                 # still write an empty workbook with a single sheet so user knows it ran
+        #                 ws = wb.create_sheet("NO_DATA")
+        #                 for c, h in enumerate(header, start=1):
+        #                     cell = ws.cell(row=1, column=c, value=h)
+        #                     cell.font = header_font
+        #             else:
+        #                 for ts, typ, tci, test_name, msg, status, timetaken, comment, url in logs:
+        #                     # Put heartbeats (and anything with missing test_name) into a dedicated tab
+        #                     if typ == "heartbeat" or typ == "update":
+        #                         tab_key = "HEARTBEAT"
+        #                     else:
+        #                         tab_key = str(test_name) if test_name is not None else "NO_TEST_NAME"
+        #
+        #                     if tab_key not in sheets:
+        #                         title = _unique_sheet_title(wb, tab_key)
+        #                         ws = wb.create_sheet(title)
+        #                         sheets[tab_key] = ws
+        #
+        #                         # header row
+        #                         for c, h in enumerate(header, start=1):
+        #                             cell = ws.cell(row=1, column=c, value=h)
+        #                             cell.font = header_font
+        #
+        #                     ws = sheets[tab_key]
+        #                     ws.append([ts, typ, tci, test_name, msg, status, timetaken, comment, url])
+        #
+        #             wb.save(xlsx_file)
+        #
+        # QtWidgets.QMessageBox.information(self, "Export Complete", f"Reports exported to {reports_dir}.")
+        # self._append_log(f"[OK] XLSX reports exported for run_id={run_id} to {reports_dir}")
 
     def _open_start_test_dialog(self):
         self._init_assists()
