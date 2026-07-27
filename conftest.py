@@ -52,7 +52,7 @@ def functiondriver(request):
 
 
 @pytest.fixture(scope="session")
-def session_driver(request, config_assists):
+def session_driver(request, config_assists, init_session_state):
     """
     Fixture to initialize and quit WebDriver for each test.
 
@@ -68,6 +68,7 @@ def session_driver(request, config_assists):
     browser = Config.get_browser()
     headless = Config.is_headless()
     rc = config_assists.get_run_configuration()
+    print("inside sessiondriver, with lane_id: ", rc.lane_id)
     driver, profile = WebDriverFactory.get_driver(browser_name=browser, headless=headless, use_chrome_profile=True, download_directory=Config.RTVS_DOWNLOADS_DIR, lane_id = rc.lane_id)
 
     # Set timeouts
@@ -101,7 +102,7 @@ def config_assists():
     yield ca
     ca.db.close()
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def init_session_state(pytestconfig, config_assists):
     """
     Session-level fixture to initialize session state.
@@ -152,6 +153,7 @@ def init_session_state(pytestconfig, config_assists):
     rc.user_role = pytestconfig.getoption("--user-role") or None
     rc.user_name = pytestconfig.getoption("--user-name") or None
     rc.lane_id  = pytestconfig.getoption("--lane-id") or None
+    print("Extracted lane_id from pytest option in conftest: ", rc.lane_id)
     rc.worker = os.getenv("PYTEST_XDIST_WORKER", "local")
     rc.pid = os.getpid()
 
@@ -161,6 +163,8 @@ def init_session_state(pytestconfig, config_assists):
     print(f"  client_id={rc.client_id} role={rc.user_role} user={rc.user_name}")
     print(f"  browser={rc.browser} worker={rc.worker} pid={rc.pid}")
     # create the run row
+
+
 
 
 @pytest.fixture(scope="session")

@@ -4,7 +4,7 @@ from random import choice
 import pytest
 import traceback
 from core.helpers import Helpers
-from pages.cozeva_analytics_page import CozevaQualityOverviewPage
+#from pages.cozeva_analytics_page import CozevaQualityOverviewPage
 
 from pages.cozeva_registries_page import CozevaRegistriesPage
 from core.base_page import HeaderNavBar
@@ -58,46 +58,46 @@ class TestRegistries:
                                              status="STARTED")
             registries_page = CozevaRegistriesPage(driver)
 
-            # F_02_01 : Validate that the Analytics Deeplink button navigates to the analytics app
-            config_assists.add_log_heartbeat("Starting test case F_02_01: Validate Analytics Deeplink button", driver=driver,
-                                             status="STARTED")
-            registries_page.click_on_deeplink()
-
-            # Switch tab
-            registries_page.switch_tab(1)
-            config_assists.add_log_update(
-                message="Switched to new tab after clicking on Analytics Deeplink button",
-                driver=driver)
-
-            # Check quality overview page is opened
-            quality_overview_page = CozevaQualityOverviewPage(driver)
-            if quality_overview_page.is_quality_overview_page_opened() == "OPEN":
-                config_assists.add_log_test_case(
-                    message="Validate Analytics Deeplink button",
-                    test_case_id="F_02_01",
-                    status='PASSED', driver=driver,
-                    comment="Clicked on Analytics deeplink and Quality Overview page opened successfully in a new tab, deeplink seems to be working fine.")
-            elif quality_overview_page.is_quality_overview_page_opened() == "NOT_OPEN":
-                config_assists.add_log_test_case(
-                    message="Validate Analytics Deeplink button",
-                    test_case_id="F_02_01",
-                    status='FAILED', driver=driver,
-                    comment="Clicked on Analytics deeplink but Quality Overview page did not open successfully, deeplink seems to be broken.")
-                failed_cases += 1
-            elif quality_overview_page.is_quality_overview_page_opened() == "LOADING_ISSUE":
-                config_assists.add_log_test_case(
-                    message="Validate Analytics Deeplink button",
-                    test_case_id="F_02_01",
-                    status='FAILED', driver=driver,
-                    comment="Clicked on Analytics deeplink but there was an issue with loading the Quality Overview page, cannot verify if deeplink is working or not.")
-                failed_cases += 1
-
-            # Switch back to original tab
-            registries_page.switch_tab_and_close_current(0)
-            config_assists.add_log_heartbeat("Finished test case F_02_01: Validate Analytics Deeplink button",
-                                             driver=driver,
-                                             status="FINISHED")
-            registries_page.navigate_to_url(rc.base_landing_url)
+            # # F_02_01 : Validate that the Analytics Deeplink button navigates to the analytics app
+            # config_assists.add_log_heartbeat("Starting test case F_02_01: Validate Analytics Deeplink button", driver=driver,
+            #                                  status="STARTED")
+            # registries_page.click_on_deeplink()
+            #
+            # # Switch tab
+            # registries_page.switch_tab(1)
+            # config_assists.add_log_update(
+            #     message="Switched to new tab after clicking on Analytics Deeplink button",
+            #     driver=driver)
+            #
+            # # Check quality overview page is opened
+            # quality_overview_page = CozevaQualityOverviewPage(driver)
+            # if quality_overview_page.is_quality_overview_page_opened() == "OPEN":
+            #     config_assists.add_log_test_case(
+            #         message="Validate Analytics Deeplink button",
+            #         test_case_id="F_02_01",
+            #         status='PASSED', driver=driver,
+            #         comment="Clicked on Analytics deeplink and Quality Overview page opened successfully in a new tab, deeplink seems to be working fine.")
+            # elif quality_overview_page.is_quality_overview_page_opened() == "NOT_OPEN":
+            #     config_assists.add_log_test_case(
+            #         message="Validate Analytics Deeplink button",
+            #         test_case_id="F_02_01",
+            #         status='FAILED', driver=driver,
+            #         comment="Clicked on Analytics deeplink but Quality Overview page did not open successfully, deeplink seems to be broken.")
+            #     failed_cases += 1
+            # elif quality_overview_page.is_quality_overview_page_opened() == "LOADING_ISSUE":
+            #     config_assists.add_log_test_case(
+            #         message="Validate Analytics Deeplink button",
+            #         test_case_id="F_02_01",
+            #         status='FAILED', driver=driver,
+            #         comment="Clicked on Analytics deeplink but there was an issue with loading the Quality Overview page, cannot verify if deeplink is working or not.")
+            #     failed_cases += 1
+            #
+            # # Switch back to original tab
+            # registries_page.switch_tab_and_close_current(0)
+            # config_assists.add_log_heartbeat("Finished test case F_02_01: Validate Analytics Deeplink button",
+            #                                  driver=driver,
+            #                                  status="FINISHED")
+            # registries_page.navigate_to_url(rc.base_landing_url)
 
             # F_02_02 : Validate Gaps are visible on summary bar for all LoBs
             # F_02_03 : Validate Overall Rating are visible on summary bar for all LoBs

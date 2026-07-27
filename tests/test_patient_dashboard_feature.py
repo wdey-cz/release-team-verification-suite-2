@@ -4,7 +4,6 @@ from random import choice
 import pytest
 import traceback
 from core.helpers import Helpers
-from pages.cozeva_analytics_page import CozevaQualityOverviewPage
 from pages.cozeva_mspl_page import CozevaMSPLPage
 from pages.cozeva_patient_dashboard_page import CozevaPatientDashboardPage
 

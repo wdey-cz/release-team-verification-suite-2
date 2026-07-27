@@ -41,6 +41,7 @@ class WebDriverFactory:
             driver = WebDriverFactory.get_driver(browser_name="chrome", headless=True, arguments=["--incognito"])
         """
         browser_name = browser_name.lower()
+        print("Get Driver called with lane ID: ", lane_id)
         
         if browser_name == "chrome":
             return WebDriverFactory._get_chrome_driver(headless, use_chrome_profile, download_directory, lane_id, **kwargs)
@@ -85,6 +86,7 @@ class WebDriverFactory:
         """
         options = ChromeOptions()
         profile_name = None
+        print("Chromedriver creation started with lane ID: ", lane_id)
 
         if headless:
             options.add_argument("--headless")
@@ -139,6 +141,8 @@ class WebDriverFactory:
         # Default download directory
         if download_directory:
             download_directory = download_directory / (lane_id or "")
+            print("DownloadDirectory: ", download_directory)
+            print("lane_id: ", lane_id)
             download_directory.mkdir(parents=True, exist_ok=True)
             prefs = {
                 "download.default_directory": str(download_directory),
