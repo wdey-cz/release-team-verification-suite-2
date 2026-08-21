@@ -25,6 +25,17 @@ from config.rtvsdb import RTVSDB  # type: ignore
 from config.config_assists import ConfigAssists  # type: ignore
 from core.rtvs_runner import build_lanes, print_plan, run_lanes_parallel, _pick_external_python
 from core.config import Config
+from pages.cozeva_hcc_v28_page import MEASURES
+
+HCC_V28_MARKER = "HCCV28ValidationPackage"
+HCC_ENV_KEYS = (
+    "RTVS_HCC_YEAR",
+    "RTVS_HCC_MEASURES",
+    "RTVS_HCC_PROVIDER_COUNT",
+    "RTVS_HCC_PATIENT_COUNT",
+    "RTVS_HCC_PATIENT_DASHBOARD",
+    "RTVS_HCC_LOB",
+)
 
 
 def utc_to_local_display(utc_timestamp_str: str) -> str:
@@ -113,6 +124,7 @@ class TestRunWorker(QtCore.QThread):
         max_parallel_lanes: int,
         test_env: str,
         headless: bool,
+        extra_env: dict[str, str] | None = None,
     ):
         super().__init__()
         self.db_path = db_path
@@ -127,6 +139,7 @@ class TestRunWorker(QtCore.QThread):
         self.max_parallel_lanes = max_parallel_lanes
         self.test_env = test_env
         self.headless = headless
+        self.extra_env = dict(extra_env or {})
 
     def run(self):
         final_status = "ERR"
@@ -136,6 +149,13 @@ class TestRunWorker(QtCore.QThread):
             base_env["TEST_ENV"] = self.test_env
             base_env["HEADLESS"] = "true" if self.headless else "false"
             base_env["RTVS_DB_PATH"] = self.db_path
+
+            # Clear any leftover HCC env from prior controller sessions, then apply this run's values
+            for key in HCC_ENV_KEYS:
+                base_env.pop(key, None)
+            for key, value in self.extra_env.items():
+                if value is not None:
+                    base_env[str(key)] = str(value)
 
             lanes = build_lanes(
                 clients=self.clients,
@@ -225,6 +245,7 @@ class StartTestDialog(QtWidgets.QDialog):
         self.resize(900, 600)
 
         self._db = db
+        self._hcc_mode = False
 
         root = QtWidgets.QVBoxLayout(self)
 
@@ -252,12 +273,9 @@ class StartTestDialog(QtWidgets.QDialog):
         self.package_desc_input.setReadOnly(True)
         self.package_desc_input.setPlaceholderText("Select a test package to see its description")
 
-        # Signals
+        # Signals (connect after widgets exist; initial marker load at end of __init__)
         self.category_combo.currentTextChanged.connect(self.on_category_changed)
         self.marker_combo.currentTextChanged.connect(self.on_marker_changed)
-
-        # Initial population
-        self.on_category_changed(self.category_combo.currentText())
 
         # Helper to make "Label + Widget" as a mini horizontal row
         def labeled_row(label_text: str, widget: QtWidgets.QWidget) -> QtWidgets.QWidget:
@@ -301,7 +319,7 @@ class StartTestDialog(QtWidgets.QDialog):
         panes = QtWidgets.QHBoxLayout()
 
         self.clients_list = self._make_check_list("Clients (from customers table)")
-        self.roles_list = self._make_check_list("Roles (from customer_accounts table)")
+        self.roles_list = self._make_check_list("Roles (from customer_accounts table)", with_select_all=True)
         self.browsers_list = self._make_check_list("Browsers")
 
         panes.addWidget(self.clients_list["group"])
@@ -309,8 +327,7 @@ class StartTestDialog(QtWidgets.QDialog):
         panes.addWidget(self.browsers_list["group"])
         root.addLayout(panes)
 
-        # Manual fallback inputs (comma separated) if tables empty or user prefers typing
-        # Manual fallback inputs (comma separated) in ONE row
+        # Manual fallback inputs (comma separated) in ONE row — reused for HCC params when marker is HCC V28
         self.manual_clients = QtWidgets.QLineEdit()
         self.manual_clients.setPlaceholderText("e.g. 1000,1500")
 
@@ -320,13 +337,35 @@ class StartTestDialog(QtWidgets.QDialog):
         self.manual_browsers = QtWidgets.QLineEdit()
         self.manual_browsers.setPlaceholderText("e.g. chrome,firefox")
 
+        self.manual_clients_label = QtWidgets.QLabel("Manual clients:")
+        self.manual_clients_label.setMinimumWidth(110)
+        self.manual_roles_label = QtWidgets.QLabel("Manual roles:")
+        self.manual_roles_label.setMinimumWidth(110)
+        self.manual_browsers_label = QtWidgets.QLabel("Manual browsers:")
+        self.manual_browsers_label.setMinimumWidth(110)
+
+        self.patient_dashboard_chk = QtWidgets.QCheckBox("Patient Dashboard check")
+        self.patient_dashboard_chk.setChecked(False)
+        self.patient_dashboard_chk.setToolTip("Maps to RTVS_HCC_PATIENT_DASHBOARD (Yes when checked, No when unchecked)")
+        self.patient_dashboard_chk.setVisible(False)
+
+        def labeled_field(label: QtWidgets.QLabel, widget: QtWidgets.QWidget) -> QtWidgets.QWidget:
+            w = QtWidgets.QWidget()
+            lay = QtWidgets.QHBoxLayout(w)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.setSpacing(8)
+            lay.addWidget(label)
+            lay.addWidget(widget, 1)
+            return w
+
         manual_row = QtWidgets.QHBoxLayout()
         manual_row.setContentsMargins(0, 0, 0, 0)
         manual_row.setSpacing(16)
 
-        manual_row.addWidget(labeled_row("Manual clients:", self.manual_clients), 2)
-        manual_row.addWidget(labeled_row("Manual roles:", self.manual_roles), 2)
-        manual_row.addWidget(labeled_row("Manual browsers:", self.manual_browsers), 1)
+        manual_row.addWidget(labeled_field(self.manual_clients_label, self.manual_clients), 2)
+        manual_row.addWidget(labeled_field(self.manual_roles_label, self.manual_roles), 2)
+        manual_row.addWidget(labeled_field(self.manual_browsers_label, self.manual_browsers), 1)
+        manual_row.addWidget(self.patient_dashboard_chk, 0)
 
         root.addLayout(manual_row)
 
@@ -379,12 +418,95 @@ class StartTestDialog(QtWidgets.QDialog):
         self._populate_roles()
         self._populate_browsers()
 
-    def _make_check_list(self, title: str) -> dict:
+        # Initial marker population (after HCC/manual widgets exist)
+        self.on_category_changed(self.category_combo.currentText())
+
+    def _make_check_list(self, title: str, *, with_select_all: bool = False) -> dict:
         group = QtWidgets.QGroupBox(title)
         layout = QtWidgets.QVBoxLayout(group)
+
+        select_row_widget = None
+        select_all_chk = None
+        if with_select_all:
+            select_row_widget = QtWidgets.QWidget()
+            select_row = QtWidgets.QHBoxLayout(select_row_widget)
+            select_row.setContentsMargins(0, 0, 0, 0)
+            select_row.setSpacing(8)
+
+            select_all_chk = QtWidgets.QCheckBox("Select all")
+            deselect_all_chk = QtWidgets.QCheckBox("Deselect all")
+            select_all_chk.setToolTip("Check every item in this list")
+            deselect_all_chk.setToolTip("Uncheck every item in this list")
+
+            select_row.addWidget(select_all_chk)
+            select_row.addWidget(deselect_all_chk)
+            select_row.addStretch(1)
+            layout.addWidget(select_row_widget)
+            select_row_widget.setVisible(False)
+
         lw = ClickAnywhereCheckListWidget()
         layout.addWidget(lw)
-        return {"group": group, "list": lw}
+
+        result = {
+            "group": group,
+            "list": lw,
+            "select_row": select_row_widget,
+            "select_all_chk": select_all_chk,
+        }
+
+        if with_select_all and select_all_chk is not None:
+            def _sync_controls() -> None:
+                """Keep 'Select all'/'Deselect all' in step with the list.
+
+                'Deselect all' is only clickable when at least one item is
+                checked; 'Select all' reflects whether every item is checked.
+                """
+                total = lw.count()
+                checked = sum(
+                    1
+                    for i in range(total)
+                    if lw.item(i).checkState() == QtCore.Qt.CheckState.Checked
+                )
+                deselect_all_chk.setEnabled(checked > 0)
+                select_all_chk.blockSignals(True)
+                select_all_chk.setChecked(total > 0 and checked == total)
+                select_all_chk.blockSignals(False)
+
+            def _on_select_all(state: int) -> None:
+                checked = state == QtCore.Qt.CheckState.Checked.value
+                self._set_list_check_state(
+                    lw,
+                    QtCore.Qt.CheckState.Checked if checked else QtCore.Qt.CheckState.Unchecked,
+                )
+                deselect_all_chk.blockSignals(True)
+                deselect_all_chk.setChecked(False)
+                deselect_all_chk.blockSignals(False)
+                _sync_controls()
+
+            def _on_deselect_all(state: int) -> None:
+                if state == QtCore.Qt.CheckState.Checked.value:
+                    self._set_list_check_state(lw, QtCore.Qt.CheckState.Unchecked)
+                    select_all_chk.blockSignals(True)
+                    select_all_chk.setChecked(False)
+                    select_all_chk.blockSignals(False)
+                    deselect_all_chk.blockSignals(True)
+                    deselect_all_chk.setChecked(False)
+                    deselect_all_chk.blockSignals(False)
+                _sync_controls()
+
+            select_all_chk.stateChanged.connect(_on_select_all)
+            deselect_all_chk.stateChanged.connect(_on_deselect_all)
+            # Recompute enabled/checked state whenever an item is toggled.
+            lw.itemChanged.connect(lambda _item: _sync_controls())
+            result["deselect_all_chk"] = deselect_all_chk
+            result["sync_controls"] = _sync_controls
+            _sync_controls()
+
+        return result
+
+    def _set_list_check_state(self, lw: QtWidgets.QListWidget, state: QtCore.Qt.CheckState) -> None:
+        for i in range(lw.count()):
+            lw.item(i).setCheckState(state)
 
     def _add_check_item(self, lw: QtWidgets.QListWidget, label: str, value: str):
         it = QtWidgets.QListWidgetItem(label)
@@ -421,20 +543,93 @@ class StartTestDialog(QtWidgets.QDialog):
         self.marker_combo.setCurrentIndex(0)
         self.marker_combo.blockSignals(False)
 
-        # Clear desc until user picks a real marker
+        # Clear desc until user picks a real marker; restore standard role/manual fields
         self.package_desc_input.setText("")
+        self._set_hcc_mode(False)
 
     def on_marker_changed(self, _index: int) -> None:
         """
         Always pull description from DB for the selected marker.
+        Swap in HCC-specific fields when HCCV28ValidationPackage is selected.
         """
         marker = self.marker_combo.currentData()  # None for sentinel
         if not marker:
             self.package_desc_input.setText("")
+            self._set_hcc_mode(False)
             return
 
         desc = self._db.fetch_test_package_description(str(marker)) or ""
         self.package_desc_input.setText(desc)
+        self._set_hcc_mode(str(marker).strip() == HCC_V28_MARKER)
+
+    def _set_hcc_mode(self, enabled: bool) -> None:
+        """Replace roles/manual fields with HCC measure/year/count/dashboard controls (or restore)."""
+        if enabled == self._hcc_mode:
+            return
+        self._hcc_mode = enabled
+
+        if enabled:
+            self.roles_list["group"].setTitle("Measures (HCC V28)")
+            self._populate_measures()
+            self._set_measures_select_controls_visible(True)
+
+            self.manual_clients_label.setText("Measurement year:")
+            self.manual_clients.setPlaceholderText("e.g. 2026")
+            self.manual_clients.setText("2026")
+
+            self.manual_roles_label.setText("Provider count:")
+            self.manual_roles.setPlaceholderText("e.g. 5")
+            self.manual_roles.setText("5")
+
+            self.manual_browsers_label.setText("Patient count:")
+            self.manual_browsers.setPlaceholderText("e.g. 2")
+            self.manual_browsers.setText("2")
+
+            self.patient_dashboard_chk.setVisible(True)
+            self.patient_dashboard_chk.setChecked(False)
+
+            # HCC lanes do not parallelize by role (roles pane is measures)
+            self.mp_roles_chk.setChecked(False)
+            self.mp_roles_chk.setEnabled(False)
+        else:
+            self.roles_list["group"].setTitle("Roles (from customer_accounts table)")
+            self._set_measures_select_controls_visible(False)
+            self._populate_roles()
+
+            self.manual_clients_label.setText("Manual clients:")
+            self.manual_clients.setPlaceholderText("e.g. 1000,1500")
+            self.manual_clients.clear()
+
+            self.manual_roles_label.setText("Manual roles:")
+            self.manual_roles.setPlaceholderText("e.g. cs,regional_support")
+            self.manual_roles.clear()
+
+            self.manual_browsers_label.setText("Manual browsers:")
+            self.manual_browsers.setPlaceholderText("e.g. chrome,firefox")
+            self.manual_browsers.clear()
+
+            self.patient_dashboard_chk.setVisible(False)
+            self.patient_dashboard_chk.setChecked(False)
+            self.mp_roles_chk.setEnabled(True)
+
+    def _set_measures_select_controls_visible(self, visible: bool) -> None:
+        select_row = self.roles_list.get("select_row")
+        if select_row is not None:
+            select_row.setVisible(visible)
+        select_all_chk = self.roles_list.get("select_all_chk")
+        deselect_all_chk = self.roles_list.get("deselect_all_chk")
+        if select_all_chk is not None:
+            select_all_chk.blockSignals(True)
+            select_all_chk.setChecked(visible)  # measures default to all selected
+            select_all_chk.blockSignals(False)
+        if deselect_all_chk is not None:
+            deselect_all_chk.blockSignals(True)
+            deselect_all_chk.setChecked(False)
+            deselect_all_chk.blockSignals(False)
+        # Refresh enabled/checked state to match the current list contents.
+        sync = self.roles_list.get("sync_controls")
+        if sync is not None:
+            sync()
 
 
     def _populate_clients(self):
@@ -456,6 +651,14 @@ class StartTestDialog(QtWidgets.QDialog):
                 self._add_check_item(lw, str(role), str(role))
         except Exception:
             pass
+
+    def _populate_measures(self):
+        lw = self.roles_list["list"]
+        lw.clear()
+        for measure_id, measure_name in MEASURES.items():
+            self._add_check_item(lw, f"{measure_name} [{measure_id}]", str(measure_id))
+        # Default: select all measures (matches unset RTVS_HCC_MEASURES behavior)
+        self._set_list_check_state(lw, QtCore.Qt.CheckState.Checked)
 
     def _populate_browsers(self):
         lw = self.browsers_list["list"]
@@ -480,16 +683,50 @@ class StartTestDialog(QtWidgets.QDialog):
             raise ValueError("Select a test package (marker).")
         marker = str(marker).strip()
 
-        clients = self._checked_values(self.clients_list["list"]) or self._csv(self.manual_clients.text())
-        roles = self._checked_values(self.roles_list["list"]) or self._csv(self.manual_roles.text())
-        browsers = self._checked_values(self.browsers_list["list"]) or self._csv(self.manual_browsers.text())
+        clients = self._checked_values(self.clients_list["list"])
+        browsers = self._checked_values(self.browsers_list["list"])
+        extra_env: dict[str, str] = {}
 
-        if not clients:
-            raise ValueError("Select at least 1 client (or fill manual clients).")
-        if not roles:
-            raise ValueError("Select at least 1 role (or fill manual roles).")
-        if not browsers:
-            raise ValueError("Select at least 1 browser (or fill manual browsers).")
+        if self._hcc_mode:
+            # Manual row is year / provider count / patient count in HCC mode
+            if not clients:
+                raise ValueError("Select at least 1 client.")
+            measures = self._checked_values(self.roles_list["list"])
+            if not measures:
+                raise ValueError("Select at least 1 HCC measure.")
+
+            year = self.manual_clients.text().strip() or "2026"
+            provider_count = self.manual_roles.text().strip() or "5"
+            patient_count = self.manual_browsers.text().strip() or "2"
+            try:
+                int(provider_count)
+                int(patient_count)
+            except ValueError as e:
+                raise ValueError("Provider count and Patient count must be integers.") from e
+
+            if not browsers:
+                browsers = ["chrome"]
+
+            # Roles pane is measures; default execution role for HCC DATA package
+            roles = ["Cozeva Support"]
+            extra_env = {
+                "RTVS_HCC_YEAR": year,
+                "RTVS_HCC_MEASURES": ",".join(measures),
+                "RTVS_HCC_PROVIDER_COUNT": str(provider_count),
+                "RTVS_HCC_PATIENT_COUNT": str(patient_count),
+                "RTVS_HCC_PATIENT_DASHBOARD": "Yes" if self.patient_dashboard_chk.isChecked() else "No",
+            }
+        else:
+            clients = clients or self._csv(self.manual_clients.text())
+            roles = self._checked_values(self.roles_list["list"]) or self._csv(self.manual_roles.text())
+            browsers = browsers or self._csv(self.manual_browsers.text())
+
+            if not clients:
+                raise ValueError("Select at least 1 client (or fill manual clients).")
+            if not roles:
+                raise ValueError("Select at least 1 role (or fill manual roles).")
+            if not browsers:
+                raise ValueError("Select at least 1 browser (or fill manual browsers).")
 
         return {
             "prefix": self.prefix_input.text().strip() or "RTVS",
@@ -502,9 +739,10 @@ class StartTestDialog(QtWidgets.QDialog):
             "roles": roles,
             "browsers": browsers,
             "mp_clients": self.mp_clients_chk.isChecked(),
-            "mp_roles": self.mp_roles_chk.isChecked(),
+            "mp_roles": False if self._hcc_mode else self.mp_roles_chk.isChecked(),
             "mp_browsers": self.mp_browsers_chk.isChecked(),
             "max_parallel_lanes": int(self.max_parallel_spin.value()),
+            "extra_env": extra_env,
         }
 
 
@@ -1770,7 +2008,10 @@ class ControllerWindow(QtWidgets.QMainWindow):
             run_id=rc.run_id,
             type_="controller",
             status="Info",
-            message=f"Run launched from Controller UI | marker={rc.test_package} | lanes<= {rc.threads}",
+            message=(
+                f"Run launched from Controller UI | marker={rc.test_package} | lanes<= {rc.threads}"
+                + (f" | hcc_env={cfg.get('extra_env')}" if cfg.get("extra_env") else "")
+            ),
             test_package=rc.test_package,
         )
 
@@ -1797,6 +2038,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
             max_parallel_lanes=int(cfg["max_parallel_lanes"]),
             test_env=cfg["env"],
             headless=bool(cfg["headless"]),
+            extra_env=cfg.get("extra_env") or {},
         )
 
         self._workers[rc.run_id] = worker

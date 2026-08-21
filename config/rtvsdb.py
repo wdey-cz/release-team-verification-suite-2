@@ -72,6 +72,8 @@ class RTVSDB:
         self.create_run_and_log_tables()
         self.create_test_package_table()
         self.create_tester_info_table()
+        # Keep marker dropdown in sync with code (upserts new packages like HCCV28)
+        self.load_test_packages_from_dict()
 
         # Commit any initial changes
         self.connection.commit()
@@ -328,7 +330,10 @@ class RTVSDB:
             {"name": "HomePageSearchRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
 
             {"name": "ClientScoresDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"},
-            {"name": "PracticeProviderDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"}
+            {"name": "PracticeProviderDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"},
+            {"name": "HCCV28ValidationPackage", "category": "DATA",
+             "desc": "HCC V28 measure validation across Support/Practice/Provider MSPL and optional Patient Dashboard",
+             "available_to": "CS"},
 
         ]
 
@@ -847,6 +852,35 @@ class RTVSDB:
             CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_ts ON test_logs(run_id, timestamp);
             CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_test ON test_logs(run_id, test_name);
             """)
+        self._ensure_test_logs_columns()
+
+    def _ensure_test_logs_columns(self):
+        """Add columns introduced after the original schema (CREATE IF NOT EXISTS will not alter)."""
+        required = {
+            "test_case_id": "TEXT",
+            "time_taken_ms": "INTEGER",
+            "comment": "TEXT",
+            "current_url": "TEXT",
+            "browser": "TEXT",
+            "test_package": "TEXT",
+            "test_name": "TEXT",
+            "client_id": "INTEGER",
+            "user_role": "TEXT",
+            "user_name": "TEXT",
+            "pid": "INTEGER",
+            "worker": "TEXT",
+            "status": "TEXT",
+            "message": "TEXT",
+        }
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute("PRAGMA table_info(test_logs);")
+            existing = {r[1] for r in cursor.fetchall()}
+            if not existing:
+                return
+            for col, col_type in required.items():
+                if col not in existing:
+                    cursor.execute(f"ALTER TABLE test_logs ADD COLUMN {col} {col_type};")
 
     def insert_test_run(self, rc) -> None: # controller will call this function
         other = json.dumps(rc.other_info or {}, ensure_ascii=False)
