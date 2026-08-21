@@ -880,6 +880,35 @@ class RTVSDB:
             CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_ts ON test_logs(run_id, timestamp);
             CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_test ON test_logs(run_id, test_name);
             """)
+        self._ensure_test_logs_columns()
+
+    def _ensure_test_logs_columns(self):
+        """Add columns introduced after the original schema (CREATE IF NOT EXISTS will not alter)."""
+        required = {
+            "test_case_id": "TEXT",
+            "time_taken_ms": "INTEGER",
+            "comment": "TEXT",
+            "current_url": "TEXT",
+            "browser": "TEXT",
+            "test_package": "TEXT",
+            "test_name": "TEXT",
+            "client_id": "INTEGER",
+            "user_role": "TEXT",
+            "user_name": "TEXT",
+            "pid": "INTEGER",
+            "worker": "TEXT",
+            "status": "TEXT",
+            "message": "TEXT",
+        }
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute("PRAGMA table_info(test_logs);")
+            existing = {r[1] for r in cursor.fetchall()}
+            if not existing:
+                return
+            for col, col_type in required.items():
+                if col not in existing:
+                    cursor.execute(f"ALTER TABLE test_logs ADD COLUMN {col} {col_type};")
 
     def insert_test_run(self, rc) -> None: # controller will call this function
         other = json.dumps(rc.other_info or {}, ensure_ascii=False)
