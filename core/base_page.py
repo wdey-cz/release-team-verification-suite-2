@@ -285,6 +285,9 @@ class HeaderNavBar(BasePage):
     HELP_DROPDOWN = (By.XPATH, "//a[@data-target='help_menu_dropdown']")
     HELP_MENU_OPTION_ELEMENTS = (By.XPATH, "//ul[@id='help_menu_options']/li/a")
 
+    # <span class="specific_most">AltaMed</span>
+    CONTEXT_NAME_ELEMENT = (By.XPATH, "//span[@class='specific_most']")
+
     USER_ICON = (By.XPATH, "//a[@data-target='user_menu_dropdown']")
     USER_DROPDOWN_ELEMENT = (By.ID, "user_menu_dropdown")
     USER_DROPDOWN_OPTION_ELEMENTS = (By.XPATH, "//ul[@id='user_menu_options']/li/a")
@@ -334,6 +337,26 @@ class HeaderNavBar(BasePage):
     GLOBAL_SEARCH_PATIENTS_LIST = (By.XPATH, "//ul[@class = 'collection with-header']/li[contains(@class,'collection-item')]")
     GLOBAL_SEARCH_PATIENTS_CLIENT_NAME = (By.XPATH, ".//div[contains(@class,'cust_name_content')]")
 
+    # AppTray locators
+    APPTRAY_DROPDOWN_BUTTON = (By.XPATH, "//li[@class='app-list']//div[@class='collapsible-trigger']")
+    APPTRAY_ENTRIES = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item')]//a")
+
+    APPTRAY_ANALYTICS = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_analytics')]//a")
+    APPTRAY_BRIDGE = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_cozeva_bridge')]//a")
+    APPTRAY_CARE_EXCHANGE = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_initiating_gateway')]//a")
+    APPTRAY_CASE_MANAGEMENT = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_case_management')]//a")
+    APPTRAY_CHART_REVIEW = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_smart_chart')]//a")
+    APPTRAY_CONFIG_TOOLS = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_self_help_tools')]//a")
+    APPTRAY_COZEVA_CONNECT = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_czc')]//a")
+    APPTRAY_HEDIS_HYBRID = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_hedis_hybrid')]//a")
+    APPTRAY_QUERY_AUTOMATION = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_qa')]//a")
+    APPTRAY_REGISTRIES = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_registries')]//a")
+    APPTRAY_SECURE_MESSAGING = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_cozeva_messages')]//a")
+    APPTRAY_SUPPORT_TOOLS = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_ut')]//a")
+    APPTRAY_TIME_CAPSULE = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_time_capsule')]//a")
+
+    APPTRAY_LOCKED_URL = "javascript:void(0);"
+
 
 
 
@@ -376,6 +399,11 @@ class HeaderNavBar(BasePage):
         entry_elements = self.find_elements(self.SIDEBAR_ENTRIES, timeout=10)
         entries = [elem.text.strip() for elem in entry_elements]
         return entries
+
+    def fetch_context_name(self):
+        # fetch the context name from the header nav bar and return it as a string
+        context_name_element = self.find_element(self.CONTEXT_NAME_ELEMENT, timeout=10)
+        return context_name_element.text.strip()
 
     def click_sidebar_entry(self, entry_name):
         # click the sidebar entry that matches the entry name
@@ -463,6 +491,175 @@ class HeaderNavBar(BasePage):
                     self.find_element(self.GET_ANCHOR_TAGS_LOCATOR, root=result).click()
                     self.ajax_preloader_wait("Clicking patient result with client name: " + client_name)
                     break
+
+    def open_apptray_dropdown(self):
+        '''Since the apptray is in the sidebar, we need to make sure the sidebar is open first.
+        If not, click the sidebar slideout menu to open it. Then check if the apptray options are visible.
+        If not, click the apptray dropdown button to open it.'''
+        self.open_sidebar()
+
+        # check if the apptray options are visible. If not, click the apptray dropdown button to open it.
+        if not self.is_element_visible(self.APPTRAY_ENTRIES, timeout=5):
+            self.click_element(self.APPTRAY_DROPDOWN_BUTTON, timeout=10)
+            self.ajax_preloader_wait("Opening apptray dropdown")
+
+        # make sure the apptray options are visible now. If not, raise an exception, but return true if options are visible. This is to ensure that the apptray options are visible before clicking any of them.
+        if not self.is_element_visible(self.APPTRAY_ENTRIES, timeout=5):
+            raise Exception("Apptray options are not visible after clicking the dropdown button.")
+
+        # fetch the apptray options and return them as a list of strings
+        apptray_option_elements = self.find_elements(self.APPTRAY_ENTRIES, timeout=10)
+        apptray_options = [elem.text.strip() for elem in apptray_option_elements]
+
+        return True, apptray_options
+
+    def click_apptray_analytics(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_ANALYTICS, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_ANALYTICS, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Analytics option")
+            return True
+
+    def click_apptray_bridge(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_BRIDGE, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_BRIDGE, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Bridge option")
+            return True
+
+    def click_apptray_care_exchange(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_CARE_EXCHANGE, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_CARE_EXCHANGE, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Care Exchange option")
+            return True
+
+    def click_apptray_case_management(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_CASE_MANAGEMENT, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_CASE_MANAGEMENT, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Case Management option")
+            return True
+
+    def click_apptray_chart_review(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_CHART_REVIEW, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_CHART_REVIEW, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Chart Review option")
+            return True
+
+    def click_apptray_config_tools(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_CONFIG_TOOLS, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_CONFIG_TOOLS, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Config Tools option")
+            return True
+
+    def click_apptray_cozeva_connect(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_COZEVA_CONNECT, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_COZEVA_CONNECT, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Cozeva Connect option")
+            return True
+
+    def click_apptray_hedis_hybrid(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_HEDIS_HYBRID, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_HEDIS_HYBRID, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray HEDIS Hybrid option")
+            return True
+
+    def click_apptray_query_automation(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_QUERY_AUTOMATION, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_QUERY_AUTOMATION, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Query Automation option")
+            return True
+
+    def click_apptray_registries(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_REGISTRIES, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_REGISTRIES, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Registries option")
+            return True
+
+    def click_apptray_secure_messaging(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_SECURE_MESSAGING, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_SECURE_MESSAGING, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Secure Messaging option")
+            return True
+
+    def click_apptray_support_tools(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_SUPPORT_TOOLS, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_SUPPORT_TOOLS, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Support Tools option")
+            return True
+
+    def click_apptray_time_capsule(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_TIME_CAPSULE, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_TIME_CAPSULE, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Time Capsule option")
+            return True
+
+    def click_apptray_option_by_name(self, option_name):
+        self.open_apptray_dropdown()
+        option_elements = self.find_elements(self.APPTRAY_ENTRIES, timeout=10)
+        for option_element in option_elements:
+            if option_element.text.strip().lower() == option_name.strip().lower():
+                option_element.click()
+                self.ajax_preloader_wait(f"Clicking apptray option: {option_name}")
+                return
+        raise Exception(f"Apptray option '{option_name}' not found.")
+
+    # create a list of all apptray click functions
+
+
+
+
+
+
 
 
 
