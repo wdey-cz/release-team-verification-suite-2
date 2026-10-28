@@ -41,8 +41,8 @@ class RunConfiguration:
     worker: str | None = None
     workbook_title: str | None = None
     other_info: dict | None = None
-    base_landing_url: str | None = None
-    test_page_url: str | None = None
+    base_landing_url: str | None = None # used for teardown reurls
+    test_page_url: str | None = None # used for navs within code
     lane_id : str | None = None
 
 

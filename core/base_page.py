@@ -9,6 +9,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 import time
 from core.wait_helpers import WaitHelpers
+from selenium.webdriver.common.keys import Keys
+
 
 
 class BasePage:
@@ -283,6 +285,9 @@ class HeaderNavBar(BasePage):
     HELP_DROPDOWN = (By.XPATH, "//a[@data-target='help_menu_dropdown']")
     HELP_MENU_OPTION_ELEMENTS = (By.XPATH, "//ul[@id='help_menu_options']/li/a")
 
+    # <span class="specific_most">AltaMed</span>
+    CONTEXT_NAME_ELEMENT = (By.XPATH, "//span[@class='specific_most']")
+
     USER_ICON = (By.XPATH, "//a[@data-target='user_menu_dropdown']")
     USER_DROPDOWN_ELEMENT = (By.ID, "user_menu_dropdown")
     USER_DROPDOWN_OPTION_ELEMENTS = (By.XPATH, "//ul[@id='user_menu_options']/li/a")
@@ -310,6 +315,50 @@ class HeaderNavBar(BasePage):
                                 "HCC Chart List","AWV Chart List", "AWV Summary", "Exclusion List", "Pending List",
                                 "Batches", "Add Patient", "Appointments", "Imported Charts", "Hospital Activity",
                                 "Contact Log", "Sticket Log", "Export Dashboard", "Shared Forms", "Payment Tool"]
+
+    # GLOBAL SEARCH SECTION
+    # Global search locators
+    GLOBAL_SEARCH_BAR_INPUT = (By.ID, "globalsearch_input")
+    GLOBAL_SEARCH_COLLECTION_HEADER = (By.CLASS_NAME, "collection-header")
+    GLOBAL_SEARCH_NO_RESULTS = (By.XPATH, "//ul[@id='search_results']/li[contains(text(),'No results found')]")
+
+    # Global search locators for practice
+    GLOBAL_SEARCH_PRACTICES_TAB = (By.ID, "search_practices_link")
+    GLOBAL_SEARCH_PRACTICES_LIST = (By.XPATH, "//ul[@class = 'collection with-header']/li[contains(@class,'collection-item')]")
+    GLOBAL_SEARCH_PRACTICES_CLIENT_NAME = (By.XPATH, ".//div[contains(@class,'col')]")
+
+    # global search locators for provider
+    GLOBAL_SEARCH_PROVIDERS_TAB = (By.ID, "search_providers_link")
+    GLOBAL_SEARCH_PROVIDERS_LIST = (By.XPATH, "//ul[@class = 'collection with-header']/li[contains(@class,'collection-item')]")
+    GLOBAL_SEARCH_PROVIDERS_CLIENT_NAME = (By.XPATH, ".//div[contains(@class,'col')]")
+
+    # Global search locators for patient
+    GLOBAL_SEARCH_PATIENTS_TAB = (By.ID, "search_patients_link")
+    GLOBAL_SEARCH_PATIENTS_LIST = (By.XPATH, "//ul[@class = 'collection with-header']/li[contains(@class,'collection-item')]")
+    GLOBAL_SEARCH_PATIENTS_CLIENT_NAME = (By.XPATH, ".//div[contains(@class,'cust_name_content')]")
+
+    # AppTray locators
+    APPTRAY_DROPDOWN_BUTTON = (By.XPATH, "//li[@class='app-list']//div[@class='collapsible-trigger']")
+    APPTRAY_ENTRIES = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item')]//a")
+
+    APPTRAY_ANALYTICS = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_analytics')]//a")
+    APPTRAY_BRIDGE = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_cozeva_bridge')]//a")
+    APPTRAY_CARE_EXCHANGE = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_initiating_gateway')]//a")
+    APPTRAY_CASE_MANAGEMENT = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_case_management')]//a")
+    APPTRAY_CHART_REVIEW = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_smart_chart')]//a")
+    APPTRAY_CONFIG_TOOLS = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_self_help_tools')]//a")
+    APPTRAY_COZEVA_CONNECT = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_czc')]//a")
+    APPTRAY_HEDIS_HYBRID = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_hedis_hybrid')]//a")
+    APPTRAY_QUERY_AUTOMATION = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_qa')]//a")
+    APPTRAY_REGISTRIES = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_registries')]//a")
+    APPTRAY_SECURE_MESSAGING = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_cozeva_messages')]//a")
+    APPTRAY_SUPPORT_TOOLS = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_ut')]//a")
+    APPTRAY_TIME_CAPSULE = (By.XPATH, "//div[@class='collapsible-content']//li[contains(@class,'app-list-item') and contains(@class, 'app_time_capsule')]//a")
+
+    APPTRAY_LOCKED_URL = "javascript:void(0);"
+
+
+
 
 
 
@@ -351,6 +400,11 @@ class HeaderNavBar(BasePage):
         entries = [elem.text.strip() for elem in entry_elements]
         return entries
 
+    def fetch_context_name(self):
+        # fetch the context name from the header nav bar and return it as a string
+        context_name_element = self.find_element(self.CONTEXT_NAME_ELEMENT, timeout=10)
+        return context_name_element.text.strip()
+
     def click_sidebar_entry(self, entry_name):
         # click the sidebar entry that matches the entry name
         self.open_sidebar()
@@ -361,6 +415,249 @@ class HeaderNavBar(BasePage):
                 entry_element.click()
                 self.ajax_preloader_wait()
                 return
+
+    def enter_global_search_value(self, search_string, string_type=""):
+        # enter the search string into the global search bar and press enter
+        self.enter_text(self.GLOBAL_SEARCH_BAR_INPUT, search_string)
+
+    def submit_global_search(self):
+
+        # need to wait for a collection header. Convert this into POM code
+        # start_time = time.perf_counter()
+        #         WebDriverWait(driver, 30).until(
+        #             EC.presence_of_element_located((By.CLASS_NAME, 'collection-header')))
+        #         if len(driver.find_elements(By.CLASS_NAME, 'collection-header')) != 0:
+        #             print("Result got")
+        #             collection_header_found = 1
+        #         driver.find_element_by_id('globalsearch_input').send_keys(Keys.RETURN)
+        #         sf.ajax_preloader_wait(driver)
+        #         time_taken = round((time.perf_counter() - start_time), 3)
+
+        # Wait for the collection header to appear or the no result box instead.
+        try:
+            # self.wait_helpers.wait_for_element_present(self.GLOBAL_SEARCH_COLLECTION_HEADER, timeout=30)
+
+            # Wait until either results header OR no-results message appears try:
+            WebDriverWait(self.driver, 30).until(
+                lambda d: d.find_elements(*self.GLOBAL_SEARCH_COLLECTION_HEADER)
+                          or d.find_elements(*self.GLOBAL_SEARCH_NO_RESULTS)
+            )
+            # press enter in the global search input
+            global_search_input = self.find_element(self.GLOBAL_SEARCH_BAR_INPUT, timeout=10)
+            global_search_input.send_keys(Keys.RETURN)
+            return True
+        except TimeoutException as e:
+            print("Timeout waiting for collection header before submitting global search:", str(e))
+            return False
+
+    def click_global_search_result(self, string_type, client_name):
+        # click the org matching result in the global search results for the given string type (Practice, Patient, Provider)
+        if string_type.lower() == "practice":
+            self.click_element(self.GLOBAL_SEARCH_PRACTICES_TAB, timeout=10)
+            self.ajax_preloader_wait("Clicking Practices tab in global search")
+            practice_results = self.find_elements(self.GLOBAL_SEARCH_PRACTICES_LIST, timeout=10)
+
+            # now we will have to find the client name and make sure its the correct one on the list, and click that one.
+            for result in practice_results:
+                client_name_element = self.find_elements(self.GLOBAL_SEARCH_PRACTICES_CLIENT_NAME, root=result)[6]
+                if client_name_element.text.strip().lower() == client_name.strip().lower():
+                    self.find_element(self.GET_ANCHOR_TAGS_LOCATOR, root=result).click()
+                    self.ajax_preloader_wait("Clicking practice result with client name: " + client_name)
+                    break
+
+        if string_type.lower() == "provider":
+            # Implement provider search click logic here
+            self.click_element(self.GLOBAL_SEARCH_PROVIDERS_TAB, timeout=10)
+            self.ajax_preloader_wait("Clicking Provider tab in global search")
+            provider_results = self.find_elements(self.GLOBAL_SEARCH_PROVIDERS_LIST, timeout=10)
+
+            # now we will have to find the client name and make sure its the correct one on the list, and click that one.
+            for result in provider_results:
+                client_name_element = self.find_elements(self.GLOBAL_SEARCH_PROVIDERS_CLIENT_NAME, root=result)[6]
+                if client_name_element.text.strip().lower() == client_name.strip().lower():
+                    self.find_element(self.GET_ANCHOR_TAGS_LOCATOR, root=result).click()
+                    self.ajax_preloader_wait("Clicking provider result with client name: " + client_name)
+                    break
+
+        if string_type.lower() == "patient":
+            self.click_element(self.GLOBAL_SEARCH_PATIENTS_TAB, timeout=10)
+            self.ajax_preloader_wait("Clicking patient tab in global search")
+            patient_results = self.find_elements(self.GLOBAL_SEARCH_PATIENTS_LIST, timeout=10)
+
+            # now we will have to find the client name and make sure its the correct one on the list, and click that one.
+            for result in patient_results:
+                client_name_element = self.find_element(self.GLOBAL_SEARCH_PATIENTS_CLIENT_NAME, root=result)
+                if client_name_element.text.strip().lower() == client_name.strip().lower():
+                    self.find_element(self.GET_ANCHOR_TAGS_LOCATOR, root=result).click()
+                    self.ajax_preloader_wait("Clicking patient result with client name: " + client_name)
+                    break
+
+    def open_apptray_dropdown(self):
+        '''Since the apptray is in the sidebar, we need to make sure the sidebar is open first.
+        If not, click the sidebar slideout menu to open it. Then check if the apptray options are visible.
+        If not, click the apptray dropdown button to open it.'''
+        self.open_sidebar()
+
+        # check if the apptray options are visible. If not, click the apptray dropdown button to open it.
+        if not self.is_element_visible(self.APPTRAY_ENTRIES, timeout=5):
+            self.click_element(self.APPTRAY_DROPDOWN_BUTTON, timeout=10)
+            self.ajax_preloader_wait("Opening apptray dropdown")
+
+        # make sure the apptray options are visible now. If not, raise an exception, but return true if options are visible. This is to ensure that the apptray options are visible before clicking any of them.
+        if not self.is_element_visible(self.APPTRAY_ENTRIES, timeout=5):
+            raise Exception("Apptray options are not visible after clicking the dropdown button.")
+
+        # fetch the apptray options and return them as a list of strings
+        apptray_option_elements = self.find_elements(self.APPTRAY_ENTRIES, timeout=10)
+        apptray_options = [elem.text.strip() for elem in apptray_option_elements]
+
+        return True, apptray_options
+
+    def click_apptray_analytics(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_ANALYTICS, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_ANALYTICS, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Analytics option")
+            return True
+
+    def click_apptray_bridge(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_BRIDGE, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_BRIDGE, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Bridge option")
+            return True
+
+    def click_apptray_care_exchange(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_CARE_EXCHANGE, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_CARE_EXCHANGE, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Care Exchange option")
+            return True
+
+    def click_apptray_case_management(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_CASE_MANAGEMENT, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_CASE_MANAGEMENT, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Case Management option")
+            return True
+
+    def click_apptray_chart_review(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_CHART_REVIEW, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_CHART_REVIEW, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Chart Review option")
+            return True
+
+    def click_apptray_config_tools(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_CONFIG_TOOLS, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_CONFIG_TOOLS, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Config Tools option")
+            return True
+
+    def click_apptray_cozeva_connect(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_COZEVA_CONNECT, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_COZEVA_CONNECT, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Cozeva Connect option")
+            return True
+
+    def click_apptray_hedis_hybrid(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_HEDIS_HYBRID, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_HEDIS_HYBRID, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray HEDIS Hybrid option")
+            return True
+
+    def click_apptray_query_automation(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_QUERY_AUTOMATION, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_QUERY_AUTOMATION, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Query Automation option")
+            return True
+
+    def click_apptray_registries(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_REGISTRIES, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_REGISTRIES, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Registries option")
+            return True
+
+    def click_apptray_secure_messaging(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_SECURE_MESSAGING, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_SECURE_MESSAGING, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Secure Messaging option")
+            return True
+
+    def click_apptray_support_tools(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_SUPPORT_TOOLS, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_SUPPORT_TOOLS, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Support Tools option")
+            return True
+
+    def click_apptray_time_capsule(self):
+        self.open_apptray_dropdown()
+        option_url = self.get_element_attribute(self.APPTRAY_TIME_CAPSULE, "href", timeout=10)
+        if option_url == self.APPTRAY_LOCKED_URL:
+            return False
+        else:
+            self.click_element(self.APPTRAY_TIME_CAPSULE, timeout=10)
+            self.ajax_preloader_wait("Clicking apptray Time Capsule option")
+            return True
+
+    def click_apptray_option_by_name(self, option_name):
+        self.open_apptray_dropdown()
+        option_elements = self.find_elements(self.APPTRAY_ENTRIES, timeout=10)
+        for option_element in option_elements:
+            if option_element.text.strip().lower() == option_name.strip().lower():
+                option_element.click()
+                self.ajax_preloader_wait(f"Clicking apptray option: {option_name}")
+                return
+        raise Exception(f"Apptray option '{option_name}' not found.")
+
+    # create a list of all apptray click functions
+
+
+
+
 
 
 

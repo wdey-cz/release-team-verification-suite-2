@@ -21,9 +21,16 @@ class CozevaPatientDashboardPage(BasePage):
     AGE = (By.XPATH, "//span[contains(@class, 'age ')]")
 
     PATIENT_NAME_HEADER = (By.XPATH, "//a[contains(@data-target, 'patient_header_dropdown_compact')]")
+    PATIENT_INFORMATION = (By.XPATH, "//a[contains(@class, 'contacts_n_eligibility_new_tab')]")
     PATIENT_HISTORY_DROPDOWN = (By.XPATH, "//li[@id='history']")
     PATIENT_HISTORY_DROPDOWN_OPTIONS = (By.XPATH, "//li[@id='history']//ul[@class='patient_submenu']//li/a")
 
+    PATIENT_INFORMATION_CARE_TEAM = (By.XPATH,
+                                     "//span[contains(@data-once, 'pointer_link_trigger') and contains(text(), 'Care Team')]")
+    PATIENT_INFORMATION_CARE_TEAM_CONTENTS = (By.XPATH, "//div[@id='visits' and contains(@class, 'section scrollspy clearfix')]//div[contains(@class, 'mlm')]//span[contains(@class, 'care_team_doc')]")
+
+    PATIENT_INFORMATION_COVERAGE = (By.XPATH, "//span[contains(@data-once, 'pointer_link_trigger') and contains(text(), 'Coverage')]")
+    PATIENT_INFORMATION_COVERAGE_CARDS = (By.XPATH, "//div[@id='payment_section' and contains(@class, 'section scrollspy clearfix')]//div[contains(@class, 'card_wrapper')]")
 
 
     # PCP and Attribution Locators
@@ -358,6 +365,57 @@ class CozevaPatientDashboardPage(BasePage):
             print(f"Error clicking history dropdown option '{option_name}': {str(e)}")
             traceback.print_exc()
             return False
+
+    def fetch_care_team_info(self):
+        """
+        Fetch the care team information from the patient information section. return list of care team members.
+        """
+        try:
+            care_team_info = []
+            self.click_element(self.PATIENT_NAME_HEADER)
+            self.click_element(self.PATIENT_INFORMATION)
+            self.ajax_preloader_wait("Loading patient information section")
+            if self.is_element_visible(self.PATIENT_INFORMATION_CARE_TEAM, timeout=5):
+                self.click_element(self.PATIENT_INFORMATION_CARE_TEAM)
+                time.sleep(1)  # Wait for care team content to load
+                care_team_elements = self.find_elements(self.PATIENT_INFORMATION_CARE_TEAM_CONTENTS)
+                care_team_info = [member.text.strip() for member in care_team_elements]
+                print("Care team information fetched successfully:", care_team_info)
+                return care_team_info
+            else:
+                print("Care Team section not found in patient information.")
+                return []
+        except Exception as e:
+            print(f"Error fetching care team information: {str(e)}")
+            traceback.print_exc()
+            return []
+
+    def fetch_coverage_info(self):
+        """
+        Fetch the coverage information from the patient information section. return list of coverage cards info.
+        """
+        try:
+            coverage_info = []
+            self.click_element(self.PATIENT_NAME_HEADER)
+            self.click_element(self.PATIENT_INFORMATION)
+            self.ajax_preloader_wait("Loading patient information section")
+            if self.is_element_visible(self.PATIENT_INFORMATION_COVERAGE, timeout=5):
+                self.click_element(self.PATIENT_INFORMATION_COVERAGE)
+                time.sleep(1)  # Wait for coverage content to load
+                coverage_elements = self.find_elements(self.PATIENT_INFORMATION_COVERAGE_CARDS)
+                coverage_info = [card.text.strip() for card in coverage_elements]
+                print("Coverage information fetched successfully:", coverage_info)
+                return coverage_info
+            else:
+                print("Coverage section not found in patient information.")
+                return []
+        except Exception as e:
+            print(f"Error fetching coverage information: {str(e)}")
+            traceback.print_exc()
+            return []
+
+
+
 
 
 

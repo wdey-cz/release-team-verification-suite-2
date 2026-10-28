@@ -318,14 +318,14 @@ class RTVSDB:
             {"name": "PatientDashboardTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "ChartListRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
             {"name": "NavigationsRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "CozevaComboPack1", "category": "REG", "desc": "Contains All of the above",
-             "available_to": "ALL_BASE"},
+            {"name": "GlobalSearchPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+            {"name": "GeneralNavPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+            {"name": "ApptrayTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
 
-            {"name": "HomePageLanguagesRegressionPackage", "category": "REG", "desc": "Desc",
-             "available_to": "ALL_BASE"},
-            {"name": "HomePageComboPack1", "category": "REG", "desc": "Contains Languages and Search Regression",
-             "available_to": "ALL_BASE"},
-            {"name": "HomePageSearchRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+
+            {"name": "CozevaComboPack1", "category": "REG", "desc": "Contains All of the above","available_to": "ALL_BASE"},
+
+
 
             {"name": "ClientScoresDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"},
             {"name": "PracticeProviderDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"}

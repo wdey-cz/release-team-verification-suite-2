@@ -70,6 +70,7 @@ class CozevaRegistriesPage(BasePage):
     def __init__(self, driver):
         super().__init__(driver)
 
+    # PURPOSE : Check if the registries page is opened by verifying the URL.
     def is_registries_page_opened(self):
         # Check the url contains the expected path
         if self.REGISTRIES_BASE_URL not in self.driver.current_url:
@@ -77,6 +78,33 @@ class CozevaRegistriesPage(BasePage):
             return False
         return True
 
+    # PURPOSE : Check if the filter icon is visible on the registries page.
+    def is_filter_icon_visible(self):
+        try:
+            filter_icon = self.find_element(self.FILTER_PANEL_SLIDEOUT, timeout=5)
+            if filter_icon and filter_icon.is_displayed():
+                print("Filter icon is visible.")
+                return True
+            else:
+                print("Filter icon element found but not visible.")
+                return False
+        except Exception as e:
+            print("Error while checking filter icon visibility:", str(e))
+            traceback.print_exc()
+            return False
+
+    # PURPOSE : Check if the registries page is fully opened by verifying both the URL and the visibility of the filter icon.
+    def is_registries_page_fully_opened(self):
+        if not self.is_registries_page_opened():
+            print("Registries page is not opened.")
+            return False
+        if not self.is_filter_icon_visible():
+            print("Filter icon is not visible on registries page.")
+            return False
+        print("Registries page is fully opened and filter icon is visible.")
+        return True
+
+    # PURPOSE : Click on the kebab menu and select the "Export All" option to download all registries.
     def download_export_all_registries(self):
         try:
             self.click_element(self.REGISTRIES_KEBAB)
@@ -87,6 +115,7 @@ class CozevaRegistriesPage(BasePage):
             print("Error during Export All click:", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Click on the deeplink icon to open the registries deeplink.
     def click_on_deeplink(self):
         try:
             self.click_element(self.REGISTRIES_DEEPLINK)
@@ -95,6 +124,7 @@ class CozevaRegistriesPage(BasePage):
             print("Error during clicking on registries deeplink:", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Open the LOB dropdown if it's not already visible.
     def open_lob_dropdown(self):
         # Check if the container is visible, if not click the dropdown to open it
         try:
@@ -119,6 +149,10 @@ class CozevaRegistriesPage(BasePage):
             traceback.print_exc()
             return False
 
+    # PURPOSE : Fetch the available Measurement Years (MYs) and Lines of Business (LoBs) from the dropdown, along with their default selections.
+    # RETURN FORMAT : Returns a tuple containing two dictionaries:
+    # 1. my_lob_dict: {'MY': [list of MYs], 'LOB': [list of LoBs]}
+    # 2. my_lob_default: {'MY': default MY, 'LOB': default LOB}
     def fetch_my_and_lob(self):
         LoBs = []
         MYs= []
@@ -159,6 +193,7 @@ class CozevaRegistriesPage(BasePage):
             print("Error while fetching MYs and LOBs:", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Switch to a specific Line of Business (LoB) by selecting it from the dropdown and clicking "Apply".
     def switch_lob(self, lob_name):
         # Click the dropdown to open it, select the given lobname, click apply.
         try:
@@ -184,6 +219,7 @@ class CozevaRegistriesPage(BasePage):
             print("Error while switching LOB:", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Switch to a specific Measurement Year (MY) by selecting it from the dropdown and clicking "Apply".
     def switch_my(self, year):
         # Click the dropdown to open it, select the given year, click apply.
         try:
@@ -209,6 +245,8 @@ class CozevaRegistriesPage(BasePage):
             print("Error while switching Measurement Year:", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Fetch the gap count, overall rating, and patient count from the summary bar on the registries page.
+    # RETURN FORMAT : Returns a tuple containing (gap_count, overall_rating, patient_count)
     def fetch_summary_bar_info(self):
         # This function returns a tuple with the gap count, overall rating and patient count from the summary bar
         try:
@@ -228,6 +266,7 @@ class CozevaRegistriesPage(BasePage):
             traceback.print_exc()
             return "None", "None", "None"
 
+    # PURPOSE : Launch the Overall Rating Trend Chart by clicking on its launcher in the summary bar.
     def launch_overall_rating_trend_chart(self):
         if self.is_trend_chart_opened():
             print("Overall Rating Trend Chart is already opened.")
@@ -242,6 +281,7 @@ class CozevaRegistriesPage(BasePage):
             print("Error while launching Overall Rating Trend Chart:", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Close the Overall Rating Trend Chart if it is currently opened.
     def close_overall_rating_trend_chart(self):
         # check if open, then close
         if not self.is_trend_chart_opened():
@@ -257,6 +297,7 @@ class CozevaRegistriesPage(BasePage):
             print("Error while closing Overall Rating Trend Chart:", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Check if the Overall Rating Trend Chart is currently opened and visible on the page.
     def is_trend_chart_opened(self):
         try:
             chart = self.find_element(self.SUMMARY_OVERALL_RATING_TREND_CHART, timeout=2)
@@ -269,6 +310,8 @@ class CozevaRegistriesPage(BasePage):
         except Exception as e:
             return False
 
+    # PURPOSE : Fetch the overall rating and the number of nodes from the Overall Rating Trend Chart. If the chart is not opened, it will open it first, fetch the data, and then close it.
+    # RETURN FORMAT : Returns a tuple containing (rating_value, node_count) or False if there was an error.
     def fetch_overall_rating_trend_chart_data(self):
         try:
             if not self.is_trend_chart_opened():
@@ -292,6 +335,8 @@ class CozevaRegistriesPage(BasePage):
             self.close_overall_rating_trend_chart()
             return False
 
+    # PURPOSE : Fetch the HCC score from the summary bar on the registries page.
+    # RETURN FORMAT : Returns the HCC score as a string or "None" if not found.
     def fetch_hcc_score(self):
         try:
             hcc_score_element = self.find_element(self.SUMMARY_HCC_SCORE, timeout=10)
@@ -303,6 +348,8 @@ class CozevaRegistriesPage(BasePage):
             traceback.print_exc()
             return "None"
 
+    # PURPOSE : Toggle the Continuous Enrollment checkbox on the registries page. If the checkbox is already in the desired state, it will not click it again.
+    # PARAMETER : status (bool) - True to check the checkbox, False to uncheck it. Default is True (checked).
     def toggle_continuous_enrollment_checkbox(self, status = True):
         try:
             checkbox = self.find_element(self.CONTINUOUS_ENROLLMENT_CHECKBOX, timeout=10)
@@ -320,6 +367,13 @@ class CozevaRegistriesPage(BasePage):
             print("Error while toggling Continuous Enrollment checkbox:", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Fetch the current numerator and denominator scores for all measures on the registries page. It will return a dictionary with measure names as keys and their corresponding details (metric ID, domain name, numerator, denominator, abbreviation) as values.
+    # RETURN FORMAT : Returns a dictionary in the following format:
+    # {
+    #     'Measure_name 1': {'METRIC_ID': a, 'DOMAIN_NAME: b, 'NUMERATOR': d,'DENOMINATOR': e, 'ABBR': f},
+    #     'Measure_name 2': {'METRIC_ID': a, 'DOMAIN_NAME: b, 'NUMERATOR': d,'DENOMINATOR': e. 'ABBR': f},
+    #     ...
+    # }
     def fetch_num_den_from_registry(self, lob = None):
         """
             function to Fetch current num_den scores. Format below.
@@ -393,6 +447,8 @@ class CozevaRegistriesPage(BasePage):
         # print(f"Fetched num/den data for measures under LOB '{lob}':", measure_data)
         return measure_data
 
+    # PURPOSE : Click on a measure based on its metric ID. If the measure is found, it will click on it; otherwise, it will print a message indicating that the measure was not found.
+    # PARAMETER : metric_id (str) - The metric ID of the measure to click on.
     def click_on_measure_by_metric_id(self, metric_id):
         try:
             measure_element = self.find_element((self.measure_by_metric_id(metric_id)), timeout=10)
@@ -405,6 +461,14 @@ class CozevaRegistriesPage(BasePage):
             print(f"Error while clicking on measure with Metric ID '{metric_id}':", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Fetch the details of a measure based on its metric ID. It will return a dictionary containing the measure name, numerator, and denominator.
+    # RETURN FORMAT : Returns a dictionary in the following format:
+    # {
+    #     'MEASURE_NAME': measure_name,
+    #     'NUMERATOR': numerator,
+    #     'DENOMINATOR': denominator
+    # }
+    # PARAMETER : metric_id (str) - The metric ID of the measure to fetch details for.
     def fetch_measure_details(self, metric_id):
         # This function will find the measure with the given metric id and fetch details from the element. It will return the details as a dictionary.
         details = {}
@@ -440,6 +504,7 @@ class CozevaRegistriesPage(BasePage):
 
         return details
 
+    # PURPOSE : Check if the filter panel is currently opened and visible on the registries page.
     def is_filter_panel_opened(self):
         try:
             panel = self.find_element(self.FILTER_PANEL_FULL_ELEMENT, timeout=2)
@@ -452,6 +517,7 @@ class CozevaRegistriesPage(BasePage):
         except Exception as e:
             return False
 
+    # PURPOSE : Open the filter panel by clicking on its launcher. If the panel is already opened, it will print a message indicating that.
     def open_filter_panel(self):
         if self.is_filter_panel_opened():
             print("Filter panel is already opened.")
@@ -466,6 +532,8 @@ class CozevaRegistriesPage(BasePage):
             print("Error while opening filter panel:", str(e))
             traceback.print_exc()
 
+    # PURPOSE : Filter the measures on the registries page by entering a measure abbreviation in the filter panel input field and clicking "Apply". It will wait for the page to reload after applying the filter.
+    # PARAMETER : abbr (str) - The measure abbreviation to filter by.
     def filter_by_measure_abbr(self, abbr):
         try:
             self.open_filter_panel()
@@ -482,6 +550,29 @@ class CozevaRegistriesPage(BasePage):
         except Exception as e:
             print("Error while filtering by measure abbreviation:", str(e))
             traceback.print_exc()
+
+    # PURPOSE : Click on a random metric
+    # RETURN FORMAT : Returns a tuple containing (metric_id, measure_details) of the clicked measure or None if no measures were found.
+    def click_on_random_metric(self):
+        try:
+            measures = self.fetch_num_den_from_registry()
+            if not measures:
+                print("No measures found to click on.")
+                return None
+            else:
+                random_measure_name = choice(list(measures.keys()))
+                metric_id = measures[random_measure_name]['METRIC_ID']
+                measure_details = self.fetch_measure_details(metric_id)
+                self.click_element((self.measure_by_metric_id(metric_id)), timeout=10)
+                print(f"Clicked on random measure with Metric ID '{metric_id}'.")
+                self.ajax_preloader_wait("Waiting for page to reload after clicking on random measure with name: " + (measure_details['MEASURE_NAME'] if measure_details else "None"))
+                return metric_id, measure_details['MEASURE_NAME'] if measure_details else "None"
+        except Exception as e:
+            print("Error while clicking on a random metric:", str(e))
+            traceback.print_exc()
+            return None
+
+
 
 
 
