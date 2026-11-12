@@ -309,31 +309,64 @@ class RTVSDB:
             );
             """)
 
-    def load_test_packages_from_dict(self):
-        test_packages_dict_list = [
-            {"name": "SidebarTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "AnalyticsTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "BridgeRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "RegistriesRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "PatientDashboardTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "ChartListRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "NavigationsRegressionPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "GlobalSearchPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "GeneralNavPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
-            {"name": "ApptrayTestPackage", "category": "REG", "desc": "Desc", "available_to": "ALL_BASE"},
+    def load_test_packages_from_dict(self, json_path: str | Path | None = None):
+        """Fully synchronize test_packages with assets/test_packages.json.
 
+        The JSON is read on every call. Validation occurs before database writes.
+        All replacements happen inside one transaction, so an error rolls back.
+        """
+        if json_path is None:
+            json_file = self.ASSETS_DIR / "test_packages.json"
+        else:
+            path = Path(json_path).expanduser()
+            json_file = path if path.is_absolute() else self.ASSETS_DIR / path
 
-            {"name": "CozevaComboPack1", "category": "REG", "desc": "Contains All of the above","available_to": "ALL_BASE"},
+        with json_file.open("r", encoding="utf-8") as file:
+            document = json.load(file)
 
+        if not isinstance(document, dict):
+            raise ValueError("Test package JSON must be an object")
 
+        packages = document.get("test_packages")
+        if not isinstance(packages, list):
+            raise ValueError("'test_packages' must be a list")
 
-            {"name": "ClientScoresDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"},
-            {"name": "PracticeProviderDaily", "category": "DATA", "desc": "Desc", "available_to": "CS"}
+        required = ("name", "category", "desc", "available_to")
+        rows = []
+        seen_names = set()
 
-        ]
+        for index, package in enumerate(packages):
+            if not isinstance(package, dict):
+                raise ValueError(f"test_packages[{index}] must be an object")
 
-        for tp in test_packages_dict_list:
-            self.insert_test_package(tp["name"], tp["category"], tp["desc"], tp["available_to"])
+            for key in required:
+                if key not in package or not isinstance(package[key], str):
+                    raise ValueError(f"test_packages[{index}].{key} must be a string")
+
+            name, category, desc, available_to = (
+                package[key].strip() for key in required
+            )
+            if not name or not category or not available_to:
+                raise ValueError(f"test_packages[{index}] has a blank required field")
+            if name in seen_names:
+                raise ValueError(f"Duplicate test package name: {name}")
+            seen_names.add(name)
+            rows.append((name, category, desc, available_to))
+
+        with self.connection:
+            cursor = self.connection.cursor()
+            cursor.execute("DELETE FROM test_packages;")
+            cursor.executemany(
+                """
+                INSERT INTO test_packages (
+                    test_package_name, test_package_category,
+                    test_package_desc, available_to
+                ) VALUES (?, ?, ?, ?);
+                """,
+                rows,
+            )
+
+        return len(rows)
 
     def fetch_regression_test_packages(self):
         """Fetch all test packages categorized as 'REG'."""

@@ -1,3 +1,4 @@
+import datetime
 import os
 from dataclasses import dataclass
 from typing import Any
@@ -58,42 +59,46 @@ class ConfigAssists:
         self.set_run_configuration(RunConfiguration())
         self.load_cs2_credentials_into_environ()
 
-    def create_first_time_setup(
-        self,
-        tester_username: str | None = None,
-        tester_password: str | None = None,
-        tester_email: str | None = None,
-        tester_reason_for_login: str | None = None,
-        tester_signature: str | None = None,
-    ):
+    def create_first_time_setup(self):
+        """
+        Run/re-run RTVS setup independently of tester login.
+
+        This is intentionally idempotent so it can be triggered manually from
+        the controller whenever setup-backed tables/data need to be refreshed.
+        """
         self.install_requirements()
-        # Create the chrome_profiles table if it doesn't exist
+
         self.db.create_chrome_profile_info_table()
-        # Initialize generic default profiles only for legacy/no-account setup.
-        if not tester_username:
-            self.db.initialize_chrome_profiles(profile_count=10)
         self.db.create_customer_tables()
         self.db.load_customer_json_into_db()
         self.db.create_run_and_log_tables()
         self.db.load_test_packages_from_dict()
         self.db.create_tester_info_table()
-        if (
-            tester_username
-            and tester_password
-            and tester_email
-            and tester_reason_for_login
-            and tester_signature
-        ):
-            self.ensure_cs2_credentials_env(tester_username, tester_password)
-            self.db.insert_tester_info(
-                tester_email,
-                tester_reason_for_login,
-                tester_signature,
-            )
-            self.db.initialize_chrome_profiles_for_tester(
-                os.environ.get("CS2_RTVS_User") or tester_username,
-                profile_count=10,
-            )
+
+        # Keep Chrome profiles aligned with the current tester when logged in.
+        # Otherwise preserve the legacy generic-profile behavior.
+        username = (os.environ.get("CS2_RTVS_User") or "").strip()
+        if username:
+            self.db.initialize_chrome_profiles_for_tester(username, profile_count=10)
+        else:
+            self.db.initialize_chrome_profiles(profile_count=10)
+
+    def save_tester_account(
+        self,
+        username: str,
+        password: str,
+        email: str,
+        reason_for_login: str,
+        signature: str,
+    ) -> None:
+        """Persist tester login/account information without running setup."""
+        self.ensure_cs2_credentials_env(username, password)
+        self.db.update_tester_info(
+            email=email,
+            reason_for_login=reason_for_login,
+            signature=signature,
+        )
+        self.db.initialize_chrome_profiles_for_tester(username, profile_count=10)
 
     @staticmethod
     def ensure_cs2_credentials_env(username: str, password: str) -> None:
@@ -285,8 +290,9 @@ class ConfigAssists:
 
     def update_profile_mfa_time(self, profile_name, browser_name='chrome'):
         # Update the MFA time for a given profile
+        date_time_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if browser_name.lower() == 'chrome':
-            print(f"Updating MFA time for profile {profile_name}.")
+            print(f"Updating MFA time for profile {profile_name} to current time of {date_time_now}.")
             self.db.edit_chrome_profile_table(change_type='UPDATE_MFA_TIME', profile_name=profile_name)
 
     def set_profile_active(self, profile_name, browser_name='chrome'):

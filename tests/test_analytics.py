@@ -9,7 +9,7 @@ from config.rtvsdb import RTVSDB
 from core.helpers import Helpers as helpers
 
 
-@pytest.mark.CozevaComboPack1
+@pytest.mark.CozevaComboPack2
 @pytest.mark.AnalyticsTestPackage
 class TestAnalytics:
     """Test Landing Page of customer analytics to verify

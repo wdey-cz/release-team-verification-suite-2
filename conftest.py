@@ -77,6 +77,7 @@ def session_driver(request, config_assists, init_session_state):
         driver.implicitly_wait(Config.IMPLICIT_WAIT)
 
     driver._rtvs_profile = profile
+    rc.browser_profile = profile
     yield driver
 
 
@@ -199,6 +200,7 @@ def logged_in_driver(session_driver, config_assists):
     mfa_page = CozevaMFAPage(session_driver)
     if mfa_page.is_mfa_page_opened():
         mfa_page.wait_for_user_mfa_and_navigation(timeout=180)
+        config_assists.update_profile_mfa_time(rc.browser_profile)
 
     reason_page = CozevaReasonForLoginPage(session_driver)
     if reason_page.is_reason_page_opened():

@@ -11,7 +11,7 @@ from pages.cozeva_patient_dashboard_page import CozevaPatientDashboardPage
 
 
 @pytest.mark.CozevaComboPack1
-@pytest.mark.GlobalSearchPackage
+@pytest.mark.GlobalSearchTestPackage
 class TestGlobalSearch:
 
     @pytest.mark.GlobalSearch

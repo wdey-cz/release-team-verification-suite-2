@@ -1,0 +1,114 @@
+{
+  "version": 1.0,
+  "test_packages": [
+    {
+      "name": "CozevaComboPack1",
+      "category": "REG",
+      "desc": "Combo of most base regression tests",
+      "available_to": "ALL_BASE",
+      "includes": [
+        "SidebarTestPackage",
+        "RegistriesTestPackage",
+        "GlobalSearchTestPackage",
+        "PatientDashboardTestPackage",
+        "GeneralNavPackage",
+        "ApptrayTestPackage"
+      ]
+    },
+    {
+      "name": "SidebarTestPackage",
+      "category": "REG",
+      "desc": "Sidebar related regression tests",
+      "available_to": "ALL_BASE",
+      "test_groups": [
+        {
+          "name": "SupportSidebar",
+          "desc": "Support sidebar cases"
+        },
+        {
+          "name": "PracticeSidebar",
+          "desc": "Practice sidebar cases"
+        },
+        {
+          "name": "ProviderSidebar",
+          "desc": "Provider sidebar cases"
+        }
+      ]
+    },
+    {
+      "name": "RegistriesTestPackage",
+      "category": "REG",
+      "desc": "Registries related regression tests",
+      "available_to": "ALL_BASE",
+      "test_groups": [
+        {
+          "name": "SupportRegistries",
+          "desc": "Support registries cases"
+        }
+      ]
+    },
+    {
+      "name": "GlobalSearchTestPackage",
+      "category": "REG",
+      "desc": "Global search related regression tests",
+      "available_to": "ALL_BASE",
+      "test_groups": [
+        {
+          "name": "GlobalSearch",
+          "desc": "Global search cases"
+        }
+      ]
+    },
+    {
+      "name": "PatientDashboardTestPackage",
+      "category": "REG",
+      "desc": "Patient dashboard related regression tests",
+      "available_to": "ALL_BASE",
+      "test_groups": [
+        {
+          "name": "PatientDashboard",
+          "desc": "Patient dashboard cases"
+        }
+      ]
+    },
+    {
+      "name": "GeneralNavPackage",
+      "category": "REG",
+      "desc": "General navigation related regression tests",
+      "available_to": "ALL_BASE",
+      "test_groups": [
+        {
+          "name": "SupportRegistryNavs",
+          "desc": "Support registry navigation cases"
+        },
+        {
+          "name": "PracticeRegistryNavs",
+          "desc": "Practice registry navigation cases"
+        },
+        {
+          "name": "ProviderRegistryNavs",
+          "desc": "Provider registry navigation cases"
+        }
+      ]
+    },
+    {
+      "name": "ApptrayTestPackage",
+      "category": "REG",
+      "desc": "Apptray related regression tests",
+      "available_to": "ALL_BASE",
+      "test_groups": []
+    },
+    {
+      "name": "ClientScoresDaily",
+      "category": "DATA",
+      "desc": "Desc",
+      "available_to": "CS"
+    },
+    {
+      "name": "PracticeProviderDaily",
+      "category": "DATA",
+      "desc": "Desc",
+      "available_to": "CS"
+    }
+  ]
+}
