@@ -90,9 +90,9 @@ class Config:
     PAGE_LOAD_TIMEOUT = int(os.getenv("PAGE_LOAD_TIMEOUT", "30"))
     IMPLICIT_WAIT = int(os.getenv("IMPLICIT_WAIT", "0"))
 
-    # Test credentials
-    TEST_USERNAME = os.getenv("TEST_USERNAME", "")
-    TEST_PASSWORD = os.getenv("TEST_PASSWORD", "")
+    # Test credentials (system user env: CS2_RTVS_User / CS2_RTVS_Password)
+    TEST_USERNAME = os.getenv("CS2_RTVS_User") or os.getenv("TEST_USERNAME", "")
+    TEST_PASSWORD = os.getenv("CS2_RTVS_Password") or os.getenv("TEST_PASSWORD", "")
     REASON_FOR_LOGIN = os.getenv("REASON_FOR_LOGIN", "RM 17811")
 
     # Output directories (make them live under RTVS_DATA_DIR by default)
@@ -125,7 +125,10 @@ class Config:
 
     @classmethod
     def get_credentials(cls):
-        return (cls.TEST_USERNAME, cls.TEST_PASSWORD)
+        # Prefer live env so values set after process start are picked up.
+        username = os.environ.get("CS2_RTVS_User") or cls.TEST_USERNAME
+        password = os.environ.get("CS2_RTVS_Password") or cls.TEST_PASSWORD
+        return (username, password)
 
     @classmethod
     def get_screenshots_dir(cls) -> Path:

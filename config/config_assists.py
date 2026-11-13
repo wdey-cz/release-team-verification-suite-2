@@ -1,3 +1,4 @@
+import datetime
 import os
 from dataclasses import dataclass
 from typing import Any
@@ -41,7 +42,8 @@ class RunConfiguration:
     worker: str | None = None
     workbook_title: str | None = None
     other_info: dict | None = None
-    base_landing_url: str | None = None
+    base_landing_url: str | None = None # used for teardown reurls
+    test_page_url: str | None = None # used for navs within code
     lane_id : str | None = None
 
 
@@ -55,20 +57,113 @@ class ConfigAssists:
         self.db = RTVSDB()
         self.run_config: RunConfiguration | None = None
         self.set_run_configuration(RunConfiguration())
+        self.load_cs2_credentials_into_environ()
 
     def create_first_time_setup(self):
+        """
+        Run/re-run RTVS setup independently of tester login.
+
+        This is intentionally idempotent so it can be triggered manually from
+        the controller whenever setup-backed tables/data need to be refreshed.
+        """
         self.install_requirements()
-        # Create the chrome_profiles table if it doesn't exist
+
         self.db.create_chrome_profile_info_table()
-        # Initialize the table with default profiles
-        self.db.initialize_chrome_profiles(profile_count=10)
         self.db.create_customer_tables()
         self.db.load_customer_json_into_db()
         self.db.create_run_and_log_tables()
         self.db.load_test_packages_from_dict()
         self.db.create_tester_info_table()
 
+        # Keep Chrome profiles aligned with the current tester when logged in.
+        # Otherwise preserve the legacy generic-profile behavior.
+        username = (os.environ.get("CS2_RTVS_User") or "").strip()
+        if username:
+            self.db.initialize_chrome_profiles_for_tester(username, profile_count=10)
+        else:
+            self.db.initialize_chrome_profiles(profile_count=10)
 
+    def save_tester_account(
+        self,
+        username: str,
+        password: str,
+        email: str,
+        reason_for_login: str,
+        signature: str,
+    ) -> None:
+        """Persist tester login/account information without running setup."""
+        self.ensure_cs2_credentials_env(username, password)
+        self.db.update_tester_info(
+            email=email,
+            reason_for_login=reason_for_login,
+            signature=signature,
+        )
+        self.db.initialize_chrome_profiles_for_tester(username, profile_count=10)
+
+    @staticmethod
+    def ensure_cs2_credentials_env(username: str, password: str) -> None:
+        """
+        Persist CS2_RTVS_User / CS2_RTVS_Password as Windows user environment variables if missing.
+        Also mirrors into the current process os.environ when the process does not already have them.
+        """
+        ConfigAssists._ensure_user_env_var("CS2_RTVS_User", username)
+        ConfigAssists._ensure_user_env_var("CS2_RTVS_Password", password)
+
+    @staticmethod
+    def load_cs2_credentials_into_environ() -> None:
+        """Load CS2_RTVS_User / CS2_RTVS_Password from the user environment into this process if missing."""
+        ConfigAssists._load_user_env_var_into_process("CS2_RTVS_User")
+        ConfigAssists._load_user_env_var_into_process("CS2_RTVS_Password")
+
+    @staticmethod
+    def _load_user_env_var_into_process(name: str) -> None:
+        if os.environ.get(name):
+            return
+        if os.name != "nt":
+            return
+        import winreg
+
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as key:
+                os.environ[name] = str(winreg.QueryValueEx(key, name)[0])
+        except FileNotFoundError:
+            return
+
+    @staticmethod
+    def _ensure_user_env_var(name: str, value: str) -> None:
+        # Prefer already-present process env (do not overwrite).
+        if os.environ.get(name):
+            return
+
+        if os.name == "nt":
+            import winreg
+
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment") as key:
+                    existing = winreg.QueryValueEx(key, name)[0]
+                    # Exists in user env but not this process — load into process only.
+                    os.environ[name] = str(existing)
+                    return
+            except FileNotFoundError:
+                pass
+
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_SET_VALUE
+            ) as key:
+                winreg.SetValueEx(key, name, 0, winreg.REG_EXPAND_SZ, value)
+            try:
+                import ctypes
+
+                ctypes.windll.user32.SendMessageTimeoutW(
+                    0xFFFF, 0x001A, 0, "Environment", 0x0002, 5000, None
+                )
+            except Exception:
+                pass
+        else:
+            # Non-Windows: no persistent user env API here; set for this process only.
+            pass
+
+        os.environ[name] = value
 
     def install_requirements(self) -> list[str]:
         prefix = self._pick_external_python_for_setup()
@@ -195,8 +290,9 @@ class ConfigAssists:
 
     def update_profile_mfa_time(self, profile_name, browser_name='chrome'):
         # Update the MFA time for a given profile
+        date_time_now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if browser_name.lower() == 'chrome':
-            print(f"Updating MFA time for profile {profile_name}.")
+            print(f"Updating MFA time for profile {profile_name} to current time of {date_time_now}.")
             self.db.edit_chrome_profile_table(change_type='UPDATE_MFA_TIME', profile_name=profile_name)
 
     def set_profile_active(self, profile_name, browser_name='chrome'):
@@ -228,8 +324,11 @@ class ConfigAssists:
 
         tag = run_id or "no_run_id"
         claimed_by = f"{tag}|pid={os.getpid()}"
-
-        return self.db.claim_first_inactive_chrome_profile(claimed_by=claimed_by)
+        owner_username = (os.environ.get("CS2_RTVS_User") or "").strip() or None
+        return self.db.claim_first_inactive_chrome_profile(
+            claimed_by=claimed_by,
+            owner_username=owner_username,
+        )
 
     # Customer table interactors
     def get_role_dict_for_customer_id(self, customer_id: int) -> dict:
@@ -364,8 +463,8 @@ class ConfigAssists:
     def add_log_heartbeat(self, message: str = "heartbeat", *, status="Info", driver=None) -> None:
         self._log(type_="heartbeat", message=message, status=status, driver=driver)
 
-
-
+    def add_log_failed(self,message: str,*,driver=None,status:str="Failed",current_url: str | None = None) -> None:
+        self._log(type_="update",message=message,status=status,driver=driver,current_url=current_url,mark_fail=True)
 
 
 

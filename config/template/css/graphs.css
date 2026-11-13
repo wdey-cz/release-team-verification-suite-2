@@ -1,0 +1,41 @@
+/* ============================================================
+   graphs.css
+   Graphs section layout, chart containers, toggle buttons,
+   data-table view.
+   ============================================================ */
+
+#graphsSection{ display:flex; flex-direction:column; gap:20px; width:100%; }
+.graph-card{ width:100%; overflow:hidden; }   /* spacing comes from gap only */
+
+.graph-head{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:10px; margin-bottom:12px; flex-wrap:wrap;
+}
+.graph-controls{ display:flex; gap:8px; flex-wrap:wrap; }
+
+.graph-btn{
+    border:1px solid #334155; background:#0f172a; color:#e2e8f0;
+    border-radius:6px; padding:5px 10px; font-size:12px; cursor:pointer;
+}
+.graph-btn.active{ background:#1e3a8a; border-color:#60a5fa; color:#dbeafe; }
+.graph-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+.chart-container{ height:150px; width:100%; position:relative; }
+.time-chart{ height:120px; width:100%; }
+.trend-box{ position:relative; height:150px; }
+
+.empty-state{
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    color:#94a3b8; text-align:center;
+}
+
+.graph-table{ width:100%; border-collapse:collapse; margin-top:10px; }
+.graph-table th,
+.graph-table td{
+    border-bottom:1px solid rgba(255,255,255,0.1);
+    padding:8px; text-align:left; font-size:13px;
+}
+.graph-table th{ color:#e2e8f0; background:#0f172a; }
+.graph-table td{ color:#cbd5e1; }
+.table-view{ display:none; }

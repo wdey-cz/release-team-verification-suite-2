@@ -7,6 +7,9 @@ import os
 from datetime import datetime
 from core.config import Config
 
+from selenium.common import ElementNotInteractableException, ElementClickInterceptedException, \
+    StaleElementReferenceException
+
 
 class Helpers:
     """Collection of utility helper functions."""
@@ -155,6 +158,14 @@ class Helpers:
             element,
             original_style
         )
+    @staticmethod
+    def action_click(driver, element):
+        try:
+            element.click()
+        except (ElementNotInteractableException, ElementClickInterceptedException, StaleElementReferenceException):
+
+            driver.execute_script("arguments[0].scrollIntoView(true);", element)
+            driver.execute_script("arguments[0].click();", element)
 
     @staticmethod
     def fetch_downloaded_file(lane_id=None):

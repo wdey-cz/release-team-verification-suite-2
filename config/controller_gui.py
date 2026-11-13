@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import calendar
 import re
+from collections import defaultdict
+from config.report_generator import ReportGenerator
 from openpyxl import Workbook
 from openpyxl.styles import Font
 import os
@@ -13,12 +15,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
-
+from jinja2 import Environment, FileSystemLoader
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QSplashScreen
 from PySide6 import QtCore, QtGui, QtWidgets
-
+import webbrowser
 from config.rtvsdb import RTVSDB  # type: ignore
 from config.config_assists import ConfigAssists  # type: ignore
 from core.rtvs_runner import build_lanes, print_plan, run_lanes_parallel, _pick_external_python
@@ -194,6 +196,25 @@ class TestRunWorker(QtCore.QThread):
             self.run_failed.emit(self.run_id, str(e))
 
 
+class ClickAnywhereCheckListWidget(QtWidgets.QListWidget):
+    """
+    Checkbox list where clicking anywhere on the row toggles selection.
+    """
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            item = self.itemAt(event.position().toPoint())
+            if item and (item.flags() & QtCore.Qt.ItemFlag.ItemIsUserCheckable):
+                self.setCurrentItem(item)
+                if item.checkState() == QtCore.Qt.CheckState.Checked:
+                    item.setCheckState(QtCore.Qt.CheckState.Unchecked)
+                else:
+                    item.setCheckState(QtCore.Qt.CheckState.Checked)
+                event.accept()
+                return
+        super().mouseReleaseEvent(event)
+
+
 class StartTestDialog(QtWidgets.QDialog):
     """
     Secondary window to gather run config and lane options.
@@ -361,7 +382,7 @@ class StartTestDialog(QtWidgets.QDialog):
     def _make_check_list(self, title: str) -> dict:
         group = QtWidgets.QGroupBox(title)
         layout = QtWidgets.QVBoxLayout(group)
-        lw = QtWidgets.QListWidget()
+        lw = ClickAnywhereCheckListWidget()
         layout.addWidget(lw)
         return {"group": group, "list": lw}
 
@@ -487,6 +508,205 @@ class StartTestDialog(QtWidgets.QDialog):
         }
 
 
+def _password_visibility_icons() -> tuple[QtGui.QIcon, QtGui.QIcon]:
+    """Open eye (show password) and eye with slash (hide password), for password field toggle."""
+    col = QtGui.QColor(75, 75, 78)
+    pen = QtGui.QPen(col)
+    pen.setWidthF(1.5)
+    pen_slash = QtGui.QPen(QtGui.QColor(110, 55, 55))
+    pen_slash.setWidthF(2.0)
+
+    def paint_open(target: QtGui.QPixmap) -> None:
+        target.fill(QtCore.Qt.GlobalColor.transparent)
+        p = QtGui.QPainter(target)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        p.setPen(pen)
+        p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+        p.drawEllipse(2, 7, 18, 10)
+        p.setBrush(col)
+        p.setPen(QtCore.Qt.PenStyle.NoPen)
+        p.drawEllipse(8, 9, 6, 6)
+        p.end()
+
+    def paint_slash(target: QtGui.QPixmap) -> None:
+        target.fill(QtCore.Qt.GlobalColor.transparent)
+        p = QtGui.QPainter(target)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        p.setPen(pen)
+        p.setBrush(QtCore.Qt.BrushStyle.NoBrush)
+        p.drawEllipse(2, 7, 18, 10)
+        p.setPen(pen_slash)
+        p.drawLine(5, 6, 17, 20)
+        p.end()
+
+    open_pm = QtGui.QPixmap(22, 22)
+    slash_pm = QtGui.QPixmap(22, 22)
+    paint_open(open_pm)
+    paint_slash(slash_pm)
+    return QtGui.QIcon(open_pm), QtGui.QIcon(slash_pm)
+
+
+class FirstTimeSetupTesterDialog(QtWidgets.QDialog):
+    """
+    Collects tester credentials before first-time DB setup.
+    Username/password go to CS2_RTVS_User / CS2_RTVS_Password env vars;
+    email / reason / signature are written to tester_info.
+    """
+
+    def __init__(
+        self,
+        parent: QtWidgets.QWidget | None = None,
+        *,
+        title: str = "First-time setup — Tester credentials",
+        action_label: str = "Continue setup",
+        username_readonly: bool = False,
+        initial_username: str = "",
+        initial_password: str = "",
+        initial_email: str = "",
+        initial_reason: str = "",
+        initial_signature: str = "",
+    ):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(520, 420)
+
+        root = QtWidgets.QVBoxLayout(self)
+        root.setSpacing(12)
+
+        def labeled_row(label_text: str, widget: QtWidgets.QWidget) -> QtWidgets.QWidget:
+            w = QtWidgets.QWidget()
+            lay = QtWidgets.QHBoxLayout(w)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.setSpacing(8)
+            lab = QtWidgets.QLabel(label_text)
+            lab.setMinimumWidth(140)
+            lay.addWidget(lab)
+            lay.addWidget(widget, 1)
+            return w
+
+        hint = QtWidgets.QLabel(
+            "Enter the Cozeva tester account used for automated logins "
+            "(reason for login and signature are used on the reason-for-login screen)."
+        )
+        hint.setWordWrap(True)
+        root.addWidget(hint)
+
+        creds = QtWidgets.QGroupBox("Tester credentials")
+        creds_layout = QtWidgets.QVBoxLayout(creds)
+        creds_layout.setContentsMargins(12, 10, 12, 10)
+        creds_layout.setSpacing(10)
+
+        self.username_input = QtWidgets.QLineEdit()
+        self.username_input.setPlaceholderText("Cozeva username")
+        if initial_username:
+            self.username_input.setText(initial_username)
+        self.username_input.setReadOnly(username_readonly)
+
+        self._icon_eye_show, self._icon_eye_hide = _password_visibility_icons()
+        pwd_wrap = QtWidgets.QWidget()
+        pwd_lay = QtWidgets.QHBoxLayout(pwd_wrap)
+        pwd_lay.setContentsMargins(0, 0, 0, 0)
+        pwd_lay.setSpacing(4)
+        self.password_input = QtWidgets.QLineEdit()
+        self.password_input.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+        self.password_input.setPlaceholderText("Password")
+        if initial_password:
+            self.password_input.setText(initial_password)
+        pwd_lay.addWidget(self.password_input, 1)
+        self._pwd_toggle = QtWidgets.QToolButton()
+        self._pwd_toggle.setCheckable(True)
+        self._pwd_toggle.setChecked(False)
+        self._pwd_toggle.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        self._pwd_toggle.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+        self._pwd_toggle.setAutoRaise(True)
+        self._pwd_toggle.setFixedSize(30, 28)
+        self._pwd_toggle.setIcon(self._icon_eye_show)
+        self._pwd_toggle.setToolTip("Show password")
+        self._pwd_toggle.setStyleSheet(
+            "QToolButton { border: none; background: transparent; border-radius: 4px; padding: 2px; }"
+            "QToolButton:hover { background: rgba(0, 0, 0, 10%); }"
+            "QToolButton:pressed { background: rgba(0, 0, 0, 16%); }"
+        )
+        self._pwd_toggle.toggled.connect(self._on_password_visibility_toggled)
+        pwd_lay.addWidget(self._pwd_toggle, 0, QtCore.Qt.AlignmentFlag.AlignRight)
+
+        self.email_input = QtWidgets.QLineEdit()
+        self.email_input.setPlaceholderText("Email address")
+        if initial_email:
+            self.email_input.setText(initial_email)
+
+        self.reason_input = QtWidgets.QLineEdit()
+        self.reason_input.setPlaceholderText("e.g. Redmine ticket URL or RM number")
+        if initial_reason:
+            self.reason_input.setText(initial_reason)
+
+        self.signature_input = QtWidgets.QLineEdit()
+        self.signature_input.setPlaceholderText("Name shown as signature for masquerade / login flows")
+        if initial_signature:
+            self.signature_input.setText(initial_signature)
+
+        creds_layout.addWidget(labeled_row("Username:", self.username_input))
+        creds_layout.addWidget(labeled_row("Password:", pwd_wrap))
+        creds_layout.addWidget(labeled_row("Email:", self.email_input))
+        creds_layout.addWidget(labeled_row("Reason for login:", self.reason_input))
+        creds_layout.addWidget(labeled_row("Signature:", self.signature_input))
+
+        root.addWidget(creds)
+
+        btns = QtWidgets.QHBoxLayout()
+
+        self.ok_btn = QtWidgets.QPushButton(action_label)
+        self.cancel_btn = QtWidgets.QPushButton("Cancel")
+        self.ok_btn.clicked.connect(self._on_continue)
+        self.cancel_btn.clicked.connect(self.reject)
+        btns.addStretch(1)
+        btns.addWidget(self.ok_btn)
+        btns.addWidget(self.cancel_btn)
+        root.addLayout(btns)
+
+    def _on_password_visibility_toggled(self, checked: bool) -> None:
+        if checked:
+            self.password_input.setEchoMode(QtWidgets.QLineEdit.EchoMode.Normal)
+            self._pwd_toggle.setIcon(self._icon_eye_hide)
+            self._pwd_toggle.setToolTip("Hide password")
+        else:
+            self.password_input.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
+            self._pwd_toggle.setIcon(self._icon_eye_show)
+            self._pwd_toggle.setToolTip("Show password")
+
+    def _on_continue(self) -> None:
+        u = self.username_input.text().strip()
+        p = self.password_input.text()
+        em = self.email_input.text().strip()
+        reason = self.reason_input.text().strip()
+        sig = self.signature_input.text().strip()
+        if not u:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Username is required.")
+            return
+        if not p:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Password is required.")
+            return
+        if not em:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Email is required.")
+            return
+        if not reason:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Reason for login is required.")
+            return
+        if not sig:
+            QtWidgets.QMessageBox.warning(self, "Validation", "Signature is required.")
+            return
+        self.accept()
+
+    def tester_values(self) -> tuple[str, str, str, str, str]:
+        return (
+            self.username_input.text().strip(),
+            self.password_input.text(),
+            self.email_input.text().strip(),
+            self.reason_input.text().strip(),
+            self.signature_input.text().strip(),
+        )
+
+
 class ControllerWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
@@ -522,10 +742,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
         # self.tests_refresh_timer.start()
 
         self.statusBar().showMessage("Ready")
-
-
-
-
 
 
     # dumb watermark idea
@@ -599,7 +815,6 @@ class ControllerWindow(QtWidgets.QMainWindow):
         return super().eventFilter(obj, event)
 
 
-
     # -------------------------
     # Core helpers
     # -------------------------
@@ -618,16 +833,38 @@ class ControllerWindow(QtWidgets.QMainWindow):
             return None
 
     def _init_assists(self):
+        created = False
         if self.assists is None:
             self.assists = ConfigAssists()
+            created = True
         self._refresh_db_path_label()
+        self._refresh_account_panel()
         # self._refresh_profiles_table()
-        self._append_log("[OK] ConfigAssists initialized and first-time setup ensured.")
+        if created:
+            self._append_log("[OK] ConfigAssists initialized.")
 
     def _db(self) -> RTVSDB:
         if not self.assists:
             raise RuntimeError("ConfigAssists not initialized.")
         return self.assists.db
+
+    def _reopen_db_connection(self):
+        """
+        Re-open DB connection to reflect external edits done while controller is running.
+        Useful when rows are changed/deleted from an external SQLite editor.
+        """
+        if not self.assists:
+            self._init_assists()
+            return
+        old_db = self.assists.db
+        db_path = getattr(old_db, "db_path", None)
+        if db_path is None:
+            return
+        try:
+            old_db.close()
+        except Exception:
+            pass
+        self.assists.db = RTVSDB(db_path)
 
     # -------------------------
     # Setup tab
@@ -637,6 +874,23 @@ class ControllerWindow(QtWidgets.QMainWindow):
         tab = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(tab)
 
+        account_header = QtWidgets.QHBoxLayout()
+        account_header.addStretch(1)
+        self.btn_account_chip = QtWidgets.QToolButton()
+        self.btn_account_chip.setText("Login")
+        self.btn_account_chip.setToolTip("Login / update tester account")
+        self.btn_account_chip.setAutoRaise(True)
+        self.btn_account_chip.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+        self.btn_account_chip.setStyleSheet(
+            "QToolButton { font-weight: 600; padding: 4px 10px; }"
+            "QToolButton:hover { text-decoration: underline; }"
+        )
+        self.btn_account_chip.clicked.connect(
+            lambda: self._safe_call("Account chip click", self._on_account_chip_clicked)
+        )
+        account_header.addWidget(self.btn_account_chip)
+        layout.addLayout(account_header)
+
         form = QtWidgets.QFormLayout()
         self.db_path_label = QtWidgets.QLabel("(unknown)")
         self.assets_dir_label = QtWidgets.QLabel("(unknown)")
@@ -645,9 +899,12 @@ class ControllerWindow(QtWidgets.QMainWindow):
         layout.addLayout(form)
 
         btn_row = QtWidgets.QHBoxLayout()
-        self.btn_run_setup = QtWidgets.QPushButton("Run first-time setup")
-        self.btn_run_setup.clicked.connect(lambda: self._safe_call("Run first-time setup", self._run_setup))
-        btn_row.addWidget(self.btn_run_setup)
+
+        self.btn_first_time_setup = QtWidgets.QPushButton("First Time Setup")
+        self.btn_first_time_setup.clicked.connect(
+            lambda: self._safe_call("First Time Setup", self._run_setup)
+        )
+        btn_row.addWidget(self.btn_first_time_setup)
 
         self.btn_reload_customers = QtWidgets.QPushButton("Reload customers JSON...")
         self.btn_reload_customers.clicked.connect(lambda: self._safe_call("Reload customers JSON", self._reload_customers_json))
@@ -675,10 +932,123 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.assets_dir_label.setText(str(assets_dir) if assets_dir else "(missing ASSETS_DIR on RTVSDB)")
 
     def _run_setup(self):
-        self._init_assists()  # ensures exists
+        """Run/re-run setup without touching tester login credentials."""
+        self._init_assists()
         self.assists.create_first_time_setup()
         self._append_log("[OK] First-time setup executed.")
+
+        # Refresh visible UI backed by setup-created/refreshed tables.
+        self._refresh_account_panel()
         self._refresh_profiles_table()
+
+        if hasattr(self, "customer_name_combo"):
+            current_customer = self.customer_name_combo.currentText()
+            self.customer_name_combo.blockSignals(True)
+            self.customer_name_combo.clear()
+            self.customer_name_combo.addItems(sorted(self._db().get_customer_names_list()))
+            if current_customer:
+                idx = self.customer_name_combo.findText(current_customer)
+                if idx >= 0:
+                    self.customer_name_combo.setCurrentIndex(idx)
+            self.customer_name_combo.blockSignals(False)
+
+    def _refresh_account_panel(self, *, reload_from_disk: bool = False):
+        if not self.assists:
+            return
+        if reload_from_disk:
+            self._reopen_db_connection()
+        ConfigAssists.load_cs2_credentials_into_environ()
+        db = self._db()
+        username = (os.environ.get("CS2_RTVS_User") or "").strip()
+        if username:
+            db.initialize_chrome_profiles_for_tester(username, profile_count=10)
+            self.btn_account_chip.setText(username)
+            self.btn_account_chip.setToolTip("Update tester account")
+        else:
+            self.btn_account_chip.setText("Login")
+            self.btn_account_chip.setToolTip("No tester account found. Click to login")
+
+    def _on_account_chip_clicked(self):
+        self._init_assists()
+        ConfigAssists.load_cs2_credentials_into_environ()
+        username = (os.environ.get("CS2_RTVS_User") or "").strip()
+        if not username:
+            self._login_account()
+            return
+        self._update_account()
+
+    def _login_account(self):
+        """Create tester login/account data without running first-time setup."""
+        db = self._db()
+        dlg = FirstTimeSetupTesterDialog(
+            self,
+            title="Tester Login",
+            action_label="Save login",
+        )
+        if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
+            self._append_log("[INFO] Login cancelled.")
+            return
+
+        username, password, email, reason, signature = dlg.tester_values()
+
+        if db.tester_signature_exists(signature):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Duplicate signature",
+                f"Signature '{signature}' already exists in tester_info. Use a different signature.",
+            )
+            return
+
+        self.assists.save_tester_account(
+            username=username,
+            password=password,
+            email=email,
+            reason_for_login=reason,
+            signature=signature,
+        )
+        self._append_log(f"[OK] Tester login saved for: {username}")
+        self._refresh_account_panel(reload_from_disk=True)
+        self._refresh_profiles_table()
+
+    def _update_account(self):
+        db = self._db()
+        ConfigAssists.load_cs2_credentials_into_environ()
+        row = db.fetch_tester_account() or {}
+        username = (os.environ.get("CS2_RTVS_User") or "").strip()
+        password = os.environ.get("CS2_RTVS_Password") or ""
+        dlg = FirstTimeSetupTesterDialog(
+            self,
+            title=f"Update account — {username or 'tester'}",
+            action_label="Update account",
+            username_readonly=bool(username),
+            initial_username=username,
+            initial_password=password,
+            initial_email=str(row.get("email", "")),
+            initial_reason=str(row.get("reason_for_login", "")),
+            initial_signature=str(row.get("signature", "")),
+        )
+        if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
+            return
+        new_user, new_password, email, reason, signature = dlg.tester_values()
+        exclude_id = int(row["id"]) if row.get("id") is not None else None
+        if db.tester_signature_exists(signature, exclude_id=exclude_id):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Duplicate signature",
+                f"Signature '{signature}' already exists in tester_info. Use a different signature.",
+            )
+            return
+        ok = db.update_tester_info(
+            email=email,
+            reason_for_login=reason,
+            signature=signature,
+        )
+        ConfigAssists.ensure_cs2_credentials_env(new_user, new_password)
+        if ok:
+            self._append_log(f"[OK] Updated tester account meta for: {new_user or username}")
+        else:
+            self._append_log(f"[WARN] Could not update tester account meta: {new_user or username}")
+        self._refresh_account_panel(reload_from_disk=True)
 
     def _reload_customers_json(self):
         self._init_assists()
@@ -760,13 +1130,26 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
     def _query_profiles(self) -> list[ChromeProfileRow]:
         db = self._db()
-        db.cursor.execute(
-            """
-            SELECT id, profile_name, currently_running, is_active, last_mfa_time
-            FROM chrome_profiles
-            ORDER BY id ASC;
-            """
-        )
+        ConfigAssists.load_cs2_credentials_into_environ()
+        owner = (os.environ.get("CS2_RTVS_User") or "").strip() or None
+        if owner:
+            db.cursor.execute(
+                """
+                SELECT id, profile_name, currently_running, is_active, last_mfa_time
+                FROM chrome_profiles
+                WHERE owner_username = ?
+                ORDER BY id ASC;
+                """,
+                (owner,),
+            )
+        else:
+            db.cursor.execute(
+                """
+                SELECT id, profile_name, currently_running, is_active, last_mfa_time
+                FROM chrome_profiles
+                ORDER BY id ASC;
+                """
+            )
         rows = db.cursor.fetchall()
         out: list[ChromeProfileRow] = []
         for r in rows:
@@ -1019,6 +1402,11 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.btn_export_reports_csv.clicked.connect(lambda: self._safe_call("Export reports CSV", self._export_reports_xlsx_for_selected_run))
         top_row.addWidget(self.btn_export_reports_csv)
 
+        #push button for Export reports for selected run HTML
+        self.btn_export_reports_html = QtWidgets.QPushButton("Export reports for selected run (HTML)...")
+        self.btn_export_reports_html.clicked.connect(lambda: self._safe_call("Export reports HTML", self._export_reports_html_for_selected_run))
+        top_row.addWidget(self.btn_export_reports_html)
+
         top_row.addStretch(1)
         layout.addLayout(top_row)
 
@@ -1202,39 +1590,90 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
     def _export_reports_xlsx_for_selected_run(self):
 
-
         run_id = self._selected_run_id()
+
+        if not run_id:
+            QtWidgets.QMessageBox.information(
+                self,
+                "No run selected",
+                "Please select a test run first."
+            )
+            return
+
+        try:
+            # Create reports directory
+            reports_dir = Path(
+                os.getenv("LOCALAPPDATA", r"C:\Users\Public\AppData\Local")
+            ) / "RTVS2" / "reports" / run_id
+
+            reports_dir.mkdir(parents=True, exist_ok=True)
+
+            # Initialize generator
+            template_dir = Path(__file__).parent / "template"  # required for consistency
+
+            generator = ReportGenerator(
+                db=self._db(),
+                log_fn=self._append_log,
+                template_dir=template_dir
+            )
+
+            # Generate XLSX
+            generator.generate_xlsx(
+                run_id=run_id,
+                output_dir=reports_dir
+            )
+
+            QtWidgets.QMessageBox.information(
+                self,
+                "Export Complete",
+                f"Reports exported to {reports_dir}"
+            )
+
+            self._append_log(
+                f"[OK] XLSX reports exported for run_id={run_id} to {reports_dir}"
+            )
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", str(e))
+            self._append_log(f"[ERROR] XLSX export failed: {e}")
+
+    def _export_reports_html_for_selected_run(self):
+        run_id = self._selected_run_id()
+
         if not run_id:
             QtWidgets.QMessageBox.information(self, "No run selected", "Please select a test run first.")
             return
 
-        db = self._db()
-        cursor = db.connection.cursor()
+        try:
+            reports_dir = Path(os.getenv("LOCALAPPDATA", r"C:\Users\Public\AppData\Local")) \
+                          / "RTVS2" / "reports" / run_id
+            reports_dir.mkdir(parents=True, exist_ok=True)
 
-        cursor.execute(
-            """
-            SELECT browsers, clients, user_roles
-            FROM test_runs
-            WHERE run_id = ?;
-            """,
-            (run_id,),
-        )
-        row = cursor.fetchone()
-        if not row:
-            QtWidgets.QMessageBox.warning(self, "Run not found", f"No data found for run_id={run_id}.")
-            return
+            template_dir = Path(__file__).parent / "template"
+            icon_path = str((Path.cwd() / "assets" / "CombinedCo_RTVS2_logo.png").resolve()).replace("\\", "/")
 
-        def _split_csv(s: str) -> list[str]:
-            return [x.strip() for x in (s or "").split(",") if x.strip()]
+            generator = ReportGenerator(
+                db=self._db(),
+                log_fn=self._append_log,
+                template_dir=template_dir
+            )
 
-        browsers = _split_csv(row[0])
-        clients = _split_csv(row[1])
-        roles = _split_csv(row[2])
+            output_path = generator.generate_html(
+                run_id=run_id,
+                output_dir=reports_dir,
+                icon_path=icon_path
+            )
 
-        if not browsers or not clients or not roles:
-            QtWidgets.QMessageBox.warning(self, "Missing run metadata", "Run row is missing browsers/clients/roles.")
-            return
+            webbrowser.open(str(output_path))
 
+            QtWidgets.QMessageBox.information(
+                self,
+                "Report Generated",
+                f"Reports generated at {reports_dir}"
+            )
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", str(e))
         reports_dir = Path(os.getenv("LOCALAPPDATA", r"C:\Users\Public\AppData\Local")) / "RTVS2" / "reports" / run_id
         reports_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1264,64 +1703,64 @@ class ControllerWindow(QtWidgets.QMainWindow):
                     return candidate
                 i += 1
 
-        for client in clients:
-            for role in roles:
-                for browser in browsers:
-                    xlsx_file = reports_dir / f"report_{client}_{role}_{browser}.xlsx"
-
-                    cursor.execute(
-                        """
-                        SELECT timestamp, type, test_case_id, test_name, message, status, time_taken_ms, comment, current_url
-                        FROM test_logs tl
-                        WHERE tl.run_id = ?
-                          AND tl.client_id = ?
-                          AND tl.user_role = ?
-                          AND tl.browser = ?
-                          AND tl.type IN ('test_case', 'heartbeat', 'update')
-                        ORDER BY id ASC;
-                        """,
-                        (run_id, client, role, browser),
-                    )
-                    logs = cursor.fetchall()
-
-                    wb = Workbook()
-                    # Remove the default empty sheet
-                    default_sheet = wb.active
-                    wb.remove(default_sheet)
-
-                    sheets = {}  # map raw tab key -> worksheet
-
-                    if not logs:
-                        # still write an empty workbook with a single sheet so user knows it ran
-                        ws = wb.create_sheet("NO_DATA")
-                        for c, h in enumerate(header, start=1):
-                            cell = ws.cell(row=1, column=c, value=h)
-                            cell.font = header_font
-                    else:
-                        for ts, typ, tci, test_name, msg, status, timetaken, comment, url in logs:
-                            # Put heartbeats (and anything with missing test_name) into a dedicated tab
-                            if typ == "heartbeat" or typ == "update":
-                                tab_key = "HEARTBEAT"
-                            else:
-                                tab_key = str(test_name) if test_name is not None else "NO_TEST_NAME"
-
-                            if tab_key not in sheets:
-                                title = _unique_sheet_title(wb, tab_key)
-                                ws = wb.create_sheet(title)
-                                sheets[tab_key] = ws
-
-                                # header row
-                                for c, h in enumerate(header, start=1):
-                                    cell = ws.cell(row=1, column=c, value=h)
-                                    cell.font = header_font
-
-                            ws = sheets[tab_key]
-                            ws.append([ts, typ, tci, test_name, msg, status, timetaken, comment, url])
-
-                    wb.save(xlsx_file)
-
-        QtWidgets.QMessageBox.information(self, "Export Complete", f"Reports exported to {reports_dir}.")
-        self._append_log(f"[OK] XLSX reports exported for run_id={run_id} to {reports_dir}")
+        # for client in clients:
+        #     for role in roles:
+        #         for browser in browsers:
+        #             xlsx_file = reports_dir / f"report_{client}_{role}_{browser}.xlsx"
+        #
+        #             cursor.execute(
+        #                 """
+        #                 SELECT timestamp, type, test_case_id, test_name, message, status, time_taken_ms, comment, current_url
+        #                 FROM test_logs tl
+        #                 WHERE tl.run_id = ?
+        #                   AND tl.client_id = ?
+        #                   AND tl.user_role = ?
+        #                   AND tl.browser = ?
+        #                   AND tl.type IN ('test_case', 'heartbeat', 'update')
+        #                 ORDER BY id ASC;
+        #                 """,
+        #                 (run_id, client, role, browser),
+        #             )
+        #             logs = cursor.fetchall()
+        #
+        #             wb = Workbook()
+        #             # Remove the default empty sheet
+        #             default_sheet = wb.active
+        #             wb.remove(default_sheet)
+        #
+        #             sheets = {}  # map raw tab key -> worksheet
+        #
+        #             if not logs:
+        #                 # still write an empty workbook with a single sheet so user knows it ran
+        #                 ws = wb.create_sheet("NO_DATA")
+        #                 for c, h in enumerate(header, start=1):
+        #                     cell = ws.cell(row=1, column=c, value=h)
+        #                     cell.font = header_font
+        #             else:
+        #                 for ts, typ, tci, test_name, msg, status, timetaken, comment, url in logs:
+        #                     # Put heartbeats (and anything with missing test_name) into a dedicated tab
+        #                     if typ == "heartbeat" or typ == "update":
+        #                         tab_key = "HEARTBEAT"
+        #                     else:
+        #                         tab_key = str(test_name) if test_name is not None else "NO_TEST_NAME"
+        #
+        #                     if tab_key not in sheets:
+        #                         title = _unique_sheet_title(wb, tab_key)
+        #                         ws = wb.create_sheet(title)
+        #                         sheets[tab_key] = ws
+        #
+        #                         # header row
+        #                         for c, h in enumerate(header, start=1):
+        #                             cell = ws.cell(row=1, column=c, value=h)
+        #                             cell.font = header_font
+        #
+        #                     ws = sheets[tab_key]
+        #                     ws.append([ts, typ, tci, test_name, msg, status, timetaken, comment, url])
+        #
+        #             wb.save(xlsx_file)
+        #
+        # QtWidgets.QMessageBox.information(self, "Export Complete", f"Reports exported to {reports_dir}.")
+        # self._append_log(f"[OK] XLSX reports exported for run_id={run_id} to {reports_dir}")
 
     def _open_start_test_dialog(self):
         self._init_assists()

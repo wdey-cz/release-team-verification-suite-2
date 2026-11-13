@@ -52,7 +52,7 @@ def functiondriver(request):
 
 
 @pytest.fixture(scope="session")
-def session_driver(request, config_assists):
+def session_driver(request, config_assists, init_session_state):
     """
     Fixture to initialize and quit WebDriver for each test.
 
@@ -68,6 +68,7 @@ def session_driver(request, config_assists):
     browser = Config.get_browser()
     headless = Config.is_headless()
     rc = config_assists.get_run_configuration()
+    print("inside sessiondriver, with lane_id: ", rc.lane_id)
     driver, profile = WebDriverFactory.get_driver(browser_name=browser, headless=headless, use_chrome_profile=True, download_directory=Config.RTVS_DOWNLOADS_DIR, lane_id = rc.lane_id)
 
     # Set timeouts
@@ -76,6 +77,7 @@ def session_driver(request, config_assists):
         driver.implicitly_wait(Config.IMPLICIT_WAIT)
 
     driver._rtvs_profile = profile
+    rc.browser_profile = profile
     yield driver
 
 
@@ -101,7 +103,7 @@ def config_assists():
     yield ca
     ca.db.close()
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def init_session_state(pytestconfig, config_assists):
     """
     Session-level fixture to initialize session state.
@@ -136,7 +138,7 @@ def init_session_state(pytestconfig, config_assists):
         rc.env = Config.get_test_env()
         rc.browser = Config.get_browser()
         rc.browsers = rc.browser
-        rc.started_at = datetime.now().strftime("%Y%m%d_%H%M%S")
+        rc.started_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         config_assists.set_unique_id()
         rc.category = rc.category or "REG"
         rc.test_package = rc.test_package or "UNCATEGORIZED"
@@ -152,6 +154,7 @@ def init_session_state(pytestconfig, config_assists):
     rc.user_role = pytestconfig.getoption("--user-role") or None
     rc.user_name = pytestconfig.getoption("--user-name") or None
     rc.lane_id  = pytestconfig.getoption("--lane-id") or None
+    print("Extracted lane_id from pytest option in conftest: ", rc.lane_id)
     rc.worker = os.getenv("PYTEST_XDIST_WORKER", "local")
     rc.pid = os.getpid()
 
@@ -161,6 +164,8 @@ def init_session_state(pytestconfig, config_assists):
     print(f"  client_id={rc.client_id} role={rc.user_role} user={rc.user_name}")
     print(f"  browser={rc.browser} worker={rc.worker} pid={rc.pid}")
     # create the run row
+
+
 
 
 @pytest.fixture(scope="session")
@@ -183,8 +188,11 @@ def logged_in_driver(session_driver, config_assists):
     print("Navigating to login page...")
     login_page.go_to_login_page("https://www.cozeva.com")
     print("Performing login...")
-    creds = db.fetch_tester_credentials()
-    login_page.enter_credentials_and_login(*creds)
+    username = os.environ.get("CS2_RTVS_User")
+    password = os.environ.get("CS2_RTVS_Password")
+    if not username or not password:
+        raise RuntimeError("CS2_RTVS_User / CS2_RTVS_Password environment variables are not set.")
+    login_page.enter_credentials_and_login(username, password)
     print("Login Complete. Waiting for 5 seconds...")
     login_page.sleep_code(5)
 
@@ -192,6 +200,7 @@ def logged_in_driver(session_driver, config_assists):
     mfa_page = CozevaMFAPage(session_driver)
     if mfa_page.is_mfa_page_opened():
         mfa_page.wait_for_user_mfa_and_navigation(timeout=180)
+        config_assists.update_profile_mfa_time(rc.browser_profile)
 
     reason_page = CozevaReasonForLoginPage(session_driver)
     if reason_page.is_reason_page_opened():

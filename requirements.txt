@@ -5,3 +5,5 @@ pytest-html
 PySide6
 openpyxl
 
+
+jinja2

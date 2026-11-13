@@ -85,9 +85,7 @@ class TestSidebar:
             # then navigate back to start url before clicking the next one
 
             for entry in sidebar_options:
-                # To check a specific entry for testing,
-                # if entry not in ["Payment Tool", "Export Dashboard"]:
-                #     continue
+
                 config_assists.add_log_heartbeat("Sidebar entry to be tested: " + entry,
                                                  driver=driver)
                 print(f"Clicking on sidebar entry: {entry}")

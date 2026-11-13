@@ -1,0 +1,32 @@
+/* ============================================================
+   snake.css
+   Snake game HUD and canvas stage.
+   ============================================================ */
+
+.snake-hud{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    padding:0 40px;
+}
+.snake-hud button{
+    border:1px solid rgba(96,165,250,0.35);
+    background:#13213a; color:#dbeafe;
+    border-radius:6px; padding:6px 14px;
+    font-size:14px; font-weight:600; cursor:pointer;
+}
+.snake-hud button:hover{ background:#1b2f53; }
+
+.snake-stage{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:70vh;
+}
+.snake-canvas{
+    background:black;
+    border-radius:12px;
+    box-shadow:0 0 20px rgba(0,0,0,0.6);
+    max-width:100%;
+}

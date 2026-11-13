@@ -1,0 +1,212 @@
+/* ============================================================
+   dashboard.css — CORE / SHARED
+   Reset & root tokens, main layout, overview grid, summary
+   metrics + donut, pkg rows, meta block, fail badge, popup.
+   ============================================================ */
+
+/* ---------- RESET & ROOT ---------- */
+*{ box-sizing:border-box; }
+
+body{
+    margin:0;
+    font-family:Segoe UI, Arial, sans-serif;
+    display:flex;
+    background:#020817;
+    color:#e2e8f0;
+}
+
+:root{
+    --bg:#020817;
+    --surface:#0b1220;
+    --surface-alt:#0f172a;
+    --text:#e2e8f0;
+    --text-muted:#94a3b8;
+    --line:#1e293b;
+    --brand:#2563eb;
+    --brand-soft:#172554;
+    --green:#22c55e;
+    --red:#ef4444;
+    --amber:#facc15;
+    --cyan:#38bdf8;
+}
+
+/* ---------- MAIN CONTENT AREA ---------- */
+.main{
+    margin-left:280px;
+    width:calc(100% - 280px);
+    background:linear-gradient(180deg,#020817 0%,#030b1c 100%);
+    min-height:100vh;
+    padding:28px 30px;
+    padding-right:110px;          /* clears the fixed profile icon */
+}
+.main h2, .main h3, .main h4{ color:#e2e8f0; letter-spacing:0.2px; margin-top:0; }
+
+/* ---------- OVERVIEW CARDS GRID ---------- */
+.overview-grid{
+    display:grid;
+    grid-template-columns:2.2fr 1fr;
+    gap:20px;
+}
+.ov-card, .graph-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px;
+    box-shadow:0 12px 24px rgba(0,0,0,0.35);
+    transition:0.25s;
+}
+.ov-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 16px 30px rgba(0,0,0,0.45);
+}
+.card-1{ grid-column:span 2; }
+
+/* ALIGNMENT: min-width:0 stops the 350px right column overflowing */
+.card1-grid{
+    display:grid;
+    grid-template-columns:1fr 350px;
+    gap:40px;
+    align-items:start;
+}
+.card1-grid > *{ min-width:0; }
+
+/* ---------- SUMMARY BOX : METRICS + DONUT ---------- */
+.summary-box{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    gap:18px;
+    width:100%;
+}
+.summary-metrics{
+    display:flex;
+    flex-direction:row;
+    gap:10px;
+    align-items:stretch;
+    width:100%;
+}
+.metric{
+    background:#0f172a;
+    border:1px solid #223148;
+    padding:12px 10px;
+    border-radius:8px;
+    flex:1 1 0;
+    text-align:center;
+    font-size:13px;
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:4px;
+}
+.metric strong{ display:block; font-size:20px; }
+
+/* Metric color variants — single specificity, work in overview AND profile */
+.metric.total{ background:rgba(37,99,235,0.16); border-color:rgba(96,165,250,0.42); color:#bfdbfe; }
+.metric.total strong{ color:#dbeafe; }
+.metric.pass{  background:rgba(34,197,94,0.14); border-color:rgba(74,222,128,0.45); color:#86efac; }
+.metric.pass strong{ color:#bbf7d0; }
+.metric.fail{  background:rgba(239,68,68,0.14); border-color:rgba(248,113,113,0.45); color:#fca5a5; }
+.metric.fail strong{ color:#fecaca; }
+
+.donut-box{
+    width:220px; height:220px;
+    position:relative;
+    margin:0 auto;
+    flex-shrink:0;
+}
+.donut-box canvas{ width:220px !important; height:220px !important; }
+.donut-center{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:30px; font-weight:700;
+    color:#f8fafc;
+    pointer-events:none;
+}
+
+/* ---------- PKG ROWS ---------- */
+.pkg{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #223148;
+    background:var(--surface-alt);
+    cursor:pointer;
+    margin-bottom:6px;
+    gap:10px;
+}
+.pkg:hover{ background:#13213a; }
+.pkg.static, .pkg.static:hover{ cursor:default; background:var(--surface-alt); }
+.pkg.active{ border-color:#60a5fa; background:#16263f; }
+
+.failure-row{
+    display:flex; align-items:center; gap:10px;
+    font-size:14px; width:100%;
+}
+.failure-row span:first-child{
+    width:180px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    flex-shrink:0;
+}
+/* text-color utilities scoped to failure rows (never collide with .metric.pass/.fail) */
+.failure-row .pass{ color:var(--green); }
+.failure-row .fail{ color:var(--red); }
+
+.bar{
+    flex:1; height:6px; margin:0 10px;
+    background:rgba(255,255,255,0.1);
+    border-radius:6px; overflow:hidden; display:flex;
+}
+.bar > div{ height:100%; }
+
+/* ---------- META BLOCK ---------- */
+.meta-block{ margin-top:15px; line-height:2; }
+.meta-block .label{ color:var(--text-muted); margin-right:6px; }
+.muted{ color:#9ca3af; font-size:13px; }
+
+.customer-row{ display:flex; align-items:center; gap:8px; padding:4px 0; }
+.customer-row .cust-name{ font-weight:600; }
+.customer-row .cust-id{ color:var(--text-muted); font-size:12px; }
+
+/* ---------- FAIL COUNT BADGE ---------- */
+.fail-count-badge{
+    background:var(--red); color:white;
+    font-size:12px; padding:3px 8px;
+    border-radius:20px; margin-left:10px; font-weight:600;
+}
+
+/* ---------- POPUP + CONFETTI ---------- */
+.stat-popup{
+    position:fixed; top:0; left:0;
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.7);
+    z-index:999; opacity:0; pointer-events:none; transition:0.3s;
+}
+.stat-popup.show{ opacity:1; pointer-events:auto; }
+.popup-card{
+    background:#020617;
+    border:1px solid rgba(255,255,255,0.1);
+    padding:30px; border-radius:12px;
+    text-align:center;
+    box-shadow:0 0 30px rgba(0,0,0,0.6);
+    animation:pop 0.4s ease;
+}
+@keyframes pop{
+    from{ transform:scale(0.7); opacity:0; }
+    to{ transform:scale(1); opacity:1; }
+}
+#confettiCanvas{
+    position:fixed; top:0; left:0;
+    width:100%; height:100%;
+    pointer-events:none; z-index:1000;
+}
+
+/* ---------- RESPONSIVE (overview) ---------- */
+@media (max-width: 1100px){
+    .card1-grid{ grid-template-columns:1fr; }
+    .overview-grid{ grid-template-columns:1fr; }
+}
