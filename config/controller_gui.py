@@ -841,7 +841,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self._refresh_account_panel()
         # self._refresh_profiles_table()
         if created:
-            self._append_log("[OK] ConfigAssists initialized and first-time setup ensured.")
+            self._append_log("[OK] ConfigAssists initialized.")
 
     def _db(self) -> RTVSDB:
         if not self.assists:
@@ -878,7 +878,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
         account_header.addStretch(1)
         self.btn_account_chip = QtWidgets.QToolButton()
         self.btn_account_chip.setText("Login")
-        self.btn_account_chip.setToolTip("Open first-time setup")
+        self.btn_account_chip.setToolTip("Login / update tester account")
         self.btn_account_chip.setAutoRaise(True)
         self.btn_account_chip.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.btn_account_chip.setStyleSheet(
@@ -899,6 +899,12 @@ class ControllerWindow(QtWidgets.QMainWindow):
         layout.addLayout(form)
 
         btn_row = QtWidgets.QHBoxLayout()
+
+        self.btn_first_time_setup = QtWidgets.QPushButton("First Time Setup")
+        self.btn_first_time_setup.clicked.connect(
+            lambda: self._safe_call("First Time Setup", self._run_setup)
+        )
+        btn_row.addWidget(self.btn_first_time_setup)
 
         self.btn_reload_customers = QtWidgets.QPushButton("Reload customers JSON...")
         self.btn_reload_customers.clicked.connect(lambda: self._safe_call("Reload customers JSON", self._reload_customers_json))
@@ -926,18 +932,25 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.assets_dir_label.setText(str(assets_dir) if assets_dir else "(missing ASSETS_DIR on RTVSDB)")
 
     def _run_setup(self):
+        """Run/re-run setup without touching tester login credentials."""
         self._init_assists()
-        dlg = FirstTimeSetupTesterDialog(self)
-        if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
-            self._append_log("[INFO] First-time setup cancelled (tester credentials dialog).")
-            return
-        username, password, email, reason, signature = dlg.tester_values()
-        self.assists.create_first_time_setup(username, password, email, reason, signature)
-        self._append_log(
-            f"[OK] First-time setup executed; credentials stored in env for user {username!r}."
-        )
+        self.assists.create_first_time_setup()
+        self._append_log("[OK] First-time setup executed.")
+
+        # Refresh visible UI backed by setup-created/refreshed tables.
         self._refresh_account_panel()
         self._refresh_profiles_table()
+
+        if hasattr(self, "customer_name_combo"):
+            current_customer = self.customer_name_combo.currentText()
+            self.customer_name_combo.blockSignals(True)
+            self.customer_name_combo.clear()
+            self.customer_name_combo.addItems(sorted(self._db().get_customer_names_list()))
+            if current_customer:
+                idx = self.customer_name_combo.findText(current_customer)
+                if idx >= 0:
+                    self.customer_name_combo.setCurrentIndex(idx)
+            self.customer_name_combo.blockSignals(False)
 
     def _refresh_account_panel(self, *, reload_from_disk: bool = False):
         if not self.assists:
@@ -953,16 +966,49 @@ class ControllerWindow(QtWidgets.QMainWindow):
             self.btn_account_chip.setToolTip("Update tester account")
         else:
             self.btn_account_chip.setText("Login")
-            self.btn_account_chip.setToolTip("No tester account found. Click to run first-time setup")
+            self.btn_account_chip.setToolTip("No tester account found. Click to login")
 
     def _on_account_chip_clicked(self):
         self._init_assists()
         ConfigAssists.load_cs2_credentials_into_environ()
         username = (os.environ.get("CS2_RTVS_User") or "").strip()
         if not username:
-            self._run_setup()
+            self._login_account()
             return
         self._update_account()
+
+    def _login_account(self):
+        """Create tester login/account data without running first-time setup."""
+        db = self._db()
+        dlg = FirstTimeSetupTesterDialog(
+            self,
+            title="Tester Login",
+            action_label="Save login",
+        )
+        if dlg.exec() != QtWidgets.QDialog.DialogCode.Accepted:
+            self._append_log("[INFO] Login cancelled.")
+            return
+
+        username, password, email, reason, signature = dlg.tester_values()
+
+        if db.tester_signature_exists(signature):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Duplicate signature",
+                f"Signature '{signature}' already exists in tester_info. Use a different signature.",
+            )
+            return
+
+        self.assists.save_tester_account(
+            username=username,
+            password=password,
+            email=email,
+            reason_for_login=reason,
+            signature=signature,
+        )
+        self._append_log(f"[OK] Tester login saved for: {username}")
+        self._refresh_account_panel(reload_from_disk=True)
+        self._refresh_profiles_table()
 
     def _update_account(self):
         db = self._db()
