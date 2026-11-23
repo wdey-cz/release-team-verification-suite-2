@@ -25,6 +25,7 @@ from config.rtvsdb import RTVSDB  # type: ignore
 from config.config_assists import ConfigAssists  # type: ignore
 from core.rtvs_runner import build_lanes, print_plan, run_lanes_parallel, _pick_external_python
 from core.config import Config
+import config.mfa_configuaration as mfa_config
 from pages.cozeva_hcc_v28_page import MEASURES
 
 HCC_V28_MARKER = "HCCV28ValidationPackage"
@@ -72,6 +73,7 @@ class ChromeProfileRow:
     profile_name: str
     currently_running: str | None
     is_active: int
+    active_for_days: int
     last_mfa_time: str
 
 @dataclass
@@ -972,6 +974,8 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self._build_customers_tab()
         self._build_tests_tab()
 
+        self.tabs.currentChanged.connect(self._on_tab_changed)
+
         # Auto refresh every 60s
         # self.tests_refresh_timer = QtCore.QTimer(self)
         # self.tests_refresh_timer.setInterval(30_000)
@@ -1316,44 +1320,49 @@ class ControllerWindow(QtWidgets.QMainWindow):
     # -------------------------
 
     def _build_chrome_tab(self):
-        tab = QtWidgets.QWidget()
-        layout = QtWidgets.QVBoxLayout(tab)
+        self.chrome_tab = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(self.chrome_tab)
 
         top_row = QtWidgets.QHBoxLayout()
         self.btn_refresh_profiles = QtWidgets.QPushButton("Refresh")
         self.btn_refresh_profiles.clicked.connect(lambda: self._safe_call("Refresh profiles", self._refresh_profiles_table))
         top_row.addWidget(self.btn_refresh_profiles)
 
-        self.btn_set_active = QtWidgets.QPushButton("Set selected active")
-        self.btn_set_active.clicked.connect(lambda: self._safe_call("Set active", self._set_selected_profile_active))
-        top_row.addWidget(self.btn_set_active)
-
-        self.btn_set_inactive = QtWidgets.QPushButton("Set selected inactive")
-        self.btn_set_inactive.clicked.connect(lambda: self._safe_call("Set inactive", self._set_selected_profile_inactive))
-        top_row.addWidget(self.btn_set_inactive)
+        # self.btn_set_active = QtWidgets.QPushButton("Set selected active")
+        # self.btn_set_active.clicked.connect(lambda: self._safe_call("Set active", self._set_selected_profile_active))
+        # top_row.addWidget(self.btn_set_active)
+        #
+        # self.btn_set_inactive = QtWidgets.QPushButton("Set selected inactive")
+        # self.btn_set_inactive.clicked.connect(lambda: self._safe_call("Set inactive", self._set_selected_profile_inactive))
+        # top_row.addWidget(self.btn_set_inactive)
 
         self.btn_mfa_now = QtWidgets.QPushButton("Stamp MFA time: NOW")
         self.btn_mfa_now.clicked.connect(lambda: self._safe_call("Update MFA time now", self._stamp_mfa_now))
         top_row.addWidget(self.btn_mfa_now)
 
-        self.mfa_custom_input = QtWidgets.QLineEdit()
-        self.mfa_custom_input.setPlaceholderText("Custom MFA time (YYYY-MM-DD HH:MM:SS)")
-        self.mfa_custom_input.setMaximumWidth(240)
-        top_row.addWidget(self.mfa_custom_input)
+        # self.mfa_custom_input = QtWidgets.QLineEdit()
+        # self.mfa_custom_input.setPlaceholderText("Custom MFA time (YYYY-MM-DD HH:MM:SS)")
+        # self.mfa_custom_input.setMaximumWidth(240)
+        # top_row.addWidget(self.mfa_custom_input)
+        #
+        # self.btn_mfa_custom = QtWidgets.QPushButton("Stamp MFA: custom")
+        # self.btn_mfa_custom.clicked.connect(lambda: self._safe_call("Update MFA time custom", self._stamp_mfa_custom))
+        # top_row.addWidget(self.btn_mfa_custom)
 
-        self.btn_mfa_custom = QtWidgets.QPushButton("Stamp MFA: custom")
-        self.btn_mfa_custom.clicked.connect(lambda: self._safe_call("Update MFA time custom", self._stamp_mfa_custom))
-        top_row.addWidget(self.btn_mfa_custom)
+        # self.btn_fetch_first_inactive = QtWidgets.QPushButton("Fetch first inactive + activate")
+        # self.btn_fetch_first_inactive.clicked.connect(lambda: self._safe_call("Fetch first inactive", self._fetch_first_inactive))
+        # top_row.addWidget(self.btn_fetch_first_inactive)
 
-        self.btn_fetch_first_inactive = QtWidgets.QPushButton("Fetch first inactive + activate")
-        self.btn_fetch_first_inactive.clicked.connect(lambda: self._safe_call("Fetch first inactive", self._fetch_first_inactive))
-        top_row.addWidget(self.btn_fetch_first_inactive)
+        # Add another button called "Configure MFA for Selected Profile" that will run a function called _configure_mfa_for_selected_profile when clicked
+        self.btn_configure_mfa = QtWidgets.QPushButton("Configure MFA for Selected Profile")
+        self.btn_configure_mfa.clicked.connect(lambda: self._safe_call("Configure MFA for selected profile", self._configure_mfa_for_selected_profile))
+        top_row.addWidget(self.btn_configure_mfa)
 
         top_row.addStretch(1)
         layout.addLayout(top_row)
 
-        self.profiles_model = QtGui.QStandardItemModel(0, 5)
-        self.profiles_model.setHorizontalHeaderLabels(["ID", "Profile", "Status", "Active", "Last MFA"])
+        self.profiles_model = QtGui.QStandardItemModel(0, 6)
+        self.profiles_model.setHorizontalHeaderLabels(["ID", "Profile", "Status", "Availablity", "Active for days", "Last MFA"])
 
         self.profiles_view = QtWidgets.QTableView()
         self.profiles_view.setModel(self.profiles_model)
@@ -1364,7 +1373,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
 
         layout.addWidget(self.profiles_view)
 
-        self.tabs.addTab(tab, "Chrome Profiles")
+        self.tabs.addTab(self.chrome_tab, "Chrome Profiles")
 
     def _query_profiles(self) -> list[ChromeProfileRow]:
         db = self._db()
@@ -1373,7 +1382,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
         if owner:
             db.cursor.execute(
                 """
-                SELECT id, profile_name, currently_running, is_active, last_mfa_time
+                SELECT id, profile_name, currently_running, is_active, active_for_days, last_mfa_time
                 FROM chrome_profiles
                 WHERE owner_username = ?
                 ORDER BY id ASC;
@@ -1383,7 +1392,7 @@ class ControllerWindow(QtWidgets.QMainWindow):
         else:
             db.cursor.execute(
                 """
-                SELECT id, profile_name, currently_running, is_active, last_mfa_time
+                SELECT id, profile_name, currently_running, is_active, active_for_days, last_mfa_time
                 FROM chrome_profiles
                 ORDER BY id ASC;
                 """
@@ -1397,31 +1406,69 @@ class ControllerWindow(QtWidgets.QMainWindow):
                     profile_name=str(r[1]),
                     currently_running=(None if r[2] is None else str(r[2])),
                     is_active=int(r[3]),
-                    last_mfa_time=("" if r[4] is None else str(r[4])),
+                    active_for_days=int(r[4]),
+                    last_mfa_time=("" if r[5] is None else str(r[5])),
                 )
             )
         return out
 
     def _refresh_profiles_table(self):
         self._init_assists()
+        self.assists.check_mfa_expiry_status()
         profiles = self._query_profiles()
+        PROFILE_STATUS_MAP = {
+            0: "Available",
+            1: "In Use",
+            -1: "Expiry at risk",
+            -2: "Expired",
+        }
+
+        status_map = {
+            0: ("Available", "#2E7D32"),
+            1: ("In Use", "#1976D2"),
+            -1: ("Expiry at risk", "#F57C00"),
+            -2: ("Expired", "#D32F2F"),
+        }
+
+
 
         self.profiles_model.removeRows(0, self.profiles_model.rowCount())
         for p in profiles:
+            status_text, status_color = status_map.get(
+                p.is_active, (f"Unknown ({p.is_active})", "#757575")
+            )
+
             items = [
                 QtGui.QStandardItem(str(p.id)),
                 QtGui.QStandardItem(p.profile_name),
-                QtGui.QStandardItem("" if p.currently_running is None else p.currently_running),
-                QtGui.QStandardItem(str(p.is_active)),
+                QtGui.QStandardItem(
+                    "" if p.currently_running is None else p.currently_running
+                ),
+                QtGui.QStandardItem(status_text),
+                QtGui.QStandardItem(str(p.active_for_days)),
                 QtGui.QStandardItem(utc_to_local_display(p.last_mfa_time)),
             ]
-            # simple visual cue for active
+
+            # Color the Active column based on status
+            items[3].setForeground(QtGui.QBrush(QtGui.QColor(status_color)))
+
+            # Bold the currently active profile
             if p.is_active == 1:
-                for it in items:
-                    it.setFont(QtGui.QFont(it.font().family(), it.font().pointSize(), QtGui.QFont.Weight.Bold))
+                for item in items:
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+
             self.profiles_model.appendRow(items)
 
         self._append_log(f"[OK] Loaded {len(profiles)} chrome profiles.")
+
+    def _on_tab_changed(self, index):
+        if self.tabs.widget(index) is self.chrome_tab:
+            self._safe_call(
+                "Refresh profiles",
+                self._refresh_profiles_table
+            )
 
     def _selected_profile_name(self) -> str | None:
         idxs = self.profiles_view.selectionModel().selectedRows()
@@ -1429,6 +1476,15 @@ class ControllerWindow(QtWidgets.QMainWindow):
             return None
         row = idxs[0].row()
         return self.profiles_model.item(row, 1).text()
+
+    def _configure_mfa_for_selected_profile(self):
+        name = self._selected_profile_name()
+        if not name:
+            QtWidgets.QMessageBox.information(self, "Select a row", "Select a profile row first.")
+            return
+        mfa_config.CONFIGURE_MFA(name)
+        self._append_log(f"[OK] Configured MFA for: {name}")
+        self._refresh_profiles_table()
 
     def _set_selected_profile_active(self):
         name = self._selected_profile_name()
