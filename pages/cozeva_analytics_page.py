@@ -50,6 +50,19 @@ class AnalyticsLandingPage(BasePage):
             traceback.print_exc()
             return False
 
+    def is_analytics_landing_page_opened(self):
+        try:
+            self.ajax_preloader_wait("Waiting for Analytics to load")
+            if self.is_element_visible(self.RECENTLY_USED_SECTION):
+                return True
+            else:
+                print("[ERROR] Analytics landing page not opened: Recently Used section not found")
+                return False
+        except Exception as e:
+            print("[ERROR] Error while checking if analytics landing page is opened:", str(e))
+            traceback.print_exc()
+            return False
+
     def is_recently_used_displayed(self):
         result = {
             "section_visible": False,

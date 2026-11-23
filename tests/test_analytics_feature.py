@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.CozevaComboPack1
+@pytest.mark.CozevaComboPack2
 @pytest.mark.AnalyticsTestPackage
 class TestAnalytics:
 

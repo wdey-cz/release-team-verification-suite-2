@@ -195,7 +195,7 @@ class TestRegistries:
                 registries_page.sleep_code(2)  # Wait for page to load after switching lob
                 config_assists.add_log_update("Switched to Medicare Lob for test case F_02_05: Validate the Overall Rating Trend chart for relevant lobs", driver=driver)
 
-                # one to check that the chart is visible and and one to check if it has data in it.
+                # one to check that the chart is visible and one to check if it has data in it.
                 registries_page.launch_overall_rating_trend_chart()
                 if registries_page.is_trend_chart_opened():
                     config_assists.add_log_test_case(

@@ -93,72 +93,8 @@ def login_splash_test():
         # to test analytics landing page
         url="https://www.cozeva.com/analytics?session=YXBwX2lkPWFuYWx5dGljcyZjdXN0SWQ9MTMwMCZwYXllcklkPTEzMDAmb3JnSWQ9MTMwMCZ2Z3BJZD0xMzAwJnZwSWQ9MTMwMA"
         header_nav.navigate_to_url(url)
-        analytics_page = AnalyticsLandingPage(driver)
-        if analytics_page.is_loading_over() :
-            print("Analytics page loaded")
-            recenlty_used_section_display_status=analytics_page.is_recently_used_displayed()
-            print("Recently used section displayed:", recenlty_used_section_display_status)
-            worksheets_found=analytics_page.get_number_of_worksheets()
-            print("Worksheets found:", worksheets_found)
 
-
-
-        #providers_list_page = CozevaProvidersPage(driver)
-        # if providers_list_page.is_providers_page_open():
-        #     print("Providers page is open. Fetching practice names...")
-        #     practice_names = providers_list_page.fetch_practice_names()
-        #     print("Practice names fetched:", practice_names)
-        #     print("Now fetching provider names...")
-        #     provider_names = providers_list_page.fetch_provider_names()
-        #     print("Provider names fetched:", provider_names)
-        #     url = header_nav.get_page_report()["CURRENT_URL"]
-        #     r_practice = choice(practice_names)
-        #     r_provider = choice(provider_names)
-        #     print(f"Now clicking on random Practice {r_practice}")
-        #     providers_list_page.click_practice_by_name(r_practice)
-        #     header_nav.navigate_to_url(url)
-        #     print(f"Now clicking on random Provider {r_provider}")
-        #     providers_list_page.click_provider_by_name(r_provider)
-        # else:
-        #     print("Providers page did not open successfully. Current URL:", driver.current_url)
-        registries_page = CozevaRegistriesPage(driver)
-        """
-        format of scores - 
-        {
-                'Measure_name 1': {'METRIC_ID': a, 'DOMAIN_NAME': b, 'NUMERATOR': d,'DENOMINATOR': e},
-                'Measure_name 2': {'METRIC_ID': a, 'DOMAIN_NAME': b, 'NUMERATOR': d,'DENOMINATOR': e},
-                ...
-        }
-        Need to pick a random metric ID from score list 
-        """
-
-
-        pat_dash = CozevaPatientDashboardPage(driver)
-        pat_dash.navigate_to_url("https://www.cozeva.com/patient_detail/3ES838F?session=YXBwX2lkPXJlZ2lzdHJpZXMmcGF5ZXJJZD0xNTAwJmN1c3RJZD0xNTAwJnZncElkPTE1MDAmdnBJZD0xNTAwJnZnMElkPTE1MDAmb3JnSWQ9MTUwMCZwVWlkPTExNTM3OA%3D%3D&cozeva_id=3ES838F&patient_id=129614771&tab_type=CareOps&first_load=1")
-        pat_dash.ajax_preloader_wait("Loading patient dashboard")
-        #print(pat_dash.perform_pcp_checks())
-
-        # Next demographic
-        #print(pat_dash.fetch_gaps())
-        #print(pat_dash.perform_pcp_checks())
-        dropdown_names = pat_dash.fetch_history_dropdown_names()
-        pat_dash.sleep_code(4)
-        for dropdown in dropdown_names:
-            print(f"Interacting with dropdown: {dropdown}")
-            pat_dash.click_history_dropdown_option(dropdown)
-            pat_dash.sleep_code(4)
-
-
-
-
-
-
-
-
-
-
-
-
+        # here for tests
 
 
 

@@ -621,7 +621,7 @@ class ReportGenerator:
 
                     logs = self._fetch_logs(
                         run_id, client, role, browser,
-                        only_types=["test_case", "heartbeat"]
+                        only_types=["test_case", "heartbeat", "update"]
                     )
 
                     xlsx_file = output_dir / f"report_{client}_{role}_{browser}.xlsx"
@@ -640,7 +640,7 @@ class ReportGenerator:
                         for row in logs:
                             ts, typ, tci, test_name, msg, status, timetaken, comment, url = row
 
-                            tab_key = "HEARTBEAT" if typ == "heartbeat" else (test_name or "NO_TEST_NAME")
+                            tab_key = "HEARTBEAT" if typ == "heartbeat" or typ == "update" else (test_name or "NO_TEST_NAME")
 
                             if tab_key not in sheets:
                                 title = self._unique_sheet_title(wb, tab_key)
