@@ -2,7 +2,7 @@ import traceback
 
 from selenium.common import TimeoutException, NoSuchElementException
 from selenium.common import TimeoutException
-from selenium.webdriver import ActionChains
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
