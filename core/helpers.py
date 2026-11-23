@@ -173,24 +173,13 @@ class Helpers:
         Fetch the most recently downloaded file from the downloads directory.
 
         Returns:
-            Path to the most recently downloaded file, or None if none found.
+            Path to the most recently downloaded file
         """
         download_directory = Config.RTVS_DOWNLOADS_DIR / (lane_id or "")
-        if not download_directory.is_dir():
-            return None
-        try:
-            files = os.listdir(download_directory)
-        except OSError:
-            return None
-        paths = [
-            os.path.join(download_directory, f)
-            for f in files
-            if os.path.isfile(os.path.join(download_directory, f))
-            and not str(f).endswith(".crdownload")
-        ]
-        if not paths:
-            return None
-        return max(paths, key=os.path.getctime)
+        files = os.listdir(download_directory)
+        paths = [os.path.join(download_directory, f) for f in files]
+        latest_file = max(paths, key=os.path.getctime)
+        return latest_file
 
     @staticmethod
     def does_file_have_data(file_path):
