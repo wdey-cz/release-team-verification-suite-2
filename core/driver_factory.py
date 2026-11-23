@@ -20,7 +20,7 @@ class WebDriverFactory:
     """Factory class for creating WebDriver instances."""
     
     @staticmethod
-    def get_driver(browser_name="chrome", headless=False, use_chrome_profile=False, download_directory=None, lane_id=None, **kwargs):
+    def get_driver(browser_name="chrome", headless=False, use_chrome_profile=False, download_directory=None, lane_id=None, selected_chrome_profile=None, **kwargs):
         """
         Create and return a WebDriver instance.
         
@@ -29,6 +29,8 @@ class WebDriverFactory:
             headless: Run browser in headless mode
             use_chrome_profile: Use existing Chrome profile (only for Chrome)
             download_directory : Custom download directory for the browser
+            lane_id: Identifier for the lane (used for download directory)
+            selected_chrome_profile: Specific Chrome profile to use (if any)
             **kwargs: Additional arguments for browser options
             
         Returns:
@@ -44,7 +46,7 @@ class WebDriverFactory:
         print("Get Driver called with lane ID: ", lane_id)
         
         if browser_name == "chrome":
-            return WebDriverFactory._get_chrome_driver(headless, use_chrome_profile, download_directory, lane_id, **kwargs)
+            return WebDriverFactory._get_chrome_driver(headless, use_chrome_profile, download_directory, lane_id, selected_chrome_profile, **kwargs)
         elif browser_name == "firefox":
             return WebDriverFactory._get_firefox_driver(headless, **kwargs)
         elif browser_name == "edge":
@@ -73,7 +75,7 @@ class WebDriverFactory:
             print(f"No action taken for browser: {browser_name} with profile: {profile_name}")
 
     @staticmethod
-    def _get_chrome_driver(headless=False, use_chrome_profile=False, download_directory=None, lane_id=None, **kwargs):
+    def _get_chrome_driver(headless=False, use_chrome_profile=False, download_directory=None, lane_id=None, selected_chrome_profile=None, **kwargs):
         """
         Create Chrome WebDriver instance.
 
@@ -116,13 +118,22 @@ class WebDriverFactory:
 
 
         # resolve Chrome profile usage
-        if use_chrome_profile:
+        if use_chrome_profile and not selected_chrome_profile:
             profile_name = ConfigAssists().fetch_first_inactive_profile(browser_name='chrome')
             if profile_name:
                 user_data_dir = os.path.join(os.getenv("LOCALAPPDATA"), "Google", "Chrome", "User Data", profile_name)
                 # chrome_profile_path = "user-data-dir=C:\\Users\\"+pc_username+"\\AppData\\Local\\Google\\Chrome\\User Data\\"+free_chrome_profile
                 print(f"Using Chrome profile: {profile_name} located at {user_data_dir}")
                 options.add_argument(f"--user-data-dir={user_data_dir}")
+        elif use_chrome_profile and selected_chrome_profile:
+            profile_name = selected_chrome_profile
+            if profile_name:
+                user_data_dir = os.path.join(os.getenv("LOCALAPPDATA"), "Google", "Chrome", "User Data", profile_name)
+                # chrome_profile_path = "user-data-dir=C:\\Users\\"+pc_username+"\\AppData\\Local\\Google\\Chrome\\User Data\\"+free_chrome_profile
+                print(f"Using Chrome profile: {profile_name} located at {user_data_dir}")
+                options.add_argument(f"--user-data-dir={user_data_dir}")
+
+
 
 
 

@@ -307,6 +307,13 @@ class ConfigAssists:
             print(f"Setting profile {profile_name} as inactive.")
             self.db.edit_chrome_profile_table(change_type='SET_INACTIVE_PROFILE', profile_name=profile_name)
 
+    def check_mfa_expiry_status(self, profile_name=None, browser_name='chrome'):
+        # Check if the MFA for a given profile has expired
+        if browser_name.lower() == 'chrome':
+            print(f"Checking MFA expiry status for profiles")
+            self.db.edit_chrome_profile_table(change_type = "CALCULATE_MFA_STATUS")
+            print("Done checking MFA expiry status for profiles")
+
     # def fetch_first_inactive_profile(self, browser_name='chrome'):
     #     # Fetch and return inactive profiles
     #     if browser_name.lower() == 'chrome':
