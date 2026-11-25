@@ -1358,6 +1358,8 @@ class ControllerWindow(QtWidgets.QMainWindow):
         self.btn_configure_mfa.clicked.connect(lambda: self._safe_call("Configure MFA for selected profile", self._configure_mfa_for_selected_profile))
         top_row.addWidget(self.btn_configure_mfa)
 
+        #commit for safety
+
         top_row.addStretch(1)
         layout.addLayout(top_row)
 
