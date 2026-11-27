@@ -43,13 +43,21 @@ jobs:
           python -m pip install pyinstaller
           pyinstaller --version
 
+      - name: Verify Selenium imports
+        shell: bash
+        run: |
+          python -c "from selenium.webdriver.chrome.webdriver import WebDriver; print('Chrome WebDriver import OK')"
+          python -c "from selenium.webdriver.common.action_chains import ActionChains; print('ActionChains import OK')"
+          python -m pip show selenium pyinstaller pyinstaller-hooks-contrib
+
       - name: Build with PyInstaller
         shell: bash
         run: |
-          # Windows separator for --add-data is ';'
           pyinstaller --noconfirm --clean --onefile \
             --name "${APP_NAME}" \
             --windowed "${ENTRYPOINT}" \
+            --collect-all selenium \
+            --collect-all webdriver_manager \
             --add-data "assets;assets" \
             --add-data "requirements.txt;." \
             --add-data "tests;tests" \
