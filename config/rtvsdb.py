@@ -922,92 +922,87 @@ class RTVSDB:
 
     # DB Functions for the Test Runs and Test Logs Tables
     def create_run_and_log_tables(self):
-        with self.connection:
-            cursor = self.connection.cursor()
+        """Create or synchronize the test_runs and test_logs tables."""
 
-            cursor.executescript("""
-            CREATE TABLE IF NOT EXISTS test_runs (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              run_id TEXT NOT NULL UNIQUE,
-              prefix TEXT NOT NULL DEFAULT 'RTVS',
-              category TEXT NOT NULL,
-              env TEXT NOT NULL,
-              test_package TEXT NOT NULL,
-              test_package_desc TEXT,
-              browsers TEXT NOT NULL,
-              clients TEXT,
-              user_roles TEXT,
-              threads INTEGER NOT NULL DEFAULT 1,
-              multiprocessing INTEGER NOT NULL DEFAULT 0,
-              started_at TEXT NOT NULL,
-              ended_at TEXT,
-              status TEXT NOT NULL DEFAULT 'RUNNING',
-              failed_cases INTEGER NOT NULL DEFAULT 0,
-              last_heartbeat_at TEXT,
-              last_update_at TEXT,
-              last_update_message TEXT,
-              unique_id TEXT NOT NULL,
-              other_info_json TEXT
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_test_runs_run_id ON test_runs(run_id);
-            CREATE INDEX IF NOT EXISTS idx_test_runs_status ON test_runs(status);
-
-            CREATE TABLE IF NOT EXISTS test_logs (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              run_id TEXT NOT NULL,
-              test_case_id TEXT,
-              type TEXT NOT NULL,
-              browser TEXT,
-              test_package TEXT,
-              test_name TEXT,
-              client_id INTEGER,
-              user_role TEXT,
-              user_name TEXT,
-              pid INTEGER,
-              worker TEXT,
-              status TEXT,
-              message TEXT,
-              timestamp TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-              time_taken_ms INTEGER,
-              comment TEXT,
-              current_url TEXT,
-              FOREIGN KEY (run_id) REFERENCES test_runs(run_id) ON DELETE CASCADE
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_test_logs_run_id ON test_logs(run_id);
-            CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_ts ON test_logs(run_id, timestamp);
-            CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_test ON test_logs(run_id, test_name);
-            """)
-        self._ensure_test_logs_columns()
-
-    def _ensure_test_logs_columns(self):
-        """Add columns introduced after the original schema (CREATE IF NOT EXISTS will not alter)."""
-        required = {
-            "test_case_id": "TEXT",
-            "time_taken_ms": "INTEGER",
-            "comment": "TEXT",
-            "current_url": "TEXT",
-            "browser": "TEXT",
-            "test_package": "TEXT",
-            "test_name": "TEXT",
-            "client_id": "INTEGER",
-            "user_role": "TEXT",
-            "user_name": "TEXT",
-            "pid": "INTEGER",
-            "worker": "TEXT",
-            "status": "TEXT",
-            "message": "TEXT",
+        test_runs_columns = {
+            'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+            'run_id': 'TEXT NOT NULL UNIQUE',
+            'prefix': "TEXT NOT NULL DEFAULT 'RTVS'",
+            'category': 'TEXT NOT NULL',
+            'env': 'TEXT NOT NULL',
+            'test_package': 'TEXT NOT NULL',
+            'test_package_desc': 'TEXT',
+            'browsers': 'TEXT NOT NULL',
+            'clients': 'TEXT',
+            'user_roles': 'TEXT',
+            'threads': 'INTEGER NOT NULL DEFAULT 1',
+            'multiprocessing': 'INTEGER NOT NULL DEFAULT 0',
+            'started_at': 'TEXT NOT NULL',
+            'ended_at': 'TEXT',
+            'status': "TEXT NOT NULL DEFAULT 'RUNNING'",
+            'failed_cases': 'INTEGER NOT NULL DEFAULT 0',
+            'last_heartbeat_at': 'TEXT',
+            'last_update_at': 'TEXT',
+            'last_update_message': 'TEXT',
+            'unique_id': 'TEXT NOT NULL',
+            'other_info_json': 'TEXT',
+            'total_tests': 'INTEGER NOT NULL DEFAULT 0',
+            'completed_tests': 'INTEGER NOT NULL DEFAULT 0',
         }
+
+        self.create_table('test_runs', test_runs_columns)
+
+        test_logs_columns = {
+            'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+            'run_id': 'TEXT NOT NULL REFERENCES test_runs(run_id) ON DELETE CASCADE',
+            'test_case_id': 'TEXT',
+            'type': 'TEXT NOT NULL',
+            'browser': 'TEXT',
+            'test_package': 'TEXT',
+            'test_name': 'TEXT',
+            'client_id': 'INTEGER',
+            'user_role': 'TEXT',
+            'user_name': 'TEXT',
+            'pid': 'INTEGER',
+            'worker': 'TEXT',
+            'status': 'TEXT',
+            'message': 'TEXT',
+            'timestamp': 'TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP',
+            'time_taken_ms': 'INTEGER',
+            'comment': 'TEXT',
+            'current_url': 'TEXT',
+        }
+
+        self.create_table('test_logs', test_logs_columns)
+
+        # Create indexes after both table schemas are synchronized.
         with self.connection:
             cursor = self.connection.cursor()
-            cursor.execute("PRAGMA table_info(test_logs);")
-            existing = {r[1] for r in cursor.fetchall()}
-            if not existing:
-                return
-            for col, col_type in required.items():
-                if col not in existing:
-                    cursor.execute(f"ALTER TABLE test_logs ADD COLUMN {col} {col_type};")
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_runs_run_id
+                ON test_runs(run_id);
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_runs_status
+                ON test_runs(status);
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_logs_run_id
+                ON test_logs(run_id);
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_ts
+                ON test_logs(run_id, timestamp);
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_test
+                ON test_logs(run_id, test_name);
+            """)
 
     def insert_test_run(self, rc) -> None: # controller will call this function
         other = json.dumps(rc.other_info or {}, ensure_ascii=False)
@@ -1122,10 +1117,6 @@ class RTVSDB:
                 """
                 UPDATE test_runs
                 SET failed_cases = failed_cases + 1,
-                    status = CASE
-                        WHEN status IN ('ERR') THEN status
-                        ELSE 'FAIL'
-                    END,
                     last_update_at = CURRENT_TIMESTAMP,
                     last_update_message = ?
                 WHERE run_id = ?;
@@ -1133,7 +1124,7 @@ class RTVSDB:
                 (message[:250], run_id),
             )
 
-    def finish_run(self, run_id: str, final_status: str):
+    def finish_run(self, run_id: str, final_status: str = "DONE"):
         with self.connection:
             cursor = self.connection.cursor()
 

@@ -490,6 +490,7 @@ class TestRegistries:
 
         except Exception as e:
             traceback.print_exc()
+            raise
 
 
 

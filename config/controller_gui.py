@@ -199,7 +199,7 @@ class TestRunWorker(QtCore.QThread):
             )
 
             exit_ok = all(code == 0 for _, _, code in results)
-            final_status = "PASS" if exit_ok else "FAIL"
+            final_status = "DONE" if exit_ok else "Done with Failures"
 
             db = RTVSDB(self.db_path)
             db.finish_run(self.run_id, final_status)
@@ -1917,6 +1917,10 @@ class ControllerWindow(QtWidgets.QMainWindow):
             generator.generate_xlsx(
                 run_id=run_id,
                 output_dir=reports_dir
+            )
+            # Open the destination folder
+            QtGui.QDesktopServices.openUrl(
+                QtCore.QUrl.fromLocalFile(str(reports_dir.resolve()))
             )
 
             QtWidgets.QMessageBox.information(

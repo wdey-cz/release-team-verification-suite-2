@@ -204,33 +204,83 @@ class BasePage:
         report = {'CURRENT_URL': self.driver.current_url, 'CURRENT_TITLE': self.driver.title}  # [Current URL, Page Title]
         return report
 
-    def ajax_preloader_wait(self, desc="", appear_timeout=1, disappear_timeout=500):
+    def ajax_preloader_wait(
+            self,
+            desc="",
+            appear_timeout=1,
+            disappear_timeout=200,
+            strict=False
+    ):
         t0 = time.perf_counter()
         seen = False
+        success = True
 
         print(f"[ajax] start {desc}", flush=True)
 
+        # Wait for preloader appearance
         try:
             WebDriverWait(self.driver, appear_timeout).until(
                 EC.visibility_of_element_located(self.PRELOADER)
             )
             seen = True
-            print(f"[ajax] preloader appeared in {time.perf_counter() - t0:.2f}s {desc}", flush=True)
-        except TimeoutException:
-            # Not necessarily an error, it can be fast or delayed
-            print(f"[ajax] preloader not seen within {appear_timeout}s {desc}", flush=True)
 
-        if seen:
-            WebDriverWait(self.driver, disappear_timeout).until(
-                EC.invisibility_of_element_located(self.PRELOADER)
+            print(
+                f"[ajax] preloader appeared in "
+                f"{time.perf_counter() - t0:.2f}s {desc}",
+                flush=True
             )
-            print(f"[ajax] preloader gone in {time.perf_counter() - t0:.2f}s {desc}", flush=True)
 
-        # This is safe even if it never existed
-        WebDriverWait(self.driver, disappear_timeout).until(
-            EC.invisibility_of_element_located(self.DRUPAL_MSG)
-        )
-        print(f"[ajax] drupal message gone in {time.perf_counter() - t0:.2f}s {desc}", flush=True)
+        except TimeoutException:
+            print(f"[ajax] preloader not seen {desc}", flush=True)
+
+        # Wait for preloader disappearance
+        if seen:
+            try:
+                WebDriverWait(self.driver, disappear_timeout).until(
+                    EC.invisibility_of_element_located(self.PRELOADER)
+                )
+
+                print(
+                    f"[ajax] preloader gone in "
+                    f"{time.perf_counter() - t0:.2f}s {desc}",
+                    flush=True
+                )
+
+            except TimeoutException:
+                success = False
+
+                print(
+                    f"[ajax][WARN] Preloader disappearance timed out: {desc}",
+                    flush=True
+                )
+
+                if strict:
+                    raise
+
+        # Wait for Drupal message disappearance
+        try:
+            WebDriverWait(self.driver, disappear_timeout).until(
+                EC.invisibility_of_element_located(self.DRUPAL_MSG)
+            )
+
+            print(
+                f"[ajax] drupal message gone in "
+                f"{time.perf_counter() - t0:.2f}s {desc}",
+                flush=True
+            )
+
+        except TimeoutException:
+            success = False
+
+            print(
+                f"[ajax][WARN] Drupal message disappearance timed out: {desc}",
+                flush=True
+            )
+
+            if strict:
+                raise
+
+        return success
 
     def scroll_to_view(self, target, timeout=10):
         if isinstance(target, WebElement):

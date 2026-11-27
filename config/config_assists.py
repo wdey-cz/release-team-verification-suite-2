@@ -256,7 +256,7 @@ class ConfigAssists:
     def set_unique_id(self):
         if self.run_config:
             import uuid
-            self.run_config.unique_id = str(uuid.uuid4())
+            self.run_config.unique_id = str(uuid.uuid1())
     def set_prefix(self, prefix: str):
         if self.run_config:
             self.run_config.prefix = prefix
@@ -401,7 +401,18 @@ class ConfigAssists:
         except Exception:
             return -1
 
-    def _log(self, *, type_: str, message: str, status: str = "Info", driver=None, current_url: str | None = None, test_name: str | None = None, extra: dict[str, Any] | None = None, mark_fail: bool = False, time_taken_ms: int | str = 'x', comment: str | None = None, test_case_id: str | None = None) -> None:
+    def _log(self, *,
+             type_: str,
+             message: str,
+             status: str = "Info",
+             driver=None,
+             current_url: str | None = None,
+             test_name: str | None = None,
+             extra: dict[str, Any] | None = None,
+             mark_fail: bool = False,
+             time_taken_ms: int | str = 'x',
+             comment: str | None = None,
+             test_case_id: str | None = None) -> None:
         rc = self._require_rc()
 
         # Allow caller override, else use driver, else None

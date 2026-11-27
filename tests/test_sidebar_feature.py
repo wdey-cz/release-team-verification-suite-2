@@ -191,7 +191,7 @@ class TestSidebar:
         except Exception as e:
             print("Error in test_loop_through_support_sidebar:", e)
             traceback.print_exc()
-            assert False, f"Test failed due to exception: {e}"
+            raise
 
     @pytest.mark.PracticeSidebar
     def test_practice_sidebar(self, logged_in_driver, base_url, config_assists):
@@ -403,7 +403,7 @@ class TestSidebar:
         except Exception as e:
             print("Error in test_practice_sidebar:", e)
             traceback.print_exc()
-            assert False, f"Test failed due to exception: {e}"
+            raise
 
     @pytest.mark.ProviderSidebar
     def test_provider_sidebar(self, logged_in_driver, base_url, config_assists):
@@ -623,7 +623,7 @@ class TestSidebar:
         except Exception as e:
             print("Error in test_provider_sidebar:", e)
             traceback.print_exc()
-            assert False, f"Test failed due to exception: {e}"
+            raise
 
 
 
