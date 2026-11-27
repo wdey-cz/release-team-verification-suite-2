@@ -256,7 +256,7 @@ class ConfigAssists:
     def set_unique_id(self):
         if self.run_config:
             import uuid
-            self.run_config.unique_id = str(uuid.uuid4())
+            self.run_config.unique_id = str(uuid.uuid1())
     def set_prefix(self, prefix: str):
         if self.run_config:
             self.run_config.prefix = prefix
@@ -306,6 +306,13 @@ class ConfigAssists:
         if browser_name.lower() == 'chrome':
             print(f"Setting profile {profile_name} as inactive.")
             self.db.edit_chrome_profile_table(change_type='SET_INACTIVE_PROFILE', profile_name=profile_name)
+
+    def check_mfa_expiry_status(self, profile_name=None, browser_name='chrome'):
+        # Check if the MFA for a given profile has expired
+        if browser_name.lower() == 'chrome':
+            print(f"Checking MFA expiry status for profiles")
+            self.db.edit_chrome_profile_table(change_type = "CALCULATE_MFA_STATUS")
+            print("Done checking MFA expiry status for profiles")
 
     # def fetch_first_inactive_profile(self, browser_name='chrome'):
     #     # Fetch and return inactive profiles
@@ -394,7 +401,18 @@ class ConfigAssists:
         except Exception:
             return -1
 
-    def _log(self, *, type_: str, message: str, status: str = "Info", driver=None, current_url: str | None = None, test_name: str | None = None, extra: dict[str, Any] | None = None, mark_fail: bool = False, time_taken_ms: int | str = 'x', comment: str | None = None, test_case_id: str | None = None) -> None:
+    def _log(self, *,
+             type_: str,
+             message: str,
+             status: str = "Info",
+             driver=None,
+             current_url: str | None = None,
+             test_name: str | None = None,
+             extra: dict[str, Any] | None = None,
+             mark_fail: bool = False,
+             time_taken_ms: int | str = 'x',
+             comment: str | None = None,
+             test_case_id: str | None = None) -> None:
         rc = self._require_rc()
 
         # Allow caller override, else use driver, else None

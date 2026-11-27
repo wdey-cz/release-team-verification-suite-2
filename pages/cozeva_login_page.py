@@ -55,6 +55,7 @@ class CozevaLoginPage(BasePage):
 
     def go_to_login_page(self, base_url):
         try:
+            # self.navigate_to_url(base_url + self.LOGOUT_BASE_URL)
             self.navigate_to_url(base_url + self.LOGIN_BASE_URL)
         except Exception as e:
             print("Error navigating to Cozeva login page:", e)

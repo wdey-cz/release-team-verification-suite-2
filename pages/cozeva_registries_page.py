@@ -386,8 +386,12 @@ class CozevaRegistriesPage(BasePage):
         measure_data = {}
         if lob is not None:
             self.switch_lob(lob)
-
-        all_li_tags = self.find_elements(self.REGISTRY_MEASURES_WITH_DOMAIN_GROUPS, timeout=10)
+        try:
+            all_li_tags = self.find_elements(self.REGISTRY_MEASURES_WITH_DOMAIN_GROUPS, timeout=10)
+        except Exception as e:
+            print("Error while fetching all li tags for measures:", str(e))
+            traceback.print_exc()
+            return measure_data
         current_domain = "Noners"
         for index, li_element in enumerate(all_li_tags):
             # We need to check if the li tag is a domain or group header or a measure. If it's a header, we will store the domain name and assign it to the measures until we hit another header.

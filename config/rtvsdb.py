@@ -88,14 +88,61 @@ class RTVSDB:
         """, (table_name,))
         return cursor.fetchone() is not None
 
-    def create_table(self, table_name, columns):
-        """Create a table with the specified columns."""
-        columns_with_types = ', '.join([f"{col} {dtype}" for col, dtype in columns.items()])
+    def create_table(self, table_name, columns, drop_extra_columns=False):
+        """
+        Create or synchronize a SQLite table schema.
+
+        Args:
+            table_name (str): Name of the table.
+            columns (dict): Expected columns and their SQLite data types.
+            drop_extra_columns (bool):
+                If True, remove columns not present in the supplied schema.
+                Defaults to False to prevent accidental data loss.
+        """
+
+        def quote_identifier(identifier):
+            return '"' + identifier.replace('"', '""') + '"'
+
+        table = quote_identifier(table_name)
+
         with self.connection:
             cursor = self.connection.cursor()
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {table_name} ({columns_with_types});
-            """)
+
+            # 1. Create table if it does not exist
+            columns_with_types = ", ".join(
+                f"{quote_identifier(col)} {dtype}"
+                for col, dtype in columns.items()
+            )
+
+            cursor.execute(
+                f"CREATE TABLE IF NOT EXISTS {table} ({columns_with_types})"
+            )
+
+            # 2. Get existing columns
+            cursor.execute(f"PRAGMA table_info({table})")
+            existing_columns = {
+                row[1]: row[2]
+                for row in cursor.fetchall()
+            }
+
+            # 3. Add missing columns
+            for col, dtype in columns.items():
+                if col not in existing_columns:
+                    cursor.execute(
+                        f"ALTER TABLE {table} "
+                        f"ADD COLUMN {quote_identifier(col)} {dtype}"
+                    )
+                    print(f"[DB] Added column: {table_name}.{col}")
+
+            # 4. Drop columns not defined in expected schema
+            if drop_extra_columns:
+                for col in existing_columns:
+                    if col not in columns:
+                        cursor.execute(
+                            f"ALTER TABLE {table} "
+                            f"DROP COLUMN {quote_identifier(col)}"
+                        )
+                        print(f"[DB] Dropped column: {table_name}.{col}")
 
     def run_query(self, query, params=()):
         """Run a custom query with optional parameters."""
@@ -429,6 +476,7 @@ class RTVSDB:
             'owner_username': "TEXT",
             'currently_running': 'TEXT',
             'is_active': 'BOOLEAN NOT NULL DEFAULT 0',
+            'active_for_days': 'INTEGER NOT NULL DEFAULT 0',
             'last_mfa_time': f"TEXT NOT NULL DEFAULT '{default_timestamp}'",
         }
         self.create_table('chrome_profiles', columns)
@@ -504,7 +552,7 @@ class RTVSDB:
     def edit_chrome_profile_table(self, change_type='UPDATE_MFA_TIME', profile_name=None, timestamp='CURRENT_TIMESTAMP'):
         """Edit the Chrome profile table based on the change type.
         Args:
-            change_type: Type of change to make ('UPDATE_MFA_TIME', 'SET_ACTIVE_PROFILE', 'SET_INACTIVE_PROFILE')
+            change_type: Type of change to make ('UPDATE_MFA_TIME', 'SET_ACTIVE_PROFILE', 'SET_INACTIVE_PROFILE', 'CALCULATE_MFA_STATUS')
             profile_name: Name of the profile to update
             timestamp: Timestamp to set for MFA time (default is CURRENT_TIMESTAMP)
         usage:
@@ -520,6 +568,7 @@ class RTVSDB:
                     SET last_mfa_time = {}
                     WHERE profile_name = '{}';
                 """.format(timestamp, profile_name))
+
         if change_type == 'SET_ACTIVE_PROFILE' and profile_name:
             # this will look for profile name and set its only its is active to 1.
             # print(f"Setting profile {profile_name} as active.")
@@ -530,6 +579,7 @@ class RTVSDB:
                     SET is_active = 1
                     WHERE profile_name = ?;
                 """, (profile_name,))
+
         if change_type == 'SET_INACTIVE_PROFILE' and profile_name:
             # this will look for profile name and set its only its is active to 0.
             # print(f"Setting profile {profile_name} as inactive.")
@@ -540,6 +590,55 @@ class RTVSDB:
                     SET is_active = 0
                     WHERE profile_name = ?;
                 """, (profile_name,))
+
+        if change_type == 'CALCULATE_MFA_STATUS':
+            # This will take the last mfa of all the profiles on a loop and do a days delta with current time.
+            # If the days delta is close to 28-30, then it will set is_active to -1 for "MFA expiry at risk"
+            # if the days delta is more than 30 days, then it will set is_active to -2 for "MFA expired"
+            # If the days delta is below 28, set it to 0 for "MFA valid"
+            # in all cases, it will also add the days delta to a new column called active_for_days, which will be used to track how long the profile has been active for.
+
+            with self.connection:
+                cursor = self.connection.cursor()
+                cursor.execute("""
+                    SELECT profile_name, last_mfa_time, is_active FROM chrome_profiles;
+                """)
+                profiles = cursor.fetchall()
+                for profile in profiles:
+                    profile_name, last_mfa_time, is_active = profile
+                    if last_mfa_time is None:
+                        continue
+                    last_mfa_timestamp = time.mktime(time.strptime(last_mfa_time, "%Y-%m-%d %H:%M:%S"))
+                    current_timestamp = time.time()
+                    days_delta = (current_timestamp - last_mfa_timestamp) / (60 * 60 * 24)
+                    if days_delta:
+                        cursor.execute("""
+                            UPDATE chrome_profiles
+                            SET active_for_days = ?
+                            WHERE profile_name = ?;
+                        """, (int(days_delta), profile_name))
+
+                    if days_delta >= 28 and days_delta < 30:
+                        cursor.execute("""
+                            UPDATE chrome_profiles
+                            SET is_active = -1
+                            WHERE profile_name = ?;
+                        """, (profile_name,))
+                    elif days_delta >= 30:
+                        cursor.execute("""
+                            UPDATE chrome_profiles
+                            SET is_active = -2
+                            WHERE profile_name = ?;
+                        """, (profile_name,))
+                    elif days_delta < 28 and is_active != 1:
+                        cursor.execute("""
+                            UPDATE chrome_profiles
+                            SET is_active = 0
+                            WHERE profile_name = ?;
+                        """, (profile_name,))
+
+
+
 
     def get_inactive_chrome_profiles(self):
         """Fetch and return all inactive Chrome profiles."""
@@ -823,92 +922,87 @@ class RTVSDB:
 
     # DB Functions for the Test Runs and Test Logs Tables
     def create_run_and_log_tables(self):
-        with self.connection:
-            cursor = self.connection.cursor()
+        """Create or synchronize the test_runs and test_logs tables."""
 
-            cursor.executescript("""
-            CREATE TABLE IF NOT EXISTS test_runs (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              run_id TEXT NOT NULL UNIQUE,
-              prefix TEXT NOT NULL DEFAULT 'RTVS',
-              category TEXT NOT NULL,
-              env TEXT NOT NULL,
-              test_package TEXT NOT NULL,
-              test_package_desc TEXT,
-              browsers TEXT NOT NULL,
-              clients TEXT,
-              user_roles TEXT,
-              threads INTEGER NOT NULL DEFAULT 1,
-              multiprocessing INTEGER NOT NULL DEFAULT 0,
-              started_at TEXT NOT NULL,
-              ended_at TEXT,
-              status TEXT NOT NULL DEFAULT 'RUNNING',
-              failed_cases INTEGER NOT NULL DEFAULT 0,
-              last_heartbeat_at TEXT,
-              last_update_at TEXT,
-              last_update_message TEXT,
-              unique_id TEXT NOT NULL,
-              other_info_json TEXT
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_test_runs_run_id ON test_runs(run_id);
-            CREATE INDEX IF NOT EXISTS idx_test_runs_status ON test_runs(status);
-
-            CREATE TABLE IF NOT EXISTS test_logs (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              run_id TEXT NOT NULL,
-              test_case_id TEXT,
-              type TEXT NOT NULL,
-              browser TEXT,
-              test_package TEXT,
-              test_name TEXT,
-              client_id INTEGER,
-              user_role TEXT,
-              user_name TEXT,
-              pid INTEGER,
-              worker TEXT,
-              status TEXT,
-              message TEXT,
-              timestamp TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-              time_taken_ms INTEGER,
-              comment TEXT,
-              current_url TEXT,
-              FOREIGN KEY (run_id) REFERENCES test_runs(run_id) ON DELETE CASCADE
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_test_logs_run_id ON test_logs(run_id);
-            CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_ts ON test_logs(run_id, timestamp);
-            CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_test ON test_logs(run_id, test_name);
-            """)
-        self._ensure_test_logs_columns()
-
-    def _ensure_test_logs_columns(self):
-        """Add columns introduced after the original schema (CREATE IF NOT EXISTS will not alter)."""
-        required = {
-            "test_case_id": "TEXT",
-            "time_taken_ms": "INTEGER",
-            "comment": "TEXT",
-            "current_url": "TEXT",
-            "browser": "TEXT",
-            "test_package": "TEXT",
-            "test_name": "TEXT",
-            "client_id": "INTEGER",
-            "user_role": "TEXT",
-            "user_name": "TEXT",
-            "pid": "INTEGER",
-            "worker": "TEXT",
-            "status": "TEXT",
-            "message": "TEXT",
+        test_runs_columns = {
+            'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+            'run_id': 'TEXT NOT NULL UNIQUE',
+            'prefix': "TEXT NOT NULL DEFAULT 'RTVS'",
+            'category': 'TEXT NOT NULL',
+            'env': 'TEXT NOT NULL',
+            'test_package': 'TEXT NOT NULL',
+            'test_package_desc': 'TEXT',
+            'browsers': 'TEXT NOT NULL',
+            'clients': 'TEXT',
+            'user_roles': 'TEXT',
+            'threads': 'INTEGER NOT NULL DEFAULT 1',
+            'multiprocessing': 'INTEGER NOT NULL DEFAULT 0',
+            'started_at': 'TEXT NOT NULL',
+            'ended_at': 'TEXT',
+            'status': "TEXT NOT NULL DEFAULT 'RUNNING'",
+            'failed_cases': 'INTEGER NOT NULL DEFAULT 0',
+            'last_heartbeat_at': 'TEXT',
+            'last_update_at': 'TEXT',
+            'last_update_message': 'TEXT',
+            'unique_id': 'TEXT NOT NULL',
+            'other_info_json': 'TEXT',
+            'total_tests': 'INTEGER NOT NULL DEFAULT 0',
+            'completed_tests': 'INTEGER NOT NULL DEFAULT 0',
         }
+
+        self.create_table('test_runs', test_runs_columns)
+
+        test_logs_columns = {
+            'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+            'run_id': 'TEXT NOT NULL REFERENCES test_runs(run_id) ON DELETE CASCADE',
+            'test_case_id': 'TEXT',
+            'type': 'TEXT NOT NULL',
+            'browser': 'TEXT',
+            'test_package': 'TEXT',
+            'test_name': 'TEXT',
+            'client_id': 'INTEGER',
+            'user_role': 'TEXT',
+            'user_name': 'TEXT',
+            'pid': 'INTEGER',
+            'worker': 'TEXT',
+            'status': 'TEXT',
+            'message': 'TEXT',
+            'timestamp': 'TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP',
+            'time_taken_ms': 'INTEGER',
+            'comment': 'TEXT',
+            'current_url': 'TEXT',
+        }
+
+        self.create_table('test_logs', test_logs_columns)
+
+        # Create indexes after both table schemas are synchronized.
         with self.connection:
             cursor = self.connection.cursor()
-            cursor.execute("PRAGMA table_info(test_logs);")
-            existing = {r[1] for r in cursor.fetchall()}
-            if not existing:
-                return
-            for col, col_type in required.items():
-                if col not in existing:
-                    cursor.execute(f"ALTER TABLE test_logs ADD COLUMN {col} {col_type};")
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_runs_run_id
+                ON test_runs(run_id);
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_runs_status
+                ON test_runs(status);
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_logs_run_id
+                ON test_logs(run_id);
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_ts
+                ON test_logs(run_id, timestamp);
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_test_logs_run_id_test
+                ON test_logs(run_id, test_name);
+            """)
 
     def insert_test_run(self, rc) -> None: # controller will call this function
         other = json.dumps(rc.other_info or {}, ensure_ascii=False)
@@ -1023,10 +1117,6 @@ class RTVSDB:
                 """
                 UPDATE test_runs
                 SET failed_cases = failed_cases + 1,
-                    status = CASE
-                        WHEN status IN ('ERR') THEN status
-                        ELSE 'FAIL'
-                    END,
                     last_update_at = CURRENT_TIMESTAMP,
                     last_update_message = ?
                 WHERE run_id = ?;
@@ -1034,7 +1124,7 @@ class RTVSDB:
                 (message[:250], run_id),
             )
 
-    def finish_run(self, run_id: str, final_status: str):
+    def finish_run(self, run_id: str, final_status: str = "DONE"):
         with self.connection:
             cursor = self.connection.cursor()
 

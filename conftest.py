@@ -21,34 +21,34 @@ from pages.cozeva_mfa_page import CozevaMFAPage
 from core.base_page import HeaderNavBar
 
 
-@pytest.fixture(scope="function")
-def functiondriver(request):
-    """
-    Fixture to initialize and quit WebDriver for each test.
-
-    Args:
-        request: Pytest request object
-
-    Yields:
-        WebDriver instance
-    """
-    # Setup: Create WebDriver
-    browser = Config.get_browser()
-    headless = Config.is_headless()
-    driver, profile = WebDriverFactory.get_driver(browser_name=browser, headless=headless, use_chrome_profile=False)
-
-    # Set timeouts
-    driver.set_page_load_timeout(Config.PAGE_LOAD_TIMEOUT)
-    if Config.IMPLICIT_WAIT > 0:
-        driver.implicitly_wait(Config.IMPLICIT_WAIT)
-
-    # Yield driver to the test
-    yield driver
-
-    # Teardown: Take screenshot on failure and quit driver
-
-
-    driver.quit()
+# @pytest.fixture(scope="function")
+# def functiondriver(request):
+#     """
+#     Fixture to initialize and quit WebDriver for each test.
+#
+#     Args:
+#         request: Pytest request object
+#
+#     Yields:
+#         WebDriver instance
+#     """
+#     # Setup: Create WebDriver
+#     browser = Config.get_browser()
+#     headless = Config.is_headless()
+#     driver, profile = WebDriverFactory.get_driver(browser_name=browser, headless=headless, use_chrome_profile=False)
+#
+#     # Set timeouts
+#     driver.set_page_load_timeout(Config.PAGE_LOAD_TIMEOUT)
+#     if Config.IMPLICIT_WAIT > 0:
+#         driver.implicitly_wait(Config.IMPLICIT_WAIT)
+#
+#     # Yield driver to the test
+#     yield driver
+#
+#     # Teardown: Take screenshot on failure and quit driver
+#
+#
+#     driver.quit()
 
 
 @pytest.fixture(scope="session")
@@ -59,6 +59,7 @@ def session_driver(request, config_assists, init_session_state):
     Args:
         request: Pytest request object
         config_assists: ConfigAssists instance
+        init_session_state: Session state initialization fixture
 
     Yields:
         WebDriver instance
