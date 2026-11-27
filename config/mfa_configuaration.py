@@ -59,4 +59,5 @@ def CONFIGURE_MFA(profile):
         traceback.print_exc()
 
     finally:
-        driver.quit()
+        if driver is not None:
+            driver.quit()
