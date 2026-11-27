@@ -16,6 +16,7 @@ def CONFIGURE_MFA(profile):
     Configure MFA settings for the application.
     This function can be expanded to include specific MFA configuration steps.
     """
+    driver = None
     try:
         print("Initializing WebDriver...")
         driver, profile = WebDriverFactory.get_driver(use_chrome_profile=True,
