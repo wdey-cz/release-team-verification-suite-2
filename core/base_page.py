@@ -208,7 +208,7 @@ class BasePage:
             self,
             desc="",
             appear_timeout=1,
-            disappear_timeout=200,
+            disappear_timeout=240,
             strict=False
     ):
         t0 = time.perf_counter()
