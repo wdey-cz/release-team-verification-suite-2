@@ -531,23 +531,31 @@ class StartTestDialog(QtWidgets.QDialog):
         return []
 
     def on_category_changed(self, category: str) -> None:
-        """
-        Repopulate marker dropdown based on category.
-        Keep a sentinel so description stays empty until a real marker is selected.
-        """
+        """Repopulate marker dropdown and select the default package."""
+
         markers = self._fetch_markers_for_category(category)
 
         self.marker_combo.blockSignals(True)
         self.marker_combo.clear()
-        self.marker_combo.addItem("-- Select a package --", userData=None)  # sentinel
+
+        self.marker_combo.addItem(
+            "-- Select a package --", userData=None
+        )
+
         for m in markers:
             self.marker_combo.addItem(m, userData=m)
-        self.marker_combo.setCurrentIndex(0)
+
+        # Select CozevaComboPack1 by default for REG
+        default_index = self.marker_combo.findData("CozevaComboPack1")
+
+        self.marker_combo.setCurrentIndex(
+            default_index if default_index >= 0 else 0
+        )
+
         self.marker_combo.blockSignals(False)
 
-        # Clear desc until user picks a real marker; restore standard role/manual fields
-        self.package_desc_input.setText("")
-        self._set_hcc_mode(False)
+        # Refresh package description and HCC mode
+        self.on_marker_changed(self.marker_combo.currentIndex())
 
     def on_marker_changed(self, _index: int) -> None:
         """
